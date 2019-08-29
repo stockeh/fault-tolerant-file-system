@@ -4,6 +4,9 @@ package cs555.system.util;
  * Class used to print <b>info</b> and <b>error</b> logs to the
  * console.
  * 
+ * Initialize a new Logger for a give class. Use as a private final
+ * static object in the calling class.
+ * 
  * @author stock
  *
  */

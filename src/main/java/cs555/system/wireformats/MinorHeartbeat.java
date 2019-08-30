@@ -9,18 +9,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * The registry informs nodes in the overlay when they should start
- * sending messages to each other. It does so via the TaskInitiate
- * control message.
+ * 
  * 
  * @author stock
  *
  */
-public class TaskInitiate implements Event {
+public class MinorHeartbeat implements Event {
 
   int type;
 
-  int numRounds;
+  int totalChunks;
+
+  long freeSpace;
 
   /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
@@ -29,7 +29,7 @@ public class TaskInitiate implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public TaskInitiate(byte[] marshalledBytes) throws IOException {
+  public MinorHeartbeat(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -37,7 +37,9 @@ public class TaskInitiate implements Event {
 
     this.type = din.readInt();
 
-    this.numRounds = din.readInt();
+    this.totalChunks = din.readInt();
+
+    this.freeSpace = din.readLong();
 
     inputStream.close();
     din.close();
@@ -46,18 +48,19 @@ public class TaskInitiate implements Event {
   /**
    * Default constructor - create a new task initiation
    * 
-   * @param numRounds
+   * @param totalChunks
    */
-  public TaskInitiate(int numRounds) {
-    this.type = Protocol.TASK_INITIATE;
-    this.numRounds = numRounds;
+  public MinorHeartbeat(int totalChunks, long freeSpace) {
+    this.type = Protocol.MINOR_HEARTBEAT;
+    this.totalChunks = totalChunks;
+    this.freeSpace = freeSpace;
   }
 
   /**
-   * @return The number of rounds each node should participate in.
+   * @return The number of chunks on the chunk server
    */
-  public int getNumRounds() {
-    return numRounds;
+  public int getTotalChunks() {
+    return totalChunks;
   }
 
   /**
@@ -80,7 +83,9 @@ public class TaskInitiate implements Event {
 
     dout.writeInt( type );
 
-    dout.writeInt( numRounds );
+    dout.writeInt( totalChunks );
+
+    dout.writeLong( freeSpace );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -93,7 +98,8 @@ public class TaskInitiate implements Event {
   @Override
   public String toString() {
     return Integer.toString( this.type ) + " "
-        + Integer.toString( this.numRounds );
+        + Integer.toString( this.totalChunks ) + " "
+        + Long.toString( this.freeSpace );
   }
 
 }

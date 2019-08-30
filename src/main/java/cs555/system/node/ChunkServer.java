@@ -5,15 +5,15 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
+import cs555.system.util.HeartbeatHandler;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
-import cs555.system.wireformats.MessagingNodeList;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.Register;
 import cs555.system.wireformats.RegisterResponse;
@@ -75,6 +75,12 @@ public class ChunkServer implements Node, Protocol {
           new ChunkServer( InetAddress.getLocalHost().getHostName(), nodePort );
       ( new Thread( new TCPServerThread( node, serverSocket ) ) ).start();
       node.registerNode( args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+      
+      HeartbeatHandler heartbeatHandler = new HeartbeatHandler(node.controllerConnection);
+      Timer timer = new Timer();
+      final int interval = 5 * 1000; // 5 seconds in milliseconds
+      timer.schedule( heartbeatHandler, 1000, interval );
+      
       node.interact();
     } catch ( IOException e )
     {
@@ -186,60 +192,13 @@ public class ChunkServer implements Node, Protocol {
         System.out.println( ( ( RegisterResponse ) event ).toString() );
         break;
 
-      case Protocol.MESSAGING_NODE_LIST :
-        establishOverlayConnections( event );
-        break;
-
       case Protocol.REGISTER_REQUEST :
         acknowledgeNewConnection( event, connection );
         break;
     }
   }
 
-  /**
-   * Establish a connection with other nodes in the topology as
-   * specified by the registry.
-   * 
-   * @param event
-   */
-  private void establishOverlayConnections(Event event) {
-    MessagingNodeList msg = ( MessagingNodeList ) event;
-    List<String> peers = msg.getPeers();
 
-    for ( String peer : peers )
-    {
-      String[] info = peer.split( ":" );
-      Socket socketToMessagingNode = null;
-      try
-      {
-        socketToMessagingNode =
-            new Socket( info[ 0 ], Integer.parseInt( info[ 1 ] ) );
-      } catch ( NumberFormatException | IOException e )
-      {
-        LOG.error( e.getMessage() );
-        e.printStackTrace();
-        return;
-      }
-      try
-      {
-        TCPConnection connection =
-            new TCPConnection( this, socketToMessagingNode );
-        Register register = new Register( Protocol.REGISTER_REQUEST,
-            this.nodeHost, this.nodePort );
-        connection.getTCPSenderThread().sendData( register.getBytes() );
-        connection.start();
-        // Add "outgoing" connection to this.connections
-        connections.put( peer, connection );
-      } catch ( IOException | InterruptedException e )
-      {
-        LOG.error( e.getMessage() );
-        e.printStackTrace();
-      }
-    }
-    int numberOfPeers = msg.getNumPeers();
-    System.out.println( "Finished establishing ("
-        + Integer.toString( numberOfPeers ) + ") connections.\n" );
-  }
 
   /**
    * Acknowledge "incoming" connections and add connection to

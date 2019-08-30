@@ -53,17 +53,8 @@ public class EventFactory {
       case Protocol.DEREGISTER_REQUEST :
         return new Register( marshalledBytes );
 
-      case Protocol.MESSAGING_NODE_LIST :
-        return new MessagingNodeList( marshalledBytes );
-
-      case Protocol.TASK_INITIATE :
-        return new TaskInitiate( marshalledBytes );
-
-      case Protocol.MESSAGE :
-        return new Message( marshalledBytes );
-
-      case Protocol.TASK_COMPLETE :
-        return new TaskComplete( marshalledBytes );
+      case Protocol.MINOR_HEARTBEAT :
+        return new MinorHeartbeat( marshalledBytes );
 
       default :
         LOG.error( "Event could not be created. "

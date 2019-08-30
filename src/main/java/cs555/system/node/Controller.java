@@ -10,6 +10,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.Register;
 import cs555.system.wireformats.RegisterResponse;
@@ -104,6 +105,10 @@ public class Controller implements Node {
       case Protocol.DEREGISTER_REQUEST :
         registrationHandler( event, connection, false );
         break;
+        
+      case Protocol.MINOR_HEARTBEAT :
+        heartbeatHandler( event, connection );
+        break;
 
     }
   }
@@ -152,6 +157,10 @@ public class Controller implements Node {
       LOG.error( e.getMessage() );
       connections.remove( nodeDetails );
     }
+  }
+  
+  private synchronized void heartbeatHandler(Event event, TCPConnection connection) {
+    String details = ( ( MinorHeartbeat ) event ).toString();
   }
 
   /**

@@ -15,15 +15,7 @@ public interface Protocol {
 
   final int DEREGISTER_REQUEST = 2;
 
-  final int MESSAGING_NODE_LIST = 3;
-
-  final int MESSAGE = 4;
-
-  final int LINK_WEIGHTS = 5;
-
-  final int TASK_INITIATE = 6;
-
-  final int TASK_COMPLETE = 7;
+  final int MINOR_HEARTBEAT = 3;
 
   final byte SUCCESS = ( byte ) 200;
 

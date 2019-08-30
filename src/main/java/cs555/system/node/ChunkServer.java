@@ -78,7 +78,7 @@ public class ChunkServer implements Node, Protocol {
       
       HeartbeatHandler heartbeatHandler = new HeartbeatHandler(node.controllerConnection);
       Timer timer = new Timer();
-      final int interval = 5 * 1000; // 5 seconds in milliseconds
+      final int interval = 30 * 1000; // 30 seconds in milliseconds
       timer.schedule( heartbeatHandler, 1000, interval );
       
       node.interact();

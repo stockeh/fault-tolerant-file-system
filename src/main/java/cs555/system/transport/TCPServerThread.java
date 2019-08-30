@@ -12,7 +12,7 @@ import cs555.system.util.Logger;
  * 
  * Upon a new connection being made a TCP Connection is established on
  * to send and receive messages as a response. The thread is blocked
- * on the accept statement untill these new connections are
+ * on the accept statement until these new connections are
  * established.
  * 
  * @author stock

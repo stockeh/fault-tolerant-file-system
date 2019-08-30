@@ -106,11 +106,11 @@ public class ChunkServer implements Node, Protocol {
 
       LOG.info(
           "MessagingNode Identifier: " + this.nodeHost + ":" + this.nodePort );
-      connection.getTCPSenderThread().sendData( register.getBytes() );
+      connection.getTCPSender().sendData( register.getBytes() );
       connection.start();
 
       this.controllerConnection = connection;
-    } catch ( IOException | InterruptedException e )
+    } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
       e.printStackTrace();
@@ -172,7 +172,7 @@ public class ChunkServer implements Node, Protocol {
 
     try
     {
-      controllerConnection.getTCPSenderThread().sendData( register.getBytes() );
+      controllerConnection.getTCPSender().sendData( register.getBytes() );
       controllerConnection.close();
     } catch ( IOException | InterruptedException e )
     {

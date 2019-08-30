@@ -105,7 +105,7 @@ public class Controller implements Node {
       case Protocol.DEREGISTER_REQUEST :
         registrationHandler( event, connection, false );
         break;
-        
+
       case Protocol.MINOR_HEARTBEAT :
         heartbeatHandler( event, connection );
         break;
@@ -151,15 +151,16 @@ public class Controller implements Node {
     RegisterResponse response = new RegisterResponse( status, message );
     try
     {
-      connection.getTCPSenderThread().sendData( response.getBytes() );
-    } catch ( IOException | InterruptedException e )
+      connection.getTCPSender().sendData( response.getBytes() );
+    } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
       connections.remove( nodeDetails );
     }
   }
-  
-  private synchronized void heartbeatHandler(Event event, TCPConnection connection) {
+
+  private synchronized void heartbeatHandler(Event event,
+      TCPConnection connection) {
     String details = ( ( MinorHeartbeat ) event ).toString();
   }
 

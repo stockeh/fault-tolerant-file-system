@@ -109,7 +109,7 @@ public class Client implements Node {
 
     try
     {
-      registryConnection.getTCPSenderThread().sendData( register.getBytes() );
+      registryConnection.getTCPSender().sendData( register.getBytes() );
       registryConnection.close();
     } catch ( IOException | InterruptedException e )
     {
@@ -135,11 +135,11 @@ public class Client implements Node {
 
       LOG.info(
           "Client Identifier: " + this.nodeHost + ":" + this.nodePort );
-      connection.getTCPSenderThread().sendData( register.getBytes() );
+      connection.getTCPSender().sendData( register.getBytes() );
       connection.start();
 
       this.registryConnection = connection;
-    } catch ( IOException | InterruptedException e )
+    } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
       e.printStackTrace();

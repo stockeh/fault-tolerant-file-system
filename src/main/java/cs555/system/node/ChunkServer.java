@@ -5,10 +5,8 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Date;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Timer;
-import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.HeartbeatHandler;
@@ -34,8 +32,6 @@ public class ChunkServer implements Node, Protocol {
   private static final String HELP = "help";
 
   private TCPConnection controllerConnection;
-
-  private Map<String, TCPConnection> connections = new ConcurrentHashMap<>();
 
   private Integer nodePort;
 
@@ -75,12 +71,13 @@ public class ChunkServer implements Node, Protocol {
           new ChunkServer( InetAddress.getLocalHost().getHostName(), nodePort );
       ( new Thread( new TCPServerThread( node, serverSocket ) ) ).start();
       node.registerNode( args[ 0 ], Integer.valueOf( args[ 1 ] ) );
-      
-      HeartbeatHandler heartbeatHandler = new HeartbeatHandler(node.controllerConnection);
+
+      HeartbeatHandler heartbeatHandler =
+          new HeartbeatHandler( node.controllerConnection );
       Timer timer = new Timer();
       final int interval = 30 * 1000; // 30 seconds in milliseconds
       timer.schedule( heartbeatHandler, 1000, interval );
-      
+
       node.interact();
     } catch ( IOException e )
     {
@@ -133,15 +130,8 @@ public class ChunkServer implements Node, Protocol {
       {
 
         case EXIT :
-          if ( connections.size() == 0 )
-          {
-            exitOverlay();
-            running = false;
-          } else
-          {
-            LOG.error(
-                "Chunk Server is connected with the client. Unable to leave the overlay.\n" );
-          }
+          exitOverlay();
+          running = false;
           break;
 
         case HELP :
@@ -191,24 +181,7 @@ public class ChunkServer implements Node, Protocol {
       case Protocol.REGISTER_RESPONSE :
         System.out.println( ( ( RegisterResponse ) event ).toString() );
         break;
-
-      case Protocol.REGISTER_REQUEST :
-        acknowledgeNewConnection( event, connection );
-        break;
     }
   }
 
-
-
-  /**
-   * Acknowledge "incoming" connections and add connection to
-   * this.connections. Allows for this to send bidirectional message.
-   * 
-   * @param event
-   * @param connection
-   */
-  private void acknowledgeNewConnection(Event event, TCPConnection connection) {
-    String nodeDetails = ( ( Register ) event ).getConnection();
-    connections.put( nodeDetails, connection );
-  }
 }

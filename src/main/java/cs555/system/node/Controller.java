@@ -38,7 +38,7 @@ public class Controller implements Node {
   public static void main(String[] args) {
     if ( args.length < 1 )
     {
-      LOG.error( "USAGE: java cs455.overlay.node.Registry portnum" );
+      LOG.error( "USAGE: java cs555.system.node.Controller portnum" );
       return;
     }
 

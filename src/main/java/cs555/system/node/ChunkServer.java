@@ -17,7 +17,7 @@ import cs555.system.wireformats.Register;
 import cs555.system.wireformats.RegisterResponse;
 
 /**
- * Messaging nodes initiate and accept both communications and
+ * chunk servers initiate and accept both communications and
  * messages within the system.
  *
  * @author stock
@@ -60,10 +60,10 @@ public class ChunkServer implements Node, Protocol {
     if ( args.length < 2 )
     {
       LOG.error(
-          "USAGE: java cs555.system.node.ChunkServer registry-host registry-port" );
+          "USAGE: java cs555.system.node.ChunkServer controller-host controller-port" );
       System.exit( 1 );
     }
-    LOG.info( "Messaging Node starting up at: " + new Date() );
+    LOG.info( "chunk server starting up at: " + new Date() );
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
       int nodePort = serverSocket.getLocalPort();
@@ -87,19 +87,19 @@ public class ChunkServer implements Node, Protocol {
   }
 
   /**
-   * Registers a node with the registry.
+   * Registers a node with the controller.
    *
-   * @param host identifier for the registry node.
-   * @param port number for the registry node
+   * @param host identifier for the controller node.
+   * @param port number for the controller node
    */
-  private void registerNode(String registryHost, Integer registryPort) {
+  private void registerNode(String controllerHost, Integer controllerPort) {
     try
     {
-      Socket socketToTheServer = new Socket( registryHost, registryPort );
+      Socket socketToTheServer = new Socket( controllerHost, controllerPort );
       TCPConnection connection = new TCPConnection( this, socketToTheServer );
 
       Register register = new Register( Protocol.REGISTER_REQUEST,
-          this.nodeHost, this.nodePort );
+          Protocol.CHUNK_ID, this.nodeHost, this.nodePort );
 
       LOG.info(
           "MessagingNode Identifier: " + this.nodeHost + ":" + this.nodePort );
@@ -151,14 +151,14 @@ public class ChunkServer implements Node, Protocol {
   }
 
   /**
-   * Remove the node from the registry. This must occur prior to setting
-   * up the overlay on the registry.
+   * Remove the node from the controller. This must occur prior to setting
+   * up the overlay on the controller.
    * 
    * TODO: Do I close the socket here? Current exceptions.
    */
   private void exitOverlay() {
     Register register = new Register( Protocol.DEREGISTER_REQUEST,
-        this.nodeHost, this.nodePort );
+        Protocol.CHUNK_ID, this.nodeHost, this.nodePort );
 
     try
     {

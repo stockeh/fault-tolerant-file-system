@@ -11,6 +11,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
@@ -22,11 +23,18 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.Register;
 
+/**
+ * Single client to communicate with the file systems controller and
+ * chunk servers for writing and reading data.
+ * 
+ * @author stock
+ *
+ */
 public class Client implements Node {
 
   public static Logger LOG = new Logger();
 
-  private TCPConnection registryConnection;
+  private TCPConnection controllerConnection;
 
   private String outboundDirectory;
 
@@ -43,7 +51,7 @@ public class Client implements Node {
   private int nodePort;
 
   /**
-   * Default constructor - creates a new messaging node tying the
+   * Default constructor - creates a new chunk server tying the
    * <b>host:port</b> combination for the node as the identifier for
    * itself.
    * 
@@ -64,7 +72,7 @@ public class Client implements Node {
     if ( args.length < 3 )
     {
       LOG.error(
-          "USAGE: java cs555.system.node.Client registry-host registry-port outbound-dir" );
+          "USAGE: java cs555.system.node.Client controller-host controller-port outbound-dir" );
       System.exit( 1 );
     }
     LOG.info( "Client Node starting up at: " + new Date() );
@@ -165,11 +173,16 @@ public class Client implements Node {
    * @param files to send to the controller
    */
   private void sender(List<File> files) {
+    byte[] b = new byte[ Protocol.CHUNK_SIZE ];
     for ( File file : files )
     {
-      try( InputStream is = new FileInputStream(file))
+      try ( InputStream is = new FileInputStream( file ) )
       {
-        
+        int readBytes = 0;
+        while ( ( readBytes = is.read( b ) ) != -1 )
+        {
+          LOG.info( Integer.toString( readBytes ) );
+        }
       } catch ( FileNotFoundException e )
       {
         e.printStackTrace();
@@ -190,17 +203,17 @@ public class Client implements Node {
   }
 
   /**
-   * Remove the client node from the registry.
+   * Remove the client node from the controller.
    * 
    */
   private void deregisterClient() {
     Register register = new Register( Protocol.DEREGISTER_REQUEST,
-        this.nodeHost, this.nodePort );
+        Protocol.CLIENT_ID, this.nodeHost, this.nodePort );
 
     try
     {
-      registryConnection.getTCPSender().sendData( register.getBytes() );
-      registryConnection.close();
+      controllerConnection.getTCPSender().sendData( register.getBytes() );
+      controllerConnection.close();
     } catch ( IOException | InterruptedException e )
     {
       LOG.error( e.getMessage() );
@@ -209,25 +222,25 @@ public class Client implements Node {
   }
 
   /**
-   * Registers a node with the registry.
+   * Registers a node with the controller.
    *
-   * @param host identifier for the registry node.
-   * @param port number for the registry node
+   * @param host identifier for the controller node.
+   * @param port number for the controller node
    */
-  private void registerClient(String registryHost, Integer registryPort) {
+  private void registerClient(String controllerHost, Integer controllerPort) {
     try
     {
-      Socket socketToTheServer = new Socket( registryHost, registryPort );
+      Socket socketToTheServer = new Socket( controllerHost, controllerPort );
       TCPConnection connection = new TCPConnection( this, socketToTheServer );
 
       Register register = new Register( Protocol.REGISTER_REQUEST,
-          this.nodeHost, this.nodePort );
+          Protocol.CLIENT_ID, this.nodeHost, this.nodePort );
 
       LOG.info( "Client Identifier: " + this.nodeHost + ":" + this.nodePort );
       connection.getTCPSender().sendData( register.getBytes() );
       connection.start();
 
-      this.registryConnection = connection;
+      this.controllerConnection = connection;
     } catch ( IOException e )
     {
       LOG.error( e.getMessage() );

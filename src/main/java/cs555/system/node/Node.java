@@ -4,7 +4,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Event;
 
 /**
- * Interface for the MessagingNode and Registry, so underlying
+ * Interface for the MessagingNode and controller, so underlying
  * communication is indistinguishable, i.e., Nodes send messages to
  * Nodes.
  * 

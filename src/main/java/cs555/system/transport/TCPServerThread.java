@@ -7,8 +7,8 @@ import cs555.system.node.Node;
 import cs555.system.util.Logger;
 
 /**
- * A new TCP Server Thread is setup on the Registry and each new
- * Messaging Node to accept new connections.
+ * A new TCP Server Thread is setup on the controller and each new
+ * chunk server to accept new connections.
  * 
  * Upon a new connection being made a TCP Connection is established on
  * to send and receive messages as a response. The thread is blocked

@@ -22,7 +22,7 @@ public class TCPConnection {
 
   /**
    * Default constructor - create a new TCPConnection given a Node,
-   * i.e., MessageNode or Registry, and the socket for the connection.
+   * i.e., MessageNode or controller, and the socket for the connection.
    * 
    * @param node
    * @param socket

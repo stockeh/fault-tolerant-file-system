@@ -114,7 +114,7 @@ public class Controller implements Node {
   }
 
   /**
-   * Manage the registry synchronously by either registering a new
+   * Manage the controller synchronously by either registering a new
    * Client or Chunk Server, or removing one from the system.
    * 
    * @param event the object containing node details
@@ -123,16 +123,18 @@ public class Controller implements Node {
    */
   private synchronized void registrationHandler(Event event,
       TCPConnection connection, final boolean register) {
-    String nodeDetails = ( ( Register ) event ).getConnection();
+    Register request = ( Register ) event;
+    String nodeDetails = request.getConnection();
+    int identifier = request.getIdentifier();
     String message = registerStatusMessage( nodeDetails, connection.getSocket()
         .getInetAddress().getHostName().split( "\\." )[ 0 ], register );
     byte status;
     if ( message.length() == 0 )
     {
-      if ( register )
+      if ( register && identifier == Protocol.CHUNK_ID )
       {
         connections.put( nodeDetails, connection );
-      } else
+      } else if ( identifier == Protocol.CHUNK_ID )
       {
         connections.remove( nodeDetails );
         System.out.println( "Deregistered " + nodeDetails + ". There are now ("
@@ -186,7 +188,7 @@ public class Controller implements Node {
           "The node, " + nodeDetails + " had previously registered and has "
               + "a valid entry in its controller. ";
     } else if ( !connections.containsKey( nodeDetails ) && !register )
-    { // The case that the item is not in the registry.
+    { // The case that the chunk server is not in the controller.
       message =
           "The node, " + nodeDetails + " had not previously been registered. ";
     }
@@ -201,14 +203,14 @@ public class Controller implements Node {
   }
 
   /**
-   * Print out all of the connected Messaging Nodes that have connected.
+   * Print out all of the connected chunk servers that have connected.
    * If no nodes are connected, display an error message.
    */
   private void displayChunkNodes() {
     if ( connections.size() == 0 )
     {
       LOG.error(
-          "There are no connections in the registry. Initialize a new chunk server." );
+          "There are no connections in the controller. Initialize a new chunk server." );
     } else
     {
       System.out

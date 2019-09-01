@@ -9,8 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Register Response message type to respond to message node with the
- * status and information from the registry.
+ * Register Response message type to respond to chunk server with the
+ * status and information from the controller.
  * 
  * @author stock
  *

@@ -8,6 +8,7 @@
 HOST=localhost
 PORT=5001
 MULTI="1 2"
+OUTPUT_DIR=/Users/stock/Development/cs/cs555/fault-tolerant-file-system/data
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 BUILD="$DIR/build/classes/java/main"
@@ -30,7 +31,11 @@ LINES=`find . -name "*.java" -print | xargs wc -l | grep "total" | awk '{$1=$1};
     gradle clean
     gradle build
     open -a Terminal .
+    open -a Terminal .
     pushd $BUILD; java -cp . cs555.system.node.Controller $PORT; popd;
+elif [ $1 = "c" ]
+then
+    pushd $BUILD; java -cp . cs555.system.node.Client $HOST $PORT $OUTPUT_DIR; popd;
 else
     if [ -n "$MULTI" ]
     then

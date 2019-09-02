@@ -11,9 +11,9 @@ import java.io.IOException;
 /**
  * Register message type to initialize itself with another node.
  * 
- * This is a reusable class for registering, and deregistering
- * messaging nodes with the registry. As well as connecting messaging
- * nodes to other messaging nodes to construct the overlay.
+ * This is a reusable class for registering, and unregistering
+ * chunk servers with the controller. As well as connecting messaging
+ * nodes to other chunk servers to construct the overlay.
  * 
  * @author stock
  *
@@ -21,6 +21,8 @@ import java.io.IOException;
 public class Register implements Event {
 
   private int type;
+
+  private int identifier;
 
   private String ipAddress;
 
@@ -41,6 +43,8 @@ public class Register implements Event {
 
     this.type = din.readInt();
 
+    this.identifier = din.readInt();
+
     int len = din.readInt();
     byte[] ipBytes = new byte[ len ];
     din.readFully( ipBytes );
@@ -54,14 +58,16 @@ public class Register implements Event {
   }
 
   /**
-   * Default constructor - create a new register or deregister message.
+   * Default constructor - create a new register or unregister message.
    * 
-   * @param type Specified for use of register or deregister message.
+   * @param type Specified for use of register or unregister message.
+   * @param clinetId to distinguish between a chunk server and a client.
    * @param ipAddress
    * @param port
    */
-  public Register(int type, String ipAddress, int port) {
+  public Register(int type, int identifier, String ipAddress, int port) {
     this.type = type;
+    this.identifier = identifier;
     this.ipAddress = ipAddress;
     this.port = port;
   }
@@ -85,6 +91,8 @@ public class Register implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
+
+    dout.writeInt( identifier );
 
     byte[] ipBytes = ipAddress.getBytes();
     dout.writeInt( ipBytes.length );
@@ -115,5 +123,14 @@ public class Register implements Event {
    */
   public String getConnection() {
     return this.ipAddress + ":" + Integer.toString( this.port );
+  }
+
+  /**
+   * Retrieve the identifier for the controller message.
+   * 
+   * @return integer representing the id
+   */
+  public int getIdentifier() {
+    return this.identifier;
   }
 }

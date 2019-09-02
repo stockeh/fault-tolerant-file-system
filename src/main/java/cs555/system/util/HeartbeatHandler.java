@@ -70,8 +70,8 @@ public class HeartbeatHandler extends TimerTask {
     MinorHeartbeat msg = new MinorHeartbeat( totalChunks, freeSpace );
     try
     {
-      controllerConnection.getTCPSenderThread().sendData( msg.getBytes() );
-    } catch ( InterruptedException | IOException e )
+      controllerConnection.getTCPSender().sendData( msg.getBytes() );
+    } catch ( IOException e )
     {
       LOG.error(
           "Unable to send heartbeat message to controller. " + e.getMessage() );

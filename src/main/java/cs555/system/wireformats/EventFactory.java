@@ -50,7 +50,7 @@ public class EventFactory {
       case Protocol.REGISTER_RESPONSE :
         return new RegisterResponse( marshalledBytes );
 
-      case Protocol.DEREGISTER_REQUEST :
+      case Protocol.UNREGISTER_REQUEST :
         return new Register( marshalledBytes );
 
       case Protocol.MINOR_HEARTBEAT :

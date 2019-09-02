@@ -7,7 +7,7 @@ import cs555.system.node.Node;
 
 /**
  * This class is used to establish a connection by starting a new
- * TCPSenderThread and TCPReceiverThread.
+ * TCPReceiverThread and associating the TCPSender with the socket.
  * 
  * @author stock
  *
@@ -16,13 +16,13 @@ public class TCPConnection {
 
   private Socket socket;
 
-  private TCPSenderThread sender;
+  private TCPSender sender;
 
   private TCPReceiverThread receiver;
 
   /**
    * Default constructor - create a new TCPConnection given a Node,
-   * i.e., MessageNode or Registry, and the socket for the connection.
+   * i.e., chunk server or controller, and the socket for the connection.
    * 
    * @param node
    * @param socket
@@ -30,12 +30,12 @@ public class TCPConnection {
    */
   public TCPConnection(Node node, Socket socket) throws IOException {
     this.socket = socket;
-    this.sender = new TCPSenderThread( this.socket );
+    this.sender = new TCPSender( this.socket );
     this.receiver = new TCPReceiverThread( node, this.socket, this );
   }
 
   /**
-   * Get the Socket for the connection to verify Inet information
+   * Get the Socket for the connection to verify INet information
    * 
    * @return the socket for the connection.
    */
@@ -44,13 +44,13 @@ public class TCPConnection {
   }
 
   /**
-   * Get the TCPSenderThread so the client or server can send a message
-   * over the socket
+   * Get the TCPSender so the client or server can send a message over
+   * the socket
    * 
-   * @return the TCPSenderThread instance that was instantiated during
-   *         the {@link #run()} method of the new thread.
+   * @return the TCPSender instance that was instantiated during the
+   *         {@link #run()} method of the new thread.
    */
-  public TCPSenderThread getTCPSenderThread() {
+  public TCPSender getTCPSender() {
     return this.sender;
   }
 
@@ -60,7 +60,6 @@ public class TCPConnection {
    */
   public void start() {
     ( new Thread( this.receiver ) ).start();
-    ( new Thread( this.sender ) ).start();
   }
 
   /**

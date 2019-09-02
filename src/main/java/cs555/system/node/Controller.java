@@ -1,6 +1,7 @@
 package cs555.system.node;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.Date;
 import java.util.HashMap;
@@ -10,7 +11,6 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
-import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.Register;
 import cs555.system.wireformats.RegisterResponse;
@@ -30,6 +30,39 @@ public class Controller implements Node {
 
   private Map<String, TCPConnection> connections = new HashMap<>();
 
+  private String host;
+
+  private int port;
+
+  /**
+   * Default constructor - creates a new controller tying the
+   * <b>host:port</b> combination for the node as the identifier for
+   * itself.
+   * 
+   * @param host
+   * @param port
+   */
+  public Controller(String host, int port) {
+    this.host = host;
+    this.port = port;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getHost() {
+    return this.host;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int getPort() {
+    return this.port;
+  }
+
   /**
    * Stands-up the controller as an entry point to the class.
    *
@@ -38,23 +71,28 @@ public class Controller implements Node {
   public static void main(String[] args) {
     if ( args.length < 1 )
     {
-      LOG.error( "USAGE: java cs455.overlay.node.Registry portnum" );
-      return;
+      LOG.error( "USAGE: java cs555.system.node.Controller portnum" );
+      System.exit( 1 );
     }
 
     LOG.info( "Controller starting up at: " + new Date() );
-    Controller controller = new Controller();
+
     try ( ServerSocket serverSocket =
         new ServerSocket( Integer.valueOf( args[ 0 ] ) ) )
     {
+      Controller controller =
+          new Controller( InetAddress.getLocalHost().getHostName(),
+              serverSocket.getLocalPort() );
+
       ( new Thread( new TCPServerThread( controller, serverSocket ) ) ).start();
 
       controller.interact();
 
     } catch ( IOException e )
     {
-      LOG.error( e.getMessage() );
-      e.printStackTrace();
+      LOG.error( "Unable to successfully start controller. Exiting. "
+          + e.getMessage() );
+      System.exit( 1 );
     }
   }
 
@@ -79,7 +117,7 @@ public class Controller implements Node {
 
         case HELP :
           System.out.println( "\n\t" + LIST_CHUNK_NODES
-              + "\t\t: show the nodes connected with the controller.\n" );
+              + "\t: show the nodes connected with the controller.\n" );
           break;
 
         default :
@@ -102,10 +140,10 @@ public class Controller implements Node {
         registrationHandler( event, connection, true );
         break;
 
-      case Protocol.DEREGISTER_REQUEST :
+      case Protocol.UNREGISTER_REQUEST :
         registrationHandler( event, connection, false );
         break;
-        
+
       case Protocol.MINOR_HEARTBEAT :
         heartbeatHandler( event, connection );
         break;
@@ -114,25 +152,27 @@ public class Controller implements Node {
   }
 
   /**
-   * Manage the registry synchronously by either registering a new
+   * Manage the controller synchronously by either registering a new
    * Client or Chunk Server, or removing one from the system.
    * 
    * @param event the object containing node details
-   * @param connection the connection details, i.e., TCPSenderThread
+   * @param connection the connection details, i.e., TCPSender
    * @param register true to register new node, false to remove it
    */
   private synchronized void registrationHandler(Event event,
       TCPConnection connection, final boolean register) {
-    String nodeDetails = ( ( Register ) event ).getConnection();
+    Register request = ( Register ) event;
+    String nodeDetails = request.getConnection();
+    int identifier = request.getIdentifier();
     String message = registerStatusMessage( nodeDetails, connection.getSocket()
         .getInetAddress().getHostName().split( "\\." )[ 0 ], register );
     byte status;
     if ( message.length() == 0 )
     {
-      if ( register )
+      if ( register && identifier == Protocol.CHUNK_ID )
       {
         connections.put( nodeDetails, connection );
-      } else
+      } else if ( identifier == Protocol.CHUNK_ID )
       {
         connections.remove( nodeDetails );
         System.out.println( "Deregistered " + nodeDetails + ". There are now ("
@@ -151,16 +191,17 @@ public class Controller implements Node {
     RegisterResponse response = new RegisterResponse( status, message );
     try
     {
-      connection.getTCPSenderThread().sendData( response.getBytes() );
-    } catch ( IOException | InterruptedException e )
+      connection.getTCPSender().sendData( response.getBytes() );
+    } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
       connections.remove( nodeDetails );
     }
   }
-  
-  private synchronized void heartbeatHandler(Event event, TCPConnection connection) {
-    String details = ( ( MinorHeartbeat ) event ).toString();
+
+  private synchronized void heartbeatHandler(Event event,
+      TCPConnection connection) {
+    // String details = ( ( MinorHeartbeat ) event ).toString();
   }
 
   /**
@@ -185,7 +226,7 @@ public class Controller implements Node {
           "The node, " + nodeDetails + " had previously registered and has "
               + "a valid entry in its controller. ";
     } else if ( !connections.containsKey( nodeDetails ) && !register )
-    { // The case that the item is not in the registry.
+    { // The case that the chunk server is not in the controller.
       message =
           "The node, " + nodeDetails + " had not previously been registered. ";
     }
@@ -200,14 +241,14 @@ public class Controller implements Node {
   }
 
   /**
-   * Print out all of the connected Messaging Nodes that have connected.
+   * Print out all of the connected chunk servers that have connected.
    * If no nodes are connected, display an error message.
    */
   private void displayChunkNodes() {
     if ( connections.size() == 0 )
     {
       LOG.error(
-          "There are no connections in the registry. Initialize a new chunk server." );
+          "There are no connections in the controller. Initialize a new chunk server." );
     } else
     {
       System.out

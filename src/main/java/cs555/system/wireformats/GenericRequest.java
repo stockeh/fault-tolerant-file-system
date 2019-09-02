@@ -9,19 +9,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Register Response message type to respond to chunk server with the
- * status and information from the controller.
+ * Request to the controller to write a chunk.
  * 
  * @author stock
  *
  */
-public class RegisterResponse implements Event {
+public class GenericRequest implements Event {
 
   private int type;
 
-  private byte status;
-
-  private String info;
+  public GenericRequest(int protocol) {
+    this.type = protocol;
+  }
 
   /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
@@ -30,7 +29,7 @@ public class RegisterResponse implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public RegisterResponse(byte[] marshalledBytes) throws IOException {
+  public GenericRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -38,28 +37,8 @@ public class RegisterResponse implements Event {
 
     this.type = din.readInt();
 
-    this.status = din.readByte();
-
-    int len = din.readInt();
-    byte[] infoBytes = new byte[ len ];
-    din.readFully( infoBytes, 0, len );
-
-    this.info = new String( infoBytes );
-
     inputStream.close();
     din.close();
-  }
-
-  /**
-   * Default constructor - create a new RegisterResponse message.
-   * 
-   * @param status
-   * @param info
-   */
-  public RegisterResponse(byte status, String info) {
-    this.type = Protocol.REGISTER_RESPONSE;
-    this.status = status;
-    this.info = info;
   }
 
   /**
@@ -82,12 +61,6 @@ public class RegisterResponse implements Event {
 
     dout.writeInt( type );
 
-    dout.writeByte( status );
-
-    byte[] infoBytes = info.getBytes();
-    dout.writeInt( infoBytes.length );
-    dout.write( infoBytes );
-
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
@@ -96,14 +69,9 @@ public class RegisterResponse implements Event {
     return marshalledBytes;
   }
 
-  /**
-   * Display the information associated with the registration response
-   * 
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
-    return info;
+    return "\n" + Integer.toString( type );
   }
 
 }

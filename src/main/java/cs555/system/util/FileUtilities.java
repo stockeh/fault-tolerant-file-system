@@ -4,6 +4,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Utility class for all file related activities.
+ * 
+ * @author stock
+ *
+ */
 public class FileUtilities {
 
   /**

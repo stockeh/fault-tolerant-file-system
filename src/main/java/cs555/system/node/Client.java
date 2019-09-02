@@ -18,6 +18,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import cs555.system.transport.TCPConnection;
+import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
@@ -79,19 +80,18 @@ public class Client implements Node {
 
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
-      int nodePort = serverSocket.getLocalPort();
-      Client node =
-          new Client( InetAddress.getLocalHost().getHostName(), nodePort );
-      node.registerClient( args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+      Client node = new Client( InetAddress.getLocalHost().getHostName(),
+          serverSocket.getLocalPort() );
+      node.controllerConnection =
+          ConnectionUtilities.registerClient( node, args[ 0 ],
+              Integer.valueOf( args[ 1 ] ), node.nodeHost, node.nodePort );
       node.outboundDirectory = args[ 2 ];
       node.interact();
     } catch ( IOException e )
     {
       LOG.error(
           "Unable to successfully start client. Exiting. " + e.getMessage() );
-      e.printStackTrace();
     }
-
   }
 
   private void interact() {
@@ -215,33 +215,6 @@ public class Client implements Node {
       controllerConnection.getTCPSender().sendData( register.getBytes() );
       controllerConnection.close();
     } catch ( IOException | InterruptedException e )
-    {
-      LOG.error( e.getMessage() );
-      e.printStackTrace();
-    }
-  }
-
-  /**
-   * Registers a node with the controller.
-   *
-   * @param host identifier for the controller node.
-   * @param port number for the controller node
-   */
-  private void registerClient(String controllerHost, Integer controllerPort) {
-    try
-    {
-      Socket socketToTheServer = new Socket( controllerHost, controllerPort );
-      TCPConnection connection = new TCPConnection( this, socketToTheServer );
-
-      Register register = new Register( Protocol.REGISTER_REQUEST,
-          Protocol.CLIENT_ID, this.nodeHost, this.nodePort );
-
-      LOG.info( "Client Identifier: " + this.nodeHost + ":" + this.nodePort );
-      connection.getTCPSender().sendData( register.getBytes() );
-      connection.start();
-
-      this.controllerConnection = connection;
-    } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
       e.printStackTrace();

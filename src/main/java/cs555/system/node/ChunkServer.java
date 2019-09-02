@@ -17,8 +17,8 @@ import cs555.system.wireformats.Register;
 import cs555.system.wireformats.RegisterResponse;
 
 /**
- * chunk servers initiate and accept both communications and
- * messages within the system.
+ * chunk servers initiate and accept both communications and messages
+ * within the system.
  *
  * @author stock
  *
@@ -33,9 +33,9 @@ public class ChunkServer implements Node, Protocol {
 
   private TCPConnection controllerConnection;
 
-  private Integer nodePort;
-
   private String nodeHost;
+
+  private int nodePort;
 
   /**
    * Default constructor - creates a new chunk server tying the
@@ -91,8 +91,10 @@ public class ChunkServer implements Node, Protocol {
    *
    * @param host identifier for the controller node.
    * @param port number for the controller node
+   * @throws IOException
    */
-  private void registerNode(String controllerHost, Integer controllerPort) {
+  private void registerNode(String controllerHost, Integer controllerPort)
+      throws IOException {
     try
     {
       Socket socketToTheServer = new Socket( controllerHost, controllerPort );
@@ -109,8 +111,10 @@ public class ChunkServer implements Node, Protocol {
       this.controllerConnection = connection;
     } catch ( IOException e )
     {
-      LOG.error( e.getMessage() );
-      e.printStackTrace();
+      LOG.error(
+          "Unable to connect to the controller. Check that it is running, and the connection details are correct. "
+              + e.getMessage() );
+      throw e;
     }
   }
 
@@ -151,8 +155,8 @@ public class ChunkServer implements Node, Protocol {
   }
 
   /**
-   * Remove the node from the controller. This must occur prior to setting
-   * up the overlay on the controller.
+   * Remove the node from the controller. This must occur prior to
+   * setting up the overlay on the controller.
    * 
    * TODO: Do I close the socket here? Current exceptions.
    */

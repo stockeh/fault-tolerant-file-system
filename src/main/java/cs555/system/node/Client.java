@@ -7,11 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
@@ -22,7 +20,6 @@ import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.Register;
 
 /**
  * Single client to communicate with the file systems controller and
@@ -45,23 +42,39 @@ public class Client implements Node {
 
   private static final String UPLOAD = "upload";
 
-  private static final String LIST_FILES = "list-files";
+  private static final String LIST_FILES = "list";
 
-  private String nodeHost;
+  private String host;
 
-  private int nodePort;
+  private int port;
 
   /**
-   * Default constructor - creates a new chunk server tying the
+   * Default constructor - creates a new client tying the
    * <b>host:port</b> combination for the node as the identifier for
    * itself.
    * 
-   * @param nodeHost
-   * @param nodePort
+   * @param host
+   * @param port
    */
-  private Client(String nodeHost, int nodePort) {
-    this.nodeHost = nodeHost;
-    this.nodePort = nodePort;
+  private Client(String host, int port) {
+    this.host = host;
+    this.port = port;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getHost() {
+    return this.host;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int getPort() {
+    return this.port;
   }
 
   /**
@@ -82,15 +95,17 @@ public class Client implements Node {
     {
       Client node = new Client( InetAddress.getLocalHost().getHostName(),
           serverSocket.getLocalPort() );
-      node.controllerConnection =
-          ConnectionUtilities.registerClient( node, args[ 0 ],
-              Integer.valueOf( args[ 1 ] ), node.nodeHost, node.nodePort );
+
+      node.controllerConnection = ConnectionUtilities.registerNode( node,
+          Protocol.CLIENT_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+
       node.outboundDirectory = args[ 2 ];
       node.interact();
     } catch ( IOException e )
     {
       LOG.error(
           "Unable to successfully start client. Exiting. " + e.getMessage() );
+      System.exit( 1 );
     }
   }
 
@@ -104,7 +119,6 @@ public class Client implements Node {
       Scanner scan = new Scanner( System.in );
       switch ( scan.nextLine().toLowerCase() )
       {
-
         case UPLOAD :
           try
           {
@@ -114,8 +128,10 @@ public class Client implements Node {
             LOG.error(
                 "Failed to read from outbound directory - check arguments. "
                     + e.getMessage() );
-            deregisterClient();
+            ConnectionUtilities.unregisterNode( this, Protocol.CLIENT_ID,
+                controllerConnection );
             running = false;
+            continue;
           }
           break;
 
@@ -124,7 +140,8 @@ public class Client implements Node {
           break;
 
         case EXIT :
-          deregisterClient();
+          ConnectionUtilities.unregisterNode( this, Protocol.CLIENT_ID,
+              controllerConnection );
           running = false;
           break;
 
@@ -138,8 +155,7 @@ public class Client implements Node {
           break;
       }
     }
-    LOG.info(
-        nodeHost + ":" + nodePort + " has deregistered and is terminating." );
+    LOG.info( host + ":" + port + " has unregistered and is terminating." );
     System.exit( 0 );
   }
 
@@ -203,24 +219,8 @@ public class Client implements Node {
   }
 
   /**
-   * Remove the client node from the controller.
-   * 
+   * {@inheritDoc}
    */
-  private void deregisterClient() {
-    Register register = new Register( Protocol.DEREGISTER_REQUEST,
-        Protocol.CLIENT_ID, this.nodeHost, this.nodePort );
-
-    try
-    {
-      controllerConnection.getTCPSender().sendData( register.getBytes() );
-      controllerConnection.close();
-    } catch ( IOException | InterruptedException e )
-    {
-      LOG.error( e.getMessage() );
-      e.printStackTrace();
-    }
-  }
-
   @Override
   public void onEvent(Event event, TCPConnection connection) {
     LOG.debug( event.toString() );
@@ -230,6 +230,10 @@ public class Client implements Node {
     }
   }
 
+  /**
+   * Display a help message for how to interact with the application.
+   * 
+   */
   private void displayHelp() {
     System.out.println( "\n\t" + EXIT
         + "\t: disconnect from the controller and terminate.\n\n\t" + UPLOAD

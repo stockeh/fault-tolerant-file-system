@@ -22,7 +22,7 @@ public class TCPConnection {
 
   /**
    * Default constructor - create a new TCPConnection given a Node,
-   * i.e., MessageNode or controller, and the socket for the connection.
+   * i.e., chunk server or controller, and the socket for the connection.
    * 
    * @param node
    * @param socket
@@ -44,11 +44,11 @@ public class TCPConnection {
   }
 
   /**
-   * Get the TCPSender so the client or server can send a message
-   * over the socket
+   * Get the TCPSender so the client or server can send a message over
+   * the socket
    * 
-   * @return the TCPSender instance that was instantiated during
-   *         the {@link #run()} method of the new thread.
+   * @return the TCPSender instance that was instantiated during the
+   *         {@link #run()} method of the new thread.
    */
   public TCPSender getTCPSender() {
     return this.sender;

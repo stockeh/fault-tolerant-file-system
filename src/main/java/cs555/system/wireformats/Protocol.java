@@ -13,7 +13,7 @@ public interface Protocol {
 
   final int REGISTER_RESPONSE = 1;
 
-  final int DEREGISTER_REQUEST = 2;
+  final int UNREGISTER_REQUEST = 2;
 
   final int MINOR_HEARTBEAT = 3;
 

@@ -9,7 +9,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Request to the controller to write a chunk.
+ * Generic request message between applications.
  * 
  * @author stock
  *

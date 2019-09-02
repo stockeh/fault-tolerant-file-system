@@ -11,9 +11,9 @@ import java.io.IOException;
 /**
  * Register message type to initialize itself with another node.
  * 
- * This is a reusable class for registering, and unregistering
- * chunk servers with the controller. As well as connecting messaging
- * nodes to other chunk servers to construct the overlay.
+ * This is a reusable class for registering, and unregistering chunk
+ * servers with the controller. As well as connecting messaging nodes
+ * to other chunk servers to construct the overlay.
  * 
  * @author stock
  *
@@ -27,6 +27,21 @@ public class Register implements Event {
   private String ipAddress;
 
   private int port;
+
+  /**
+   * Default constructor - create a new register or unregister message.
+   * 
+   * @param type Specified for use of register or unregister message.
+   * @param clinetId to distinguish between a chunk server and a client.
+   * @param ipAddress
+   * @param port
+   */
+  public Register(int type, int identifier, String ipAddress, int port) {
+    this.type = type;
+    this.identifier = identifier;
+    this.ipAddress = ipAddress;
+    this.port = port;
+  }
 
   /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
@@ -55,21 +70,6 @@ public class Register implements Event {
 
     inputStream.close();
     din.close();
-  }
-
-  /**
-   * Default constructor - create a new register or unregister message.
-   * 
-   * @param type Specified for use of register or unregister message.
-   * @param clinetId to distinguish between a chunk server and a client.
-   * @param ipAddress
-   * @param port
-   */
-  public Register(int type, int identifier, String ipAddress, int port) {
-    this.type = type;
-    this.identifier = identifier;
-    this.ipAddress = ipAddress;
-    this.port = port;
   }
 
   /**

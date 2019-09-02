@@ -4,9 +4,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
+import cs555.system.metadata.ControllerMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Logger;
@@ -28,7 +27,7 @@ public class Controller implements Node {
 
   private static final String HELP = "help";
 
-  private Map<String, TCPConnection> connections = new HashMap<>();
+  private ControllerMetadata metadata = new ControllerMetadata();
 
   private String host;
 
@@ -112,7 +111,7 @@ public class Controller implements Node {
       switch ( input[ 0 ] )
       {
         case LIST_CHUNK_NODES :
-          displayChunkNodes();
+          metadata.displayConnections();
           break;
 
         case HELP :
@@ -162,25 +161,28 @@ public class Controller implements Node {
   private synchronized void registrationHandler(Event event,
       TCPConnection connection, final boolean register) {
     Register request = ( Register ) event;
-    String nodeDetails = request.getConnection();
+    String connectionDetails = request.getConnection();
     int identifier = request.getIdentifier();
-    String message = registerStatusMessage( nodeDetails, connection.getSocket()
-        .getInetAddress().getHostName().split( "\\." )[ 0 ], register );
+    String message =
+        registerStatusMessage( connectionDetails, connection.getSocket()
+            .getInetAddress().getHostName().split( "\\." )[ 0 ], register );
     byte status;
     if ( message.length() == 0 )
     {
       if ( register && identifier == Protocol.CHUNK_ID )
       {
-        connections.put( nodeDetails, connection );
+        metadata.addConnection( connectionDetails, connection );
       } else if ( identifier == Protocol.CHUNK_ID )
       {
-        connections.remove( nodeDetails );
-        System.out.println( "Deregistered " + nodeDetails + ". There are now ("
-            + connections.size() + ") connections.\n" );
+        metadata.removeConnection( connectionDetails );
+        System.out
+            .println( "Deregistered " + connectionDetails + ". There are now ("
+                + metadata.numberOfConnections() + ") connections.\n" );
       }
       message =
           "Registration request successful.  The number of chunk servers currently "
-              + "constituting the network are (" + connections.size() + ").\n";
+              + "constituting the network are ("
+              + metadata.numberOfConnections() + ").\n";
       status = Protocol.SUCCESS;
     } else
     {
@@ -195,7 +197,7 @@ public class Controller implements Node {
     } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
-      connections.remove( nodeDetails );
+      metadata.removeConnection( connectionDetails );
     }
   }
 
@@ -209,28 +211,31 @@ public class Controller implements Node {
    * address that is specified in the registration request and the IP
    * address of the request (the socket’s input stream) match.
    * 
-   * @param nodeDetails the host:port from the event message (request)
+   * @param connectionDetails the host:port from the event message
+   *        (request)
    * @param connectionIP the remote socket IP address from the current
    *        TCPConnection
    * @return a <code>String</code> containing the error message, or
    *         otherwise empty
    */
-  private String registerStatusMessage(String nodeDetails, String connectionIP,
-      final boolean register) {
-    LOG.debug( "Node Details : " + nodeDetails );
+  private String registerStatusMessage(String connectionDetails,
+      String connectionIP, final boolean register) {
+    LOG.debug( "Connection Details : " + connectionDetails );
     LOG.debug( "Connection IP: " + connectionIP );
     String message = "";
-    if ( connections.containsKey( nodeDetails ) && register )
+    if ( metadata.connectionsContainsKey( connectionDetails ) && register )
     {
-      message =
-          "The node, " + nodeDetails + " had previously registered and has "
-              + "a valid entry in its controller. ";
-    } else if ( !connections.containsKey( nodeDetails ) && !register )
-    { // The case that the chunk server is not in the controller.
-      message =
-          "The node, " + nodeDetails + " had not previously been registered. ";
+      message = "The node, " + connectionDetails
+          + " had previously registered and has "
+          + "a valid entry in its controller. ";
+    } else if ( !metadata.connectionsContainsKey( connectionDetails )
+        && !register )
+    { // The case that the chunk server is not already connected to the
+      // controller.
+      message = "The node, " + connectionDetails
+          + " had not previously been registered. ";
     }
-    if ( !nodeDetails.split( ":" )[ 0 ].equals( connectionIP )
+    if ( !connectionDetails.split( ":" )[ 0 ].equals( connectionIP )
         && !connectionIP.equals( "localhost" ) )
     {
       message +=
@@ -238,23 +243,5 @@ public class Controller implements Node {
               + "the IP of the socket.";
     }
     return message;
-  }
-
-  /**
-   * Print out all of the connected chunk servers that have connected.
-   * If no nodes are connected, display an error message.
-   */
-  private void displayChunkNodes() {
-    if ( connections.size() == 0 )
-    {
-      LOG.error(
-          "There are no connections in the controller. Initialize a new chunk server." );
-    } else
-    {
-      System.out
-          .println( "\nThere are " + connections.size() + " total links:\n" );
-      connections.forEach( (k, v) -> System.out.println( "\t" + k ) );
-      System.out.println();
-    }
   }
 }

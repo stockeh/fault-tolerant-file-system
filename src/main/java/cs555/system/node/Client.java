@@ -109,6 +109,10 @@ public class Client implements Node {
     }
   }
 
+  /**
+   * Allow support for commands to be specified while the processes are
+   * running.
+   */
   private void interact() {
     System.out.println(
         "\nInput a command to interact with processes. Input 'help' for a list of commands.\n" );
@@ -192,6 +196,9 @@ public class Client implements Node {
     byte[] b = new byte[ Protocol.CHUNK_SIZE ];
     for ( File file : files )
     {
+      // TODO: Send a request to the controller to write a file. This
+      // request should have the file name and the size of the file in KB (
+      // or number of chunks needed ).
       try ( InputStream is = new FileInputStream( file ) )
       {
         int readBytes = 0;

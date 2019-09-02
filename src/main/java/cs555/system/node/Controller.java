@@ -13,6 +13,7 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.Register;
 import cs555.system.wireformats.RegisterResponse;
+import cs555.system.wireformats.WriteQueryResponse;
 
 /**
  *
@@ -147,6 +148,24 @@ public class Controller implements Node {
         heartbeatHandler( event, connection );
         break;
 
+      case Protocol.WRITE_QUERY :
+        constructWriteResponse( event, connection );
+        break;
+    }
+  }
+
+  private void constructWriteResponse(Event event, TCPConnection connection) {
+    String[] serversToConnect = new String[] { "A", "B", "C" };
+    WriteQueryResponse r = new WriteQueryResponse( serversToConnect );
+    try
+    {
+      Thread.sleep( 2000 );
+      connection.getTCPSender().sendData( r.getBytes() );
+    } catch ( IOException | InterruptedException e )
+    {
+      LOG.error(
+          "Unable to send response message to client. " + e.getMessage() );
+      e.printStackTrace();
     }
   }
 

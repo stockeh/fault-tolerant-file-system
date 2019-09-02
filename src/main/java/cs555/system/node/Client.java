@@ -1,10 +1,7 @@
 package cs555.system.node;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -16,6 +13,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import cs555.system.transport.TCPConnection;
+import cs555.system.util.ClientSender;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
@@ -31,6 +29,10 @@ import cs555.system.wireformats.Protocol;
 public class Client implements Node {
 
   public static Logger LOG = new Logger();
+
+  private final Object senderLock = new Object();
+
+  private Thread senderThread = null;
 
   private TCPConnection controllerConnection;
 
@@ -126,7 +128,14 @@ public class Client implements Node {
         case UPLOAD :
           try
           {
-            uploadFiles();
+            if ( senderThread == null || !senderThread.isAlive() )
+            {
+              uploadFiles();
+            } else
+            {
+              LOG.info(
+                  "Files are currently being uploaded. Await completion before restarting." );
+            }
           } catch ( IOException e )
           {
             LOG.error(
@@ -135,7 +144,6 @@ public class Client implements Node {
             ConnectionUtilities.unregisterNode( this, Protocol.CLIENT_ID,
                 controllerConnection );
             running = false;
-            continue;
           }
           break;
 
@@ -182,38 +190,8 @@ public class Client implements Node {
       LOG.info( "There are no files to upload in " + outboundDirectory );
       return;
     }
-    sender( files );
-  }
-
-  /**
-   * Iterate through the files and send them to the chunk servers a
-   * chunk at a time. A request to the controller will provide details
-   * of which servers to communicate with.
-   * 
-   * @param files to send to the controller
-   */
-  private void sender(List<File> files) {
-    byte[] b = new byte[ Protocol.CHUNK_SIZE ];
-    for ( File file : files )
-    {
-      // TODO: Send a request to the controller to write a file. This
-      // request should have the file name and the size of the file in KB (
-      // or number of chunks needed ).
-      try ( InputStream is = new FileInputStream( file ) )
-      {
-        int readBytes = 0;
-        while ( ( readBytes = is.read( b ) ) != -1 )
-        {
-          LOG.info( Integer.toString( readBytes ) );
-        }
-      } catch ( FileNotFoundException e )
-      {
-        e.printStackTrace();
-      } catch ( IOException e )
-      {
-        e.printStackTrace();
-      }
-    }
+    ( senderThread = new Thread( new ClientSender( files, this.senderLock,
+        this.controllerConnection ) ) ).start();
   }
 
   /**
@@ -233,7 +211,13 @@ public class Client implements Node {
     LOG.debug( event.toString() );
     switch ( event.getType() )
     {
-
+      case Protocol.WRITE_QUERY_RESPONSE :
+        synchronized ( this.senderLock )
+        {
+          LOG.debug( "WAKING CLIENT" );
+          this.senderLock.notify();
+        }
+        break;
     }
   }
 

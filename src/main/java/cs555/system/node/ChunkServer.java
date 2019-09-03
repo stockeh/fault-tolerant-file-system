@@ -109,13 +109,13 @@ public class ChunkServer implements Node, Protocol {
    * Allow support for commands to be specified while the processes are
    * running.
    */
-  @SuppressWarnings( "resource" )
   private void interact() {
     System.out.println(
         "\nInput a command to interact with processes. Input 'help' for a list of commands.\n" );
     boolean running = true;
     while ( running )
     {
+      @SuppressWarnings( "resource" )
       Scanner scan = new Scanner( System.in );
       switch ( scan.nextLine().toLowerCase() )
       {

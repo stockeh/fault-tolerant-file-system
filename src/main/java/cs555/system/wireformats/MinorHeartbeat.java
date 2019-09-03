@@ -23,6 +23,17 @@ public class MinorHeartbeat implements Event {
   long freeSpace;
 
   /**
+   * Default constructor - create a new task initiation
+   * 
+   * @param totalChunks
+   */
+  public MinorHeartbeat(int totalChunks, long freeSpace) {
+    this.type = Protocol.MINOR_HEARTBEAT;
+    this.totalChunks = totalChunks;
+    this.freeSpace = freeSpace;
+  }
+
+  /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
    * class elements.
    * 
@@ -43,17 +54,6 @@ public class MinorHeartbeat implements Event {
 
     inputStream.close();
     din.close();
-  }
-
-  /**
-   * Default constructor - create a new task initiation
-   * 
-   * @param totalChunks
-   */
-  public MinorHeartbeat(int totalChunks, long freeSpace) {
-    this.type = Protocol.MINOR_HEARTBEAT;
-    this.totalChunks = totalChunks;
-    this.freeSpace = freeSpace;
   }
 
   /**

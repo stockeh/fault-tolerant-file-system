@@ -56,6 +56,12 @@ public class EventFactory {
       case Protocol.MINOR_HEARTBEAT :
         return new MinorHeartbeat( marshalledBytes );
 
+      case Protocol.WRITE_QUERY :
+        return new WriteQuery( marshalledBytes );
+
+      case Protocol.WRITE_QUERY_RESPONSE :
+        return new WriteQueryResponse( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

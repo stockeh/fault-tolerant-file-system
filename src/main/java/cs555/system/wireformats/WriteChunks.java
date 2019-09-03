@@ -12,11 +12,10 @@ import java.util.Arrays;
 /**
  * Forward data to the chunk servers.
  * 
- * Upon writing a new chuck to the chuck server, the client
- * will send a message to the chunk server with the message
- * content and list of nodes to forward the message. The
- * chunk servers will reuse this message to forward messages
- * to other chunk servers.
+ * Upon writing a new chuck to the chuck server, the client will send
+ * a message to the chunk server with the message content and list of
+ * nodes to forward the message. The chunk servers will reuse this
+ * message to forward messages to other chunk servers.
  * 
  * @author stock
  *
@@ -25,14 +24,17 @@ public class WriteChunks implements Event {
 
   private int type;
 
+  private String name;
+
   private byte[] message;
 
   private String[] routes;
 
-  public WriteChunks(String[] routes, byte[] message) {
+  public WriteChunks(String name, byte[] message, String[] routes) {
     this.type = Protocol.WRITE_CHUNKS;
-    this.routes = routes;
+    this.name = name;
     this.message = message;
+    this.routes = routes;
   }
 
   /**
@@ -50,6 +52,11 @@ public class WriteChunks implements Event {
 
     this.type = din.readInt();
 
+    int len = din.readInt();
+    byte[] nameBytes = new byte[ len ];
+    din.readFully( nameBytes );
+    this.name = new String( nameBytes );
+
     int messageLength = din.readInt();
 
     this.message = new byte[ messageLength ];
@@ -62,7 +69,7 @@ public class WriteChunks implements Event {
 
     for ( int i = 0; i < arrayLength; ++i )
     {
-      int len = din.readInt();
+      len = din.readInt();
       byte[] bytes = new byte[ len ];
       din.readFully( bytes );
       this.routes[ i ] = ( new String( bytes ) );
@@ -74,6 +81,10 @@ public class WriteChunks implements Event {
 
   public String[] getRoutingPath() {
     return routes;
+  }
+
+  public String getName() {
+    return name;
   }
 
   /**
@@ -96,6 +107,9 @@ public class WriteChunks implements Event {
 
     dout.writeInt( type );
 
+    byte[] nameBytes = name.getBytes();
+    dout.writeInt( nameBytes.length );
+    dout.write( nameBytes );
 
     dout.writeInt( message.length );
     dout.write( message );

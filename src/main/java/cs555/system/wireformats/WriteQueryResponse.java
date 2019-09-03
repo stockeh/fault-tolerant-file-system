@@ -7,34 +7,26 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
- * Register Response message type to respond to chunk server with the
- * status and information from the controller.
+ * Response message from the controller to the client containing chunk
+ * server details upon a write query being received.
  * 
  * @author stock
  *
  */
-public class RegisterResponse implements Event {
+public class WriteQueryResponse implements Event {
 
   private int type;
 
-  private byte status;
+  private String[] routes;
 
-  private String info;
-
-  /**
-   * Default constructor - create a new RegisterResponse message.
-   * 
-   * @param status
-   * @param info
-   */
-  public RegisterResponse(byte status, String info) {
-    this.type = Protocol.REGISTER_RESPONSE;
-    this.status = status;
-    this.info = info;
+  public WriteQueryResponse(String[] routes) {
+    this.type = Protocol.WRITE_QUERY_RESPONSE;
+    this.routes = routes;
   }
-  
+
   /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
    * class elements.
@@ -42,7 +34,7 @@ public class RegisterResponse implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public RegisterResponse(byte[] marshalledBytes) throws IOException {
+  public WriteQueryResponse(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -50,16 +42,24 @@ public class RegisterResponse implements Event {
 
     this.type = din.readInt();
 
-    this.status = din.readByte();
+    int arrayLength = din.readInt();
 
-    int len = din.readInt();
-    byte[] infoBytes = new byte[ len ];
-    din.readFully( infoBytes, 0, len );
+    this.routes = new String[ arrayLength ];
 
-    this.info = new String( infoBytes );
+    for ( int i = 0; i < arrayLength; ++i )
+    {
+      int len = din.readInt();
+      byte[] bytes = new byte[ len ];
+      din.readFully( bytes );
+      this.routes[ i ] = ( new String( bytes ) );
+    }
 
     inputStream.close();
     din.close();
+  }
+
+  public String[] getRoutingPath() {
+    return routes;
   }
 
   /**
@@ -82,11 +82,14 @@ public class RegisterResponse implements Event {
 
     dout.writeInt( type );
 
-    dout.writeByte( status );
+    dout.writeInt( routes.length );
 
-    byte[] infoBytes = info.getBytes();
-    dout.writeInt( infoBytes.length );
-    dout.write( infoBytes );
+    for ( String item : routes )
+    {
+      byte[] bytes = item.getBytes();
+      dout.writeInt( bytes.length );
+      dout.write( bytes );
+    }
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -96,14 +99,9 @@ public class RegisterResponse implements Event {
     return marshalledBytes;
   }
 
-  /**
-   * Display the information associated with the registration response
-   * 
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
-    return info;
+    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes );
   }
 
 }

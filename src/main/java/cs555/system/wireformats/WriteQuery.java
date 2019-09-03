@@ -9,32 +9,26 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Register Response message type to respond to chunk server with the
- * status and information from the controller.
+ * Request from the client to the controller requesting a list of
+ * chunk servers to write chunks of a file too.
  * 
  * @author stock
  *
  */
-public class RegisterResponse implements Event {
+public class WriteQuery implements Event {
 
   private int type;
 
-  private byte status;
+  private String name;
 
-  private String info;
+  private int numberOfChunks;
 
-  /**
-   * Default constructor - create a new RegisterResponse message.
-   * 
-   * @param status
-   * @param info
-   */
-  public RegisterResponse(byte status, String info) {
-    this.type = Protocol.REGISTER_RESPONSE;
-    this.status = status;
-    this.info = info;
+  public WriteQuery(String name, int numberOfChunks) {
+    this.type = Protocol.WRITE_QUERY;
+    this.name = name;
+    this.numberOfChunks = numberOfChunks;
   }
-  
+
   /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
    * class elements.
@@ -42,7 +36,7 @@ public class RegisterResponse implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public RegisterResponse(byte[] marshalledBytes) throws IOException {
+  public WriteQuery(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -50,16 +44,20 @@ public class RegisterResponse implements Event {
 
     this.type = din.readInt();
 
-    this.status = din.readByte();
-
     int len = din.readInt();
-    byte[] infoBytes = new byte[ len ];
-    din.readFully( infoBytes, 0, len );
+    byte[] bytes = new byte[ len ];
+    din.readFully( bytes );
 
-    this.info = new String( infoBytes );
+    this.name = new String( bytes );
+
+    this.numberOfChunks = din.readInt();
 
     inputStream.close();
     din.close();
+  }
+
+  public String getName() {
+    return name;
   }
 
   /**
@@ -82,11 +80,11 @@ public class RegisterResponse implements Event {
 
     dout.writeInt( type );
 
-    dout.writeByte( status );
+    byte[] nameBytes = name.getBytes();
+    dout.writeInt( nameBytes.length );
+    dout.write( nameBytes );
 
-    byte[] infoBytes = info.getBytes();
-    dout.writeInt( infoBytes.length );
-    dout.write( infoBytes );
+    dout.writeInt( numberOfChunks );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -96,14 +94,10 @@ public class RegisterResponse implements Event {
     return marshalledBytes;
   }
 
-  /**
-   * Display the information associated with the registration response
-   * 
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
-    return info;
+    return "\n" + Integer.toString( type ) + ", file name: " + name
+        + ", number of chunks: " + Integer.toString( numberOfChunks );
   }
 
 }

@@ -13,7 +13,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import cs555.system.transport.TCPConnection;
-import cs555.system.util.ClientSender;
+import cs555.system.util.ClientSenderThread;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
@@ -190,7 +190,7 @@ public class Client implements Node {
       LOG.info( "There are no files to upload in " + outboundDirectory );
       return;
     }
-    ( senderThread = new Thread( new ClientSender( files, this.senderLock,
+    ( senderThread = new Thread( new ClientSenderThread( files, this.senderLock,
         this.controllerConnection ) ) ).start();
   }
 
@@ -214,7 +214,6 @@ public class Client implements Node {
       case Protocol.WRITE_QUERY_RESPONSE :
         synchronized ( this.senderLock )
         {
-          LOG.debug( "WAKING CLIENT" );
           this.senderLock.notify();
         }
         break;

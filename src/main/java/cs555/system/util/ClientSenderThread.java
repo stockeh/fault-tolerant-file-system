@@ -9,7 +9,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.WriteQuery;
 
-public class ClientSender implements Runnable {
+public class ClientSenderThread implements Runnable {
 
   private static final Logger LOG = new Logger();
 
@@ -19,7 +19,7 @@ public class ClientSender implements Runnable {
 
   private TCPConnection controllerConnection;
 
-  public ClientSender(List<File> files, Object lock,
+  public ClientSenderThread(List<File> files, Object lock,
       TCPConnection controllerConnection) {
     this.files = files;
     this.lock = lock;
@@ -68,7 +68,7 @@ public class ClientSender implements Runnable {
       }
     }
     LOG.info( "Finished sending " + Integer.toString( numberOfFiles )
-        + "file(s) to the controller.\n" );
+        + " file(s) to the controller.\n" );
     return;
   }
 

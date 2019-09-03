@@ -154,14 +154,20 @@ public class Controller implements Node {
     }
   }
 
+  /**
+   * Construct a message to send back to the client containing
+   * information of where to send chuck data too.
+   * 
+   * @param event the object containing node details
+   * @param connection the connection details, i.e., TCPSender
+   */
   private void constructWriteResponse(Event event, TCPConnection connection) {
-    String[] serversToConnect = new String[] { "A", "B", "C" };
+    String[] serversToConnect = metadata.getChunkServers();
     WriteQueryResponse r = new WriteQueryResponse( serversToConnect );
     try
     {
-      Thread.sleep( 2000 );
       connection.getTCPSender().sendData( r.getBytes() );
-    } catch ( IOException | InterruptedException e )
+    } catch ( IOException e )
     {
       LOG.error(
           "Unable to send response message to client. " + e.getMessage() );

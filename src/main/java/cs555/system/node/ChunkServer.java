@@ -85,7 +85,8 @@ public class ChunkServer implements Node, Protocol {
           new ChunkServer( InetAddress.getLocalHost().getHostName(),
               serverSocket.getLocalPort() );
 
-      ( new Thread( new TCPServerThread( node, serverSocket ) ) ).start();
+      ( new Thread( new TCPServerThread( node, serverSocket ),
+          "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
           Protocol.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
@@ -151,6 +152,9 @@ public class ChunkServer implements Node, Protocol {
     {
       case Protocol.REGISTER_RESPONSE :
         System.out.println( ( ( RegisterResponse ) event ).toString() );
+        break;
+
+      case Protocol.WRITE_CHUNKS :
         break;
     }
   }

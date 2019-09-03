@@ -18,6 +18,7 @@ import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
+import cs555.system.wireformats.WriteQueryResponse;
 
 /**
  * Single client to communicate with the file systems controller and
@@ -30,9 +31,7 @@ public class Client implements Node {
 
   public static Logger LOG = new Logger();
 
-  private final Object senderLock = new Object();
-
-  private Thread senderThread = null;
+  private ClientSenderThread sender = null;
 
   private TCPConnection controllerConnection;
 
@@ -80,6 +79,14 @@ public class Client implements Node {
   }
 
   /**
+   * 
+   * @return the connection to the controller
+   */
+  public TCPConnection getControllerConnection() {
+    return this.controllerConnection;
+  }
+
+  /**
    * Initialize the client with the Controller.
    *
    * @param args
@@ -101,6 +108,7 @@ public class Client implements Node {
       node.controllerConnection = ConnectionUtilities.registerNode( node,
           Protocol.CLIENT_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
 
+      node.sender = new ClientSenderThread( node );
       node.outboundDirectory = args[ 2 ];
       node.interact();
     } catch ( IOException e )
@@ -128,7 +136,7 @@ public class Client implements Node {
         case UPLOAD :
           try
           {
-            if ( senderThread == null || !senderThread.isAlive() )
+            if ( sender == null || !sender.isRunning() )
             {
               uploadFiles();
             } else
@@ -190,8 +198,8 @@ public class Client implements Node {
       LOG.info( "There are no files to upload in " + outboundDirectory );
       return;
     }
-    ( senderThread = new Thread( new ClientSenderThread( files, this.senderLock,
-        this.controllerConnection ) ) ).start();
+    sender.setFiles( files );
+    ( new Thread( sender ) ).start();
   }
 
   /**
@@ -212,12 +220,15 @@ public class Client implements Node {
     switch ( event.getType() )
     {
       case Protocol.WRITE_QUERY_RESPONSE :
-        synchronized ( this.senderLock )
-        {
-          this.senderLock.notify();
-        }
+        senderHandler( event );
         break;
     }
+  }
+
+  private void senderHandler(Event event) {
+    String[] routes = ( ( WriteQueryResponse ) event ).getRoutingPath();
+    sender.setRoutes( routes );
+    sender.unlock();
   }
 
   /**

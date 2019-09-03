@@ -133,7 +133,8 @@ public class WriteChunks implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes )
+    return "\n" + Integer.toString( type ) + ", chunk name: " + name
+        + ", routes: " + Arrays.toString( routes ) + ", msg len: "
         + Integer.toString( message.length );
   }
 

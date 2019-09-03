@@ -4,26 +4,75 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
+import cs555.system.node.Client;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
+import cs555.system.wireformats.WriteChunks;
 import cs555.system.wireformats.WriteQuery;
 
+/**
+ * 
+ * @author stock
+ *
+ */
 public class ClientSenderThread implements Runnable {
 
   private static final Logger LOG = new Logger();
 
   private List<File> files;
 
-  private Object lock;
+  private final Object lock = new Object();
 
-  private TCPConnection controllerConnection;
+  private Client node;
 
-  public ClientSenderThread(List<File> files, Object lock,
-      TCPConnection controllerConnection) {
+  private String[] routes;
+
+  private boolean running = false;
+
+
+  public ClientSenderThread(Client node) {
+    this.node = node;
+  }
+
+  /**
+   * Wake the sender thread upon receiving routing information for a
+   * given chunk.
+   * 
+   */
+  public void unlock() {
+    synchronized ( this.lock )
+    {
+      this.lock.notify();
+    }
+  }
+
+  /**
+   * Check if the thread is in a running state.
+   * 
+   * @return true if running, false otherwise
+   */
+  public boolean isRunning() {
+    return this.running;
+  }
+
+  /**
+   * Set the files to process from the outbound directory.
+   * 
+   * @param files
+   */
+  public void setFiles(List<File> files) {
     this.files = files;
-    this.lock = lock;
-    this.controllerConnection = controllerConnection;
+  }
+
+  /**
+   * Calling method checked for validity of routes;
+   * 
+   * @param routes
+   */
+  public void setRoutes(String[] routes) {
+    this.routes = routes;
   }
 
   /**
@@ -35,8 +84,10 @@ public class ClientSenderThread implements Runnable {
    */
   @Override
   public void run() {
-    byte[] b = new byte[ Protocol.CHUNK_SIZE ];
+    running = true;
+
     final int numberOfFiles = files.size();
+
     synchronized ( lock )
     {
       for ( File file : files )
@@ -47,20 +98,11 @@ public class ClientSenderThread implements Runnable {
           byte[] request =
               ( new WriteQuery( file.getAbsolutePath(), numberOfChunks ) )
                   .getBytes();
-          @SuppressWarnings( "unused" )
-          int readBytes = 0;
-          while ( ( readBytes = is.read( b ) ) != -1 )
-          {
-            this.controllerConnection.getTCPSender().sendData( request );
-            LOG.debug( "START WAITING" );
-            lock.wait();
-            LOG.debug( "FINISHED WAITING" );
-          }
+          processIndividualFile( file, request, is );
         } catch ( IOException e )
         {
           LOG.error( "Unable to process the file " + file.getName() + ", "
               + e.getMessage() );
-          e.printStackTrace();
         } catch ( InterruptedException e )
         {
           Thread.currentThread().interrupt();
@@ -69,7 +111,58 @@ public class ClientSenderThread implements Runnable {
     }
     LOG.info( "Finished sending " + Integer.toString( numberOfFiles )
         + " file(s) to the controller.\n" );
+    running = false;
     return;
+  }
+
+  /**
+   * Process an individual file by traversing the chunks of bytes
+   * within. This is accomplished via the following steps:
+   * 
+   * <ol>
+   * <li>read the next chunk of the file</li>
+   * <li>send request to controller for details of where to write the
+   * chunk. wait for a reply from the controller - the client will
+   * notify this thread</li>
+   * <li>connect to the first item chunk server returned by the
+   * controller, and send the data request</li>
+   * </ol>
+   * 
+   * @param file to be processed
+   * @param request to the controller for where to write the chunks
+   * @param is input file stream
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public void processIndividualFile(File file, byte[] request, InputStream is)
+      throws IOException, InterruptedException {
+
+    String fileName = file.getAbsolutePath() + "_chunk";
+    int chunkNumber = 0;
+
+    @SuppressWarnings( "unused" )
+    int readBytes = 0;
+    // TODO: Check if the byte[] needs cleared before reading last
+    // chunk.
+    byte[] chunk = new byte[ Protocol.CHUNK_SIZE ];
+    while ( ( readBytes = is.read( chunk ) ) != -1 )
+    {
+      this.node.getControllerConnection().getTCPSender().sendData( request );
+      lock.wait();
+      if ( routes == null || routes.length == 0 )
+      {
+        throw new IOException( "There are no routes to send chunk too." );
+      }
+      LOG.debug( "routes: " + Arrays.toString( routes ) );
+      String[] initialConnection = routes[ 0 ].split( ":" );
+      TCPConnection connection = ConnectionUtilities.establishConnection( node,
+          initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
+
+      WriteChunks writeToChunkServer = new WriteChunks(
+          fileName + Integer.toString( chunkNumber++ ), chunk, routes );
+      connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
+      connection.close();
+    }
   }
 
 }

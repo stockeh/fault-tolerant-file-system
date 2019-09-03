@@ -2,6 +2,7 @@ package cs555.system.util;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import cs555.system.node.Node;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
@@ -19,6 +20,22 @@ public class ConnectionUtilities {
   private static final Logger LOG = new Logger();
 
   /**
+   * Establish generic connection with a given node.
+   * 
+   * @param node used to controller receiving thread
+   * @param host name associated with outgoing node
+   * @param port number associated with outgoing node
+   * @return connection to server
+   * @throws UnknownHostException
+   * @throws IOException
+   */
+  public static TCPConnection establishConnection(Node node, String host,
+      Integer port) throws UnknownHostException, IOException {
+    Socket socketToTheServer = new Socket( host, port );
+    return new TCPConnection( node, socketToTheServer );
+  }
+
+  /**
    * Registers a node with the controller.
    *
    * @param node requesting to connect
@@ -33,8 +50,8 @@ public class ConnectionUtilities {
       String controllerHost, Integer controllerPort) throws IOException {
     try
     {
-      Socket socketToTheServer = new Socket( controllerHost, controllerPort );
-      TCPConnection connection = new TCPConnection( node, socketToTheServer );
+      TCPConnection connection =
+          establishConnection( node, controllerHost, controllerPort );
 
       Register register = new Register( Protocol.REGISTER_REQUEST, identifier,
           node.getHost(), node.getPort() );

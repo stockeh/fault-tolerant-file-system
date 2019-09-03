@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import cs555.system.node.Client;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
+import cs555.system.wireformats.WriteChunks;
 import cs555.system.wireformats.WriteQuery;
 
 /**
@@ -23,19 +25,15 @@ public class ClientSenderThread implements Runnable {
 
   private final Object lock = new Object();
 
-  private TCPConnection controllerConnection;
+  private Client node;
 
   private String[] routes;
 
   private boolean running = false;
 
-  /**
-   * Default constructor
-   * 
-   * @param controllerConnection
-   */
-  public ClientSenderThread(TCPConnection controllerConnection) {
-    this.controllerConnection = controllerConnection;
+
+  public ClientSenderThread(Client node) {
+    this.node = node;
   }
 
   /**
@@ -87,8 +85,9 @@ public class ClientSenderThread implements Runnable {
   @Override
   public void run() {
     running = true;
-    byte[] b = new byte[ Protocol.CHUNK_SIZE ];
+
     final int numberOfFiles = files.size();
+
     synchronized ( lock )
     {
       for ( File file : files )
@@ -99,19 +98,11 @@ public class ClientSenderThread implements Runnable {
           byte[] request =
               ( new WriteQuery( file.getAbsolutePath(), numberOfChunks ) )
                   .getBytes();
-          @SuppressWarnings( "unused" )
-          int readBytes = 0;
-          while ( ( readBytes = is.read( b ) ) != -1 )
-          {
-            this.controllerConnection.getTCPSender().sendData( request );
-            lock.wait();
-            LOG.debug( Arrays.toString( this.routes ) );
-          }
+          processIndividualFile( file, request, is );
         } catch ( IOException e )
         {
           LOG.error( "Unable to process the file " + file.getName() + ", "
               + e.getMessage() );
-          e.printStackTrace();
         } catch ( InterruptedException e )
         {
           Thread.currentThread().interrupt();
@@ -122,6 +113,56 @@ public class ClientSenderThread implements Runnable {
         + " file(s) to the controller.\n" );
     running = false;
     return;
+  }
+
+  /**
+   * Process an individual file by traversing the chunks of bytes
+   * within. This is accomplished via the following steps:
+   * 
+   * <ol>
+   * <li>read the next chunk of the file</li>
+   * <li>send request to controller for details of where to write the
+   * chunk. wait for a reply from the controller - the client will
+   * notify this thread</li>
+   * <li>connect to the first item chunk server returned by the
+   * controller, and send the data request</li>
+   * </ol>
+   * 
+   * @param file to be processed
+   * @param request to the controller for where to write the chunks
+   * @param is input file stream
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public void processIndividualFile(File file, byte[] request, InputStream is)
+      throws IOException, InterruptedException {
+
+    String fileName = file.getAbsolutePath() + "_chunk";
+    int chunkNumber = 0;
+
+    @SuppressWarnings( "unused" )
+    int readBytes = 0;
+    // TODO: Check if the byte[] needs cleared before reading last
+    // chunk.
+    byte[] chunk = new byte[ Protocol.CHUNK_SIZE ];
+    while ( ( readBytes = is.read( chunk ) ) != -1 )
+    {
+      this.node.getControllerConnection().getTCPSender().sendData( request );
+      lock.wait();
+      if ( routes == null || routes.length == 0 )
+      {
+        throw new IOException( "There are no routes to send chunk too." );
+      }
+      LOG.debug( "routes: " + Arrays.toString( routes ) );
+      String[] initialConnection = routes[ 0 ].split( ":" );
+      TCPConnection connection = ConnectionUtilities.establishConnection( node,
+          initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
+
+      WriteChunks writeToChunkServer = new WriteChunks(
+          fileName + Integer.toString( chunkNumber++ ), chunk, routes );
+      connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
+      connection.close();
+    }
   }
 
 }

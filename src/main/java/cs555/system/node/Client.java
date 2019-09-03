@@ -79,6 +79,14 @@ public class Client implements Node {
   }
 
   /**
+   * 
+   * @return the connection to the controller
+   */
+  public TCPConnection getControllerConnection() {
+    return this.controllerConnection;
+  }
+
+  /**
    * Initialize the client with the Controller.
    *
    * @param args
@@ -100,7 +108,7 @@ public class Client implements Node {
       node.controllerConnection = ConnectionUtilities.registerNode( node,
           Protocol.CLIENT_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
 
-      node.sender = new ClientSenderThread( node.controllerConnection );
+      node.sender = new ClientSenderThread( node );
       node.outboundDirectory = args[ 2 ];
       node.interact();
     } catch ( IOException e )

@@ -84,7 +84,8 @@ public class Controller implements Node {
           new Controller( InetAddress.getLocalHost().getHostName(),
               serverSocket.getLocalPort() );
 
-      ( new Thread( new TCPServerThread( controller, serverSocket ) ) ).start();
+      ( new Thread( new TCPServerThread( controller, serverSocket ),
+          "Server Thread" ) ).start();
 
       controller.interact();
 

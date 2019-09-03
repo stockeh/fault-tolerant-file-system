@@ -62,6 +62,9 @@ public class EventFactory {
       case Protocol.WRITE_QUERY_RESPONSE :
         return new WriteQueryResponse( marshalledBytes );
 
+      case Protocol.WRITE_CHUNKS :
+        return new WriteChunks( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

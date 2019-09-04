@@ -21,9 +21,9 @@ public interface Protocol {
 
   final int WRITE_CHUNK = 5;
 
-  final int WRITE_QUERY = 6;
+  final int WRITE_REQUEST = 6;
 
-  final int WRITE_QUERY_RESPONSE = 7;
+  final int WRITE_RESPONSE = 7;
 
   final int READ_CHUNK = 8;
 

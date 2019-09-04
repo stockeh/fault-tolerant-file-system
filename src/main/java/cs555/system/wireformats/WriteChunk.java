@@ -30,11 +30,16 @@ public class WriteChunk implements Event {
 
   private String[] routes;
 
+  private int position;
+
+  private boolean isOriginalFile;
+
   public WriteChunk(String name, byte[] message, String[] routes) {
     this.type = Protocol.WRITE_CHUNK;
     this.path = name;
     this.message = message;
     this.routes = routes;
+    this.position = 0;
   }
 
   /**
@@ -109,6 +114,21 @@ public class WriteChunk implements Event {
    */
   public String[] getRoutingPath() {
     return routes;
+  }
+
+  /**
+   * 
+   * @return the current position in the array of routes
+   */
+  public int getPosition() {
+    return position;
+  }
+
+  /**
+   * Increment the position for the next connection
+   */
+  public void incrementPosition() {
+    ++position;
   }
 
   /**

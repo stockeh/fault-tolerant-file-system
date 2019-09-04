@@ -14,6 +14,7 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterRequest;
 import cs555.system.wireformats.RegisterResponse;
+import cs555.system.wireformats.WriteRequest;
 import cs555.system.wireformats.WriteResponse;
 
 /**
@@ -151,7 +152,7 @@ public class Controller implements Node {
         heartbeatHandler( event, connection );
         break;
 
-      case Protocol.WRITE_QUERY :
+      case Protocol.WRITE_REQUEST :
         constructWriteResponse( event, connection );
         break;
     }
@@ -165,11 +166,15 @@ public class Controller implements Node {
    * @param connection the connection details, i.e., TCPSender
    */
   private void constructWriteResponse(Event event, TCPConnection connection) {
-    String[] serversToConnect = metadata.getChunkServers();
-    WriteResponse r = new WriteResponse( serversToConnect );
+    WriteRequest request = ( WriteRequest ) event;
+
+    boolean isOriginalFile =
+        metadata.addFile( request.getName(), request.getNumberOfChunks() );
+    String[] serversToConnect = metadata.getChunkServers(isOriginalFile);
+    WriteResponse response = new WriteResponse( serversToConnect );
     try
     {
-      connection.getTCPSender().sendData( r.getBytes() );
+      connection.getTCPSender().sendData( response.getBytes() );
     } catch ( IOException e )
     {
       LOG.error(
@@ -202,6 +207,7 @@ public class Controller implements Node {
         metadata.addConnection( connectionDetails, connection );
       } else if ( identifier == Constants.CHUNK_ID )
       {
+        // TODO: replicate files if needed.
         metadata.removeConnection( connectionDetails );
         System.out
             .println( "Deregistered " + connectionDetails + ". There are now ("

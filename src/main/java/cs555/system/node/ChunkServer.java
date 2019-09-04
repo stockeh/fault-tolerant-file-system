@@ -16,6 +16,7 @@ import cs555.system.metadata.ServerMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
+import cs555.system.util.Constants;
 import cs555.system.util.FileUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
@@ -100,10 +101,11 @@ public class ChunkServer implements Node, Protocol {
           "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Protocol.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+          Constants.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
 
       ServerHeartbeatManager serverHeartbeatManager =
-          new ServerHeartbeatManager( node.controllerConnection, node.metadata );
+          new ServerHeartbeatManager( node.controllerConnection,
+              node.metadata );
       Timer timer = new Timer();
       final int interval = 30 * 1000; // 30 seconds in milliseconds
       timer.schedule( serverHeartbeatManager, 1000, interval );
@@ -133,7 +135,7 @@ public class ChunkServer implements Node, Protocol {
       {
 
         case EXIT :
-          ConnectionUtilities.unregisterNode( this, Protocol.CHUNK_ID,
+          ConnectionUtilities.unregisterNode( this, Constants.CHUNK_ID,
               controllerConnection );
           running = false;
           break;
@@ -217,11 +219,15 @@ public class ChunkServer implements Node, Protocol {
    * original chunk slices and comparing the array of hashes to the
    * persisted value on disk.
    * 
+   * If it is detected that a chunk is corrupt, then the controller will
+   * be messaged.
+   * 
    * @param event
    * @param connection
    */
   private void processOutgoingChunk(Event event, TCPConnection connection) {
-
+    // TODO: read by chunk name, or by file name?
+    
     // byte[] array = Files.readAllBytes( Paths.get( request.getPath() )
     // );
   }

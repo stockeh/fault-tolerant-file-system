@@ -1,5 +1,6 @@
 package cs555.system.metadata;
 
+import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -25,13 +26,22 @@ public class ServerMetadata {
 
   /**
    * 
-   * @return the current number of chunks mainted by the chunk server
+   * @return the current number of chunks maintained by the chunk server
    */
   public int getNumberOfChunks() {
     return numberOfChunks.get();
   }
 
-  public void clear() {
+  /**
+   * 
+   * @return the free disk space in bytes of the root <tt>/</tt>
+   *         directory
+   */
+  public long getFreeDiskSpace() {
+    return ( new File( File.separator ) ).getFreeSpace();
+  }
+
+  public synchronized void clear() {
 
   }
 

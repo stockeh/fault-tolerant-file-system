@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.Logger;
 
@@ -35,13 +36,15 @@ public class ControllerMetadata {
   /**
    * Connections to all the chunk servers. <k: host:port , v: chunk
    * server connection>
+   * 
+   * TODO: check if needs to be concurrent. Speed implications?
    */
-  private final Map<String, ChunkServerMetadata> connections = new HashMap<>();
-
+  private final Map<String, ChunkServerMetadata> connections =
+      new ConcurrentHashMap<>();
 
   private final Comparator<ChunkServerMetadata> comparator = Comparator
       .comparing( ChunkServerMetadata::getNumberOfChunks ).thenComparing(
-          ChunkServerMetadata::getFreeDiskSpace, Comparator.reverseOrder() );
+          ChunkServerMetadata::getFreeDiskSpace, Collections.reverseOrder() );
 
   /**
    * Add a new connection ( chunk server ) to the controllers metadata.
@@ -227,9 +230,11 @@ public class ControllerMetadata {
   public static void main(String[] args) {
     ControllerMetadata m = new ControllerMetadata();
     m.addConnection( "a", null );
-    m.update( "a", 100, 2 );
+    m.update( "a", 100, 0 );
     m.addConnection( "b", null );
-    m.update( "b", 103, 3 );
+    m.update( "b", 101, 0 );
+    m.addConnection( "c", null );
+    m.update( "c", 103, 2 );
     m.displayConnections();
     System.out.println( Arrays.toString( m.getChunkServers() ) );
   }

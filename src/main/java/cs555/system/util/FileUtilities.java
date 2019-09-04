@@ -1,12 +1,8 @@
 package cs555.system.util;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import cs555.system.wireformats.Protocol;
 
 /**
  * Utility class for all file related activities.
@@ -17,34 +13,7 @@ import cs555.system.wireformats.Protocol;
 public class FileUtilities {
 
   private final static int NUMBER_OF_SLICES =
-      ( int ) Protocol.CHUNK_SIZE / Protocol.CHUNK_SLICE_SIZE;
-
-  /**
-   * Returns the size, in bytes, of the specified <tt>path</tt>. If the
-   * given path is a regular file, trivially its size is returned. Else
-   * the path is a directory and its contents are recursively explored,
-   * returning the total sum of all files within the directory.
-   * <p>
-   * If an I/O exception occurs, it is suppressed within this method and
-   * <tt>0</tt> is returned as the size of the specified <tt>path</tt>.
-   * 
-   * @param path path whose size is to be returned
-   * @return size of the specified path
-   */
-  public static long calculateSize(Path path) {
-    try
-    {
-      if ( Files.isRegularFile( path ) )
-      {
-        return Files.size( path );
-      }
-
-      return Files.list( path ).mapToLong( FileUtilities::calculateSize ).sum();
-    } catch ( IOException e )
-    {
-      return 0L;
-    }
-  }
+      ( int ) Constants.CHUNK_SIZE / Constants.CHUNK_SLICE_SIZE;
 
   /**
    * Computes the SHA-1 hash of a byte array as a 160 bit ( 20 byte )
@@ -70,8 +39,8 @@ public class FileUtilities {
     ByteBuffer buffer = ByteBuffer.allocate( 20 * NUMBER_OF_SLICES );
     for ( int i = 0; i < NUMBER_OF_SLICES; ++i )
     {
-      digest.update( message, i * Protocol.CHUNK_SLICE_SIZE,
-          Protocol.CHUNK_SLICE_SIZE );
+      digest.update( message, i * Constants.CHUNK_SLICE_SIZE,
+          Constants.CHUNK_SLICE_SIZE );
       buffer.put( digest.digest() );
     }
     return buffer.array();

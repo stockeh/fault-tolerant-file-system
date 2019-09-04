@@ -1,11 +1,9 @@
 package cs555.system.heartbeat;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.TimerTask;
 import cs555.system.metadata.ServerMetadata;
 import cs555.system.transport.TCPConnection;
-import cs555.system.util.FileUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.MinorHeartbeat;
 
@@ -44,10 +42,8 @@ public class ServerHeartbeatManager extends TimerTask {
   @Override
   public void run() {
 
-    long freeSpace = FileUtilities.calculateSize( Paths.get( "/tmp" ) );
-
-    MinorHeartbeat msg =
-        new MinorHeartbeat( metadata.getNumberOfChunks(), freeSpace );
+    MinorHeartbeat msg = new MinorHeartbeat( metadata.getNumberOfChunks(),
+        metadata.getFreeDiskSpace() );
     try
     {
       controllerConnection.getTCPSender().sendData( msg.getBytes() );

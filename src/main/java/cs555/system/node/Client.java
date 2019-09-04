@@ -13,8 +13,8 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import cs555.system.transport.TCPConnection;
-import cs555.system.util.ClientSenderThread;
 import cs555.system.util.ConnectionUtilities;
+import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
@@ -106,7 +106,7 @@ public class Client implements Node {
           serverSocket.getLocalPort() );
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Protocol.CLIENT_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+          Constants.CLIENT_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
 
       node.sender = new ClientSenderThread( node );
       node.outboundDirectory = args[ 2 ];
@@ -149,7 +149,7 @@ public class Client implements Node {
             LOG.error(
                 "Failed to read from outbound directory - check arguments. "
                     + e.getMessage() );
-            ConnectionUtilities.unregisterNode( this, Protocol.CLIENT_ID,
+            ConnectionUtilities.unregisterNode( this, Constants.CLIENT_ID,
                 controllerConnection );
             running = false;
           }
@@ -160,7 +160,7 @@ public class Client implements Node {
           break;
 
         case EXIT :
-          ConnectionUtilities.unregisterNode( this, Protocol.CLIENT_ID,
+          ConnectionUtilities.unregisterNode( this, Constants.CLIENT_ID,
               controllerConnection );
           running = false;
           break;

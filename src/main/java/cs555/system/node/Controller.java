@@ -8,6 +8,7 @@ import java.util.Scanner;
 import cs555.system.metadata.ControllerMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
+import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
@@ -196,10 +197,10 @@ public class Controller implements Node {
     byte status;
     if ( message.length() == 0 )
     {
-      if ( register && identifier == Protocol.CHUNK_ID )
+      if ( register && identifier == Constants.CHUNK_ID )
       {
         metadata.addConnection( connectionDetails, connection );
-      } else if ( identifier == Protocol.CHUNK_ID )
+      } else if ( identifier == Constants.CHUNK_ID )
       {
         metadata.removeConnection( connectionDetails );
         System.out
@@ -210,11 +211,11 @@ public class Controller implements Node {
           "Registration request successful.  The number of chunk servers currently "
               + "constituting the network are ("
               + metadata.numberOfConnections() + ").\n";
-      status = Protocol.SUCCESS;
+      status = Constants.SUCCESS;
     } else
     {
       LOG.error( "Unable to process request. Responding with a failure." );
-      status = Protocol.FAILURE;
+      status = Constants.FAILURE;
     }
     LOG.debug( message );
     RegisterResponse response = new RegisterResponse( status, message );

@@ -1,4 +1,4 @@
-package cs555.system.util;
+package cs555.system.node;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -6,11 +6,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
-import cs555.system.node.Client;
 import cs555.system.transport.TCPConnection;
-import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.WriteChunks;
-import cs555.system.wireformats.WriteQuery;
+import cs555.system.util.ConnectionUtilities;
+import cs555.system.util.Constants;
+import cs555.system.util.Logger;
+import cs555.system.wireformats.WriteChunk;
+import cs555.system.wireformats.WriteRequest;
 
 /**
  * 
@@ -31,8 +32,12 @@ public class ClientSenderThread implements Runnable {
 
   private boolean running = false;
 
-
-  public ClientSenderThread(Client node) {
+  /**
+   * Default constructor - 
+   * 
+   * @param node
+   */
+  protected ClientSenderThread(Client node) {
     this.node = node;
   }
 
@@ -41,7 +46,7 @@ public class ClientSenderThread implements Runnable {
    * given chunk.
    * 
    */
-  public void unlock() {
+  protected void unlock() {
     synchronized ( this.lock )
     {
       this.lock.notify();
@@ -53,7 +58,7 @@ public class ClientSenderThread implements Runnable {
    * 
    * @return true if running, false otherwise
    */
-  public boolean isRunning() {
+  protected boolean isRunning() {
     return this.running;
   }
 
@@ -62,7 +67,7 @@ public class ClientSenderThread implements Runnable {
    * 
    * @param files
    */
-  public void setFiles(List<File> files) {
+  protected void setFiles(List<File> files) {
     this.files = files;
   }
 
@@ -71,7 +76,7 @@ public class ClientSenderThread implements Runnable {
    * 
    * @param routes
    */
-  public void setRoutes(String[] routes) {
+  protected void setRoutes(String[] routes) {
     this.routes = routes;
   }
 
@@ -96,7 +101,7 @@ public class ClientSenderThread implements Runnable {
         {
           int numberOfChunks = ( int ) Math.ceil( file.length() / 1000.0 );
           byte[] request =
-              ( new WriteQuery( file.getAbsolutePath(), numberOfChunks ) )
+              ( new WriteRequest( file.getAbsolutePath(), numberOfChunks ) )
                   .getBytes();
           processIndividualFile( file, request, is );
         } catch ( IOException e )
@@ -134,17 +139,21 @@ public class ClientSenderThread implements Runnable {
    * @throws IOException
    * @throws InterruptedException
    */
-  public void processIndividualFile(File file, byte[] request, InputStream is)
+  private void processIndividualFile(File file, byte[] request, InputStream is)
       throws IOException, InterruptedException {
 
-    String fileName = file.getAbsolutePath() + "_chunk";
+    String tmpName =
+        ( new StringBuilder() ).append( File.separator ).append( "tmp" )
+            .append( file.getAbsolutePath() ).append( "_chunk" ).toString();
+
+    StringBuilder sb = new StringBuilder();
     int chunkNumber = 0;
 
     @SuppressWarnings( "unused" )
     int readBytes = 0;
     // TODO: Check if the byte[] needs cleared before reading last
     // chunk.
-    byte[] chunk = new byte[ Protocol.CHUNK_SIZE ];
+    byte[] chunk = new byte[ Constants.CHUNK_SIZE ];
     while ( ( readBytes = is.read( chunk ) ) != -1 )
     {
       this.node.getControllerConnection().getTCPSender().sendData( request );
@@ -158,9 +167,12 @@ public class ClientSenderThread implements Runnable {
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
-      WriteChunks writeToChunkServer = new WriteChunks(
-          fileName + Integer.toString( chunkNumber++ ), chunk, routes );
+      WriteChunk writeToChunkServer = new WriteChunk( sb.append( tmpName )
+          .append( Integer.toString( chunkNumber++ ) ).toString(), chunk,
+          routes );
+
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
+      sb.setLength( 0 );
       connection.close();
     }
   }

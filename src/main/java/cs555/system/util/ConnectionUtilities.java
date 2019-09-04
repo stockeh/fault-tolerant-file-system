@@ -6,7 +6,7 @@ import java.net.UnknownHostException;
 import cs555.system.node.Node;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.Register;
+import cs555.system.wireformats.RegisterRequest;
 
 /**
  * Shared connection utilities between the controller and client /
@@ -53,11 +53,11 @@ public class ConnectionUtilities {
       TCPConnection connection =
           establishConnection( node, controllerHost, controllerPort );
 
-      Register register = new Register( Protocol.REGISTER_REQUEST, identifier,
+      RegisterRequest registerRequest = new RegisterRequest( Protocol.REGISTER_REQUEST, identifier,
           node.getHost(), node.getPort() );
 
       LOG.info( "Client Identifier: " + node.getHost() + ":" + node.getPort() );
-      connection.getTCPSender().sendData( register.getBytes() );
+      connection.getTCPSender().sendData( registerRequest.getBytes() );
       connection.start();
 
       return connection;
@@ -79,12 +79,12 @@ public class ConnectionUtilities {
    */
   public static void unregisterNode(Node node, int identifier,
       TCPConnection controllerConnection) {
-    Register register = new Register( Protocol.UNREGISTER_REQUEST, identifier,
+    RegisterRequest registerRequest = new RegisterRequest( Protocol.UNREGISTER_REQUEST, identifier,
         node.getHost(), node.getPort() );
 
     try
     {
-      controllerConnection.getTCPSender().sendData( register.getBytes() );
+      controllerConnection.getTCPSender().sendData( registerRequest.getBytes() );
       controllerConnection.close();
     } catch ( IOException | InterruptedException e )
     {

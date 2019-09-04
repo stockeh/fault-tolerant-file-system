@@ -18,7 +18,7 @@ import java.io.IOException;
  * @author stock
  *
  */
-public class Register implements Event {
+public class RegisterRequest implements Event {
 
   private int type;
 
@@ -32,11 +32,11 @@ public class Register implements Event {
    * Default constructor - create a new register or unregister message.
    * 
    * @param type Specified for use of register or unregister message.
-   * @param clinetId to distinguish between a chunk server and a client.
+   * @param identifier to distinguish between a chunk server and a client.
    * @param ipAddress
    * @param port
    */
-  public Register(int type, int identifier, String ipAddress, int port) {
+  public RegisterRequest(int type, int identifier, String ipAddress, int port) {
     this.type = type;
     this.identifier = identifier;
     this.ipAddress = ipAddress;
@@ -50,7 +50,7 @@ public class Register implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public Register(byte[] marshalledBytes) throws IOException {
+  public RegisterRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =

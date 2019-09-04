@@ -3,17 +3,26 @@ package cs555.system.node;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
+import cs555.system.heartbeat.ServerHeartbeatManager;
+import cs555.system.metadata.ServerMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
-import cs555.system.util.HeartbeatHandler;
+import cs555.system.util.Constants;
+import cs555.system.util.FileUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterResponse;
+import cs555.system.wireformats.WriteChunk;
 
 /**
  * chunk servers initiate and accept both communications and messages
@@ -32,6 +41,8 @@ public class ChunkServer implements Node, Protocol {
 
   private TCPConnection controllerConnection;
 
+  private final ServerMetadata metadata;
+
   private String host;
 
   private int port;
@@ -45,6 +56,7 @@ public class ChunkServer implements Node, Protocol {
    * @param port
    */
   private ChunkServer(String host, int port) {
+    this.metadata = new ServerMetadata();
     this.host = host;
     this.port = port;
   }
@@ -89,13 +101,14 @@ public class ChunkServer implements Node, Protocol {
           "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Protocol.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+          Constants.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
 
-      HeartbeatHandler heartbeatHandler =
-          new HeartbeatHandler( node.controllerConnection );
+      ServerHeartbeatManager serverHeartbeatManager =
+          new ServerHeartbeatManager( node.controllerConnection,
+              node.metadata );
       Timer timer = new Timer();
       final int interval = 30 * 1000; // 30 seconds in milliseconds
-      timer.schedule( heartbeatHandler, 1000, interval );
+      timer.schedule( serverHeartbeatManager, 1000, interval );
 
       node.interact();
     } catch ( IOException e )
@@ -122,7 +135,7 @@ public class ChunkServer implements Node, Protocol {
       {
 
         case EXIT :
-          ConnectionUtilities.unregisterNode( this, Protocol.CHUNK_ID,
+          ConnectionUtilities.unregisterNode( this, Constants.CHUNK_ID,
               controllerConnection );
           running = false;
           break;
@@ -154,9 +167,69 @@ public class ChunkServer implements Node, Protocol {
         System.out.println( ( ( RegisterResponse ) event ).toString() );
         break;
 
-      case Protocol.WRITE_CHUNKS :
+      case Protocol.WRITE_CHUNK :
+        processIncomingChunk( event );
+        break;
+
+      case Protocol.READ_CHUNK :
+        processOutgoingChunk( event, connection );
         break;
     }
+  }
+
+  /**
+   * Process an incoming chunk by saving it to disk and forwarding the
+   * message to the other chunk servers.
+   * 
+   * Prior to writing the chunk to disk the integrity of the chunk is
+   * computed in slices with SHA-1, and prepend to the beginning.
+   * 
+   * @param event
+   */
+  private void processIncomingChunk(Event event) {
+    WriteChunk request = ( WriteChunk ) event;
+    try
+    {
+      byte[] message = request.getMessage();
+      byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
+      message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
+          .put( SHA1Integrity ).put( message ).array();
+
+      Path path = Paths.get( request.getPath() );
+      Files.createDirectories( path.getParent() );
+      Files.write( path, message );
+    } catch ( NoSuchAlgorithmException e )
+    {
+      LOG.error( "Unable to compute hash for message. " + e.getMessage() );
+      e.printStackTrace();
+    } catch ( IOException e )
+    {
+      LOG.error( "Unable to save chunk " + request.getPath() + " to disk. "
+          + e.getMessage() );
+      e.printStackTrace();
+    }
+    // TODO: forward chunk data to other servers
+  }
+
+  /**
+   * Validate the integrity of the chunk from disk and send to the
+   * client.
+   * 
+   * The integrity of a chunk is recomputing using SHA-1 has for the
+   * original chunk slices and comparing the array of hashes to the
+   * persisted value on disk.
+   * 
+   * If it is detected that a chunk is corrupt, then the controller will
+   * be messaged.
+   * 
+   * @param event
+   * @param connection
+   */
+  private void processOutgoingChunk(Event event, TCPConnection connection) {
+    // TODO: read by chunk name, or by file name?
+    
+    // byte[] array = Files.readAllBytes( Paths.get( request.getPath() )
+    // );
   }
 
 }

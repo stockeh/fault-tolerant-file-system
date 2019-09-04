@@ -45,25 +45,25 @@ public class EventFactory {
     switch ( ByteBuffer.wrap( marshalledBytes ).getInt() )
     {
       case Protocol.REGISTER_REQUEST :
-        return new Register( marshalledBytes );
+        return new RegisterRequest( marshalledBytes );
 
       case Protocol.REGISTER_RESPONSE :
         return new RegisterResponse( marshalledBytes );
 
       case Protocol.UNREGISTER_REQUEST :
-        return new Register( marshalledBytes );
+        return new RegisterRequest( marshalledBytes );
 
       case Protocol.MINOR_HEARTBEAT :
         return new MinorHeartbeat( marshalledBytes );
 
       case Protocol.WRITE_QUERY :
-        return new WriteQuery( marshalledBytes );
+        return new WriteRequest( marshalledBytes );
 
       case Protocol.WRITE_QUERY_RESPONSE :
-        return new WriteQueryResponse( marshalledBytes );
+        return new WriteResponse( marshalledBytes );
 
-      case Protocol.WRITE_CHUNKS :
-        return new WriteChunks( marshalledBytes );
+      case Protocol.WRITE_CHUNK :
+        return new WriteChunk( marshalledBytes );
 
       default :
         LOG.error( "Event could not be created. "

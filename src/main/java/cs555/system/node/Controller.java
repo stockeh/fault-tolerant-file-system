@@ -8,12 +8,13 @@ import java.util.Scanner;
 import cs555.system.metadata.ControllerMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
+import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.Register;
+import cs555.system.wireformats.RegisterRequest;
 import cs555.system.wireformats.RegisterResponse;
-import cs555.system.wireformats.WriteQueryResponse;
+import cs555.system.wireformats.WriteResponse;
 
 /**
  *
@@ -28,7 +29,7 @@ public class Controller implements Node {
 
   private static final String HELP = "help";
 
-  private ControllerMetadata metadata = new ControllerMetadata();
+  private ControllerMetadata metadata;
 
   private String host;
 
@@ -43,6 +44,7 @@ public class Controller implements Node {
    * @param port
    */
   public Controller(String host, int port) {
+    this.metadata = new ControllerMetadata();
     this.host = host;
     this.port = port;
   }
@@ -164,7 +166,7 @@ public class Controller implements Node {
    */
   private void constructWriteResponse(Event event, TCPConnection connection) {
     String[] serversToConnect = metadata.getChunkServers();
-    WriteQueryResponse r = new WriteQueryResponse( serversToConnect );
+    WriteResponse r = new WriteResponse( serversToConnect );
     try
     {
       connection.getTCPSender().sendData( r.getBytes() );
@@ -186,7 +188,7 @@ public class Controller implements Node {
    */
   private synchronized void registrationHandler(Event event,
       TCPConnection connection, final boolean register) {
-    Register request = ( Register ) event;
+    RegisterRequest request = ( RegisterRequest ) event;
     String connectionDetails = request.getConnection();
     int identifier = request.getIdentifier();
     String message =
@@ -195,10 +197,10 @@ public class Controller implements Node {
     byte status;
     if ( message.length() == 0 )
     {
-      if ( register && identifier == Protocol.CHUNK_ID )
+      if ( register && identifier == Constants.CHUNK_ID )
       {
         metadata.addConnection( connectionDetails, connection );
-      } else if ( identifier == Protocol.CHUNK_ID )
+      } else if ( identifier == Constants.CHUNK_ID )
       {
         metadata.removeConnection( connectionDetails );
         System.out
@@ -209,11 +211,11 @@ public class Controller implements Node {
           "Registration request successful.  The number of chunk servers currently "
               + "constituting the network are ("
               + metadata.numberOfConnections() + ").\n";
-      status = Protocol.SUCCESS;
+      status = Constants.SUCCESS;
     } else
     {
       LOG.error( "Unable to process request. Responding with a failure." );
-      status = Protocol.FAILURE;
+      status = Constants.FAILURE;
     }
     LOG.debug( message );
     RegisterResponse response = new RegisterResponse( status, message );

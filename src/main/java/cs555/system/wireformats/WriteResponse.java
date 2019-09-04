@@ -7,19 +7,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
- * Generic request message between applications.
+ * Response message from the controller to the client containing chunk
+ * server details upon a write query being received.
  * 
  * @author stock
  *
  */
-public class GenericRequest implements Event {
+public class WriteResponse implements Event {
 
   private int type;
 
-  public GenericRequest(int protocol) {
-    this.type = protocol;
+  private String[] routes;
+
+  public WriteResponse(String[] routes) {
+    this.type = Protocol.WRITE_QUERY_RESPONSE;
+    this.routes = routes;
   }
 
   /**
@@ -29,7 +34,7 @@ public class GenericRequest implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public GenericRequest(byte[] marshalledBytes) throws IOException {
+  public WriteResponse(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -37,8 +42,24 @@ public class GenericRequest implements Event {
 
     this.type = din.readInt();
 
+    int arrayLength = din.readInt();
+
+    this.routes = new String[ arrayLength ];
+
+    for ( int i = 0; i < arrayLength; ++i )
+    {
+      int len = din.readInt();
+      byte[] bytes = new byte[ len ];
+      din.readFully( bytes );
+      this.routes[ i ] = ( new String( bytes ) );
+    }
+
     inputStream.close();
     din.close();
+  }
+
+  public String[] getRoutingPath() {
+    return routes;
   }
 
   /**
@@ -61,6 +82,15 @@ public class GenericRequest implements Event {
 
     dout.writeInt( type );
 
+    dout.writeInt( routes.length );
+
+    for ( String item : routes )
+    {
+      byte[] bytes = item.getBytes();
+      dout.writeInt( bytes.length );
+      dout.write( bytes );
+    }
+
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
@@ -71,7 +101,7 @@ public class GenericRequest implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type );
+    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes );
   }
 
 }

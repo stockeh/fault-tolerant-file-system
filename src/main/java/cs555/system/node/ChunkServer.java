@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
 import cs555.system.heartbeat.ServerHeartbeatManager;
+import cs555.system.metadata.ServerMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
@@ -39,6 +40,8 @@ public class ChunkServer implements Node, Protocol {
 
   private TCPConnection controllerConnection;
 
+  private final ServerMetadata metadata;
+
   private String host;
 
   private int port;
@@ -52,6 +55,7 @@ public class ChunkServer implements Node, Protocol {
    * @param port
    */
   private ChunkServer(String host, int port) {
+    this.metadata = new ServerMetadata();
     this.host = host;
     this.port = port;
   }
@@ -99,7 +103,7 @@ public class ChunkServer implements Node, Protocol {
           Protocol.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
 
       ServerHeartbeatManager serverHeartbeatManager =
-          new ServerHeartbeatManager( node.controllerConnection );
+          new ServerHeartbeatManager( node.controllerConnection, node.metadata );
       Timer timer = new Timer();
       final int interval = 30 * 1000; // 30 seconds in milliseconds
       timer.schedule( serverHeartbeatManager, 1000, interval );

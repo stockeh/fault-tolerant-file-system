@@ -28,7 +28,7 @@ public class Controller implements Node {
 
   private static final String HELP = "help";
 
-  private ControllerMetadata metadata = new ControllerMetadata();
+  private ControllerMetadata metadata;
 
   private String host;
 
@@ -43,6 +43,7 @@ public class Controller implements Node {
    * @param port
    */
   public Controller(String host, int port) {
+    this.metadata = new ControllerMetadata();
     this.host = host;
     this.port = port;
   }

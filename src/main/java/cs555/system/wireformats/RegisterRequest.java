@@ -32,7 +32,7 @@ public class RegisterRequest implements Event {
    * Default constructor - create a new register or unregister message.
    * 
    * @param type Specified for use of register or unregister message.
-   * @param clinetId to distinguish between a chunk server and a client.
+   * @param identifier to distinguish between a chunk server and a client.
    * @param ipAddress
    * @param port
    */

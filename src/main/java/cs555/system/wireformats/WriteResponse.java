@@ -10,30 +10,20 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
- * Forward data to the chunk servers.
- * 
- * Upon writing a new chuck to the chuck server, the client will send
- * a message to the chunk server with the message content and list of
- * nodes to forward the message. The chunk servers will reuse this
- * message to forward messages to other chunk servers.
+ * Response message from the controller to the client containing chunk
+ * server details upon a write query being received.
  * 
  * @author stock
  *
  */
-public class WriteChunks implements Event {
+public class WriteResponse implements Event {
 
   private int type;
 
-  private String path;
-
-  private byte[] message;
-
   private String[] routes;
 
-  public WriteChunks(String name, byte[] message, String[] routes) {
-    this.type = Protocol.WRITE_CHUNK;
-    this.path = name;
-    this.message = message;
+  public WriteResponse(String[] routes) {
+    this.type = Protocol.WRITE_QUERY_RESPONSE;
     this.routes = routes;
   }
 
@@ -44,7 +34,7 @@ public class WriteChunks implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteChunks(byte[] marshalledBytes) throws IOException {
+  public WriteResponse(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -52,24 +42,13 @@ public class WriteChunks implements Event {
 
     this.type = din.readInt();
 
-    int len = din.readInt();
-    byte[] nameBytes = new byte[ len ];
-    din.readFully( nameBytes );
-    this.path = new String( nameBytes );
-
-    int messageLength = din.readInt();
-
-    this.message = new byte[ messageLength ];
-
-    din.readFully( this.message );
-
     int arrayLength = din.readInt();
 
     this.routes = new String[ arrayLength ];
 
     for ( int i = 0; i < arrayLength; ++i )
     {
-      len = din.readInt();
+      int len = din.readInt();
       byte[] bytes = new byte[ len ];
       din.readFully( bytes );
       this.routes[ i ] = ( new String( bytes ) );
@@ -79,36 +58,16 @@ public class WriteChunks implements Event {
     din.close();
   }
 
+  public String[] getRoutingPath() {
+    return routes;
+  }
+
   /**
    * {@inheritDoc}
    */
   @Override
   public int getType() {
     return type;
-  }
-
-  /**
-   * 
-   * @return the chunk path location from the client
-   */
-  public String getPath() {
-    return path;
-  }
-
-  /**
-   * 
-   * @return the chunk content from the client
-   */
-  public byte[] getMessage() {
-    return message;
-  }
-
-  /**
-   * 
-   * @return the routing path decided from the controller
-   */
-  public String[] getRoutingPath() {
-    return routes;
   }
 
   /**
@@ -122,13 +81,6 @@ public class WriteChunks implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
-
-    byte[] nameBytes = path.getBytes();
-    dout.writeInt( nameBytes.length );
-    dout.write( nameBytes );
-
-    dout.writeInt( message.length );
-    dout.write( message );
 
     dout.writeInt( routes.length );
 
@@ -149,9 +101,7 @@ public class WriteChunks implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", chunk name: " + path
-        + ", routes: " + Arrays.toString( routes ) + ", msg len: "
-        + Integer.toString( message.length );
+    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes );
   }
 
 }

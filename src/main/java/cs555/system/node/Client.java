@@ -18,7 +18,7 @@ import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.WriteQueryResponse;
+import cs555.system.wireformats.WriteResponse;
 
 /**
  * Single client to communicate with the file systems controller and
@@ -226,7 +226,7 @@ public class Client implements Node {
   }
 
   private void senderHandler(Event event) {
-    String[] routes = ( ( WriteQueryResponse ) event ).getRoutingPath();
+    String[] routes = ( ( WriteResponse ) event ).getRoutingPath();
     sender.setRoutes( routes );
     sender.unlock();
   }

@@ -9,8 +9,8 @@ import java.util.List;
 import cs555.system.node.Client;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.WriteChunks;
-import cs555.system.wireformats.WriteQuery;
+import cs555.system.wireformats.WriteChunk;
+import cs555.system.wireformats.WriteRequest;
 
 /**
  * 
@@ -96,7 +96,7 @@ public class ClientSenderThread implements Runnable {
         {
           int numberOfChunks = ( int ) Math.ceil( file.length() / 1000.0 );
           byte[] request =
-              ( new WriteQuery( file.getAbsolutePath(), numberOfChunks ) )
+              ( new WriteRequest( file.getAbsolutePath(), numberOfChunks ) )
                   .getBytes();
           processIndividualFile( file, request, is );
         } catch ( IOException e )
@@ -162,7 +162,7 @@ public class ClientSenderThread implements Runnable {
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
-      WriteChunks writeToChunkServer = new WriteChunks( sb.append( tmpName )
+      WriteChunk writeToChunkServer = new WriteChunk( sb.append( tmpName )
           .append( Integer.toString( chunkNumber++ ) ).toString(), chunk,
           routes );
 

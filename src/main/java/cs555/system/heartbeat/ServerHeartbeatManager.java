@@ -1,4 +1,4 @@
-package cs555.system.util;
+package cs555.system.heartbeat;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -7,16 +7,16 @@ import java.util.Date;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
 import cs555.system.transport.TCPConnection;
+import cs555.system.util.FileUtilities;
+import cs555.system.util.Logger;
 import cs555.system.wireformats.MinorHeartbeat;
 
 /**
- * Hold statistics for the chunk server that pertain to the number of
- * sent and received messages.
  * 
  * @author stock
  *
  */
-public class HeartbeatHandler extends TimerTask {
+public class ServerHeartbeatManager extends TimerTask {
 
   private final static Logger LOG = new Logger();
 
@@ -26,7 +26,7 @@ public class HeartbeatHandler extends TimerTask {
 
   private final TCPConnection controllerConnection;
 
-  public HeartbeatHandler(TCPConnection controllerConnection) {
+  public ServerHeartbeatManager(TCPConnection controllerConnection) {
     this.controllerConnection = controllerConnection;
   }
 

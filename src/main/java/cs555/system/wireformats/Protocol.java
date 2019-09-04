@@ -43,6 +43,4 @@ public interface Protocol {
   
   final int CHUNK_SLICE_SIZE = 8000;
 
-
-
 }

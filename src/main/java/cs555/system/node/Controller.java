@@ -11,9 +11,9 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.Register;
+import cs555.system.wireformats.RegisterRequest;
 import cs555.system.wireformats.RegisterResponse;
-import cs555.system.wireformats.WriteQueryResponse;
+import cs555.system.wireformats.WriteResponse;
 
 /**
  *
@@ -164,7 +164,7 @@ public class Controller implements Node {
    */
   private void constructWriteResponse(Event event, TCPConnection connection) {
     String[] serversToConnect = metadata.getChunkServers();
-    WriteQueryResponse r = new WriteQueryResponse( serversToConnect );
+    WriteResponse r = new WriteResponse( serversToConnect );
     try
     {
       connection.getTCPSender().sendData( r.getBytes() );
@@ -186,7 +186,7 @@ public class Controller implements Node {
    */
   private synchronized void registrationHandler(Event event,
       TCPConnection connection, final boolean register) {
-    Register request = ( Register ) event;
+    RegisterRequest request = ( RegisterRequest ) event;
     String connectionDetails = request.getConnection();
     int identifier = request.getIdentifier();
     String message =

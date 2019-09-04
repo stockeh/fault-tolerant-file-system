@@ -124,6 +124,10 @@ public class WriteChunk implements Event {
     return position;
   }
 
+  public void setMessage(byte[] message) {
+    this.message = message;
+  }
+
   /**
    * Increment the position for the next connection
    */

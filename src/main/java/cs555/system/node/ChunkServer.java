@@ -182,7 +182,8 @@ public class ChunkServer implements Node, Protocol {
    * message to the other chunk servers.
    * 
    * Prior to writing the chunk to disk the integrity of the chunk is
-   * computed in slices with SHA-1, and prepend to the beginning.
+   * computed in slices with SHA-1, and prepend to the beginning. This
+   * only occurs on the first chunk server.
    * 
    * @param event
    */
@@ -191,10 +192,13 @@ public class ChunkServer implements Node, Protocol {
     try
     {
       byte[] message = request.getMessage();
-      byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
-      message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
-          .put( SHA1Integrity ).put( message ).array();
-
+      if ( request.getPosition() == 0 )
+      {
+        byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
+        message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
+            .put( SHA1Integrity ).put( message ).array();
+        request.setMessage( message );
+      }
       Path path = Paths.get( request.getPath() );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
@@ -208,7 +212,26 @@ public class ChunkServer implements Node, Protocol {
           + e.getMessage() );
       e.printStackTrace();
     }
-    // TODO: forward chunk data to other servers
+    request.incrementPosition();
+    forwardIncomingChunk( request );
+  }
+
+  /**
+   * 
+   * @param request
+   */
+  private void forwardIncomingChunk(WriteChunk request) {
+    String[] nextChunkServer =
+        request.getRoutingPath()[ request.getPosition() ].split( ":" );
+    try
+    {
+      TCPConnection connection = ConnectionUtilities.establishConnection( this,
+          nextChunkServer[ 0 ], Integer.parseInt( nextChunkServer[ 1 ] ) );
+
+    } catch ( NumberFormatException | IOException e )
+    {
+      e.printStackTrace();
+    }
   }
 
   /**
@@ -227,7 +250,7 @@ public class ChunkServer implements Node, Protocol {
    */
   private void processOutgoingChunk(Event event, TCPConnection connection) {
     // TODO: read by chunk name, or by file name?
-    
+
     // byte[] array = Files.readAllBytes( Paths.get( request.getPath() )
     // );
   }

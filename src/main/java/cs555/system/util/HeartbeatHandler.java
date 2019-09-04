@@ -61,8 +61,9 @@ public class HeartbeatHandler extends TimerTask {
     String timestamp =
         String.format( "%1$TF %1$TT", new Timestamp( new Date().getTime() ) );
 
-    System.out.println( "[" + timestamp + "]" + " Total Sent Count: "
-        + sent.get() + ", Total Received Count: " + received.get() + "\n" );
+    // System.out.println( "[" + timestamp + "]" + " Total Sent Count: "
+    // + sent.get() + ", Total Received Count: " + received.get() + "\n"
+    // );
 
     int totalChunks = 0;
     long freeSpace = FileUtilities.calculateSize( Paths.get( "/tmp" ) );

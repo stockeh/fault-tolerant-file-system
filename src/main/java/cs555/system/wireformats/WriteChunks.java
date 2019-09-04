@@ -24,15 +24,15 @@ public class WriteChunks implements Event {
 
   private int type;
 
-  private String name;
+  private String path;
 
   private byte[] message;
 
   private String[] routes;
 
   public WriteChunks(String name, byte[] message, String[] routes) {
-    this.type = Protocol.WRITE_CHUNKS;
-    this.name = name;
+    this.type = Protocol.WRITE_CHUNK;
+    this.path = name;
     this.message = message;
     this.routes = routes;
   }
@@ -55,7 +55,7 @@ public class WriteChunks implements Event {
     int len = din.readInt();
     byte[] nameBytes = new byte[ len ];
     din.readFully( nameBytes );
-    this.name = new String( nameBytes );
+    this.path = new String( nameBytes );
 
     int messageLength = din.readInt();
 
@@ -79,20 +79,36 @@ public class WriteChunks implements Event {
     din.close();
   }
 
-  public String[] getRoutingPath() {
-    return routes;
-  }
-
-  public String getName() {
-    return name;
-  }
-
   /**
    * {@inheritDoc}
    */
   @Override
   public int getType() {
     return type;
+  }
+
+  /**
+   * 
+   * @return the chunk path location from the client
+   */
+  public String getPath() {
+    return path;
+  }
+
+  /**
+   * 
+   * @return the chunk content from the client
+   */
+  public byte[] getMessage() {
+    return message;
+  }
+
+  /**
+   * 
+   * @return the routing path decided from the controller
+   */
+  public String[] getRoutingPath() {
+    return routes;
   }
 
   /**
@@ -107,7 +123,7 @@ public class WriteChunks implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = name.getBytes();
+    byte[] nameBytes = path.getBytes();
     dout.writeInt( nameBytes.length );
     dout.write( nameBytes );
 
@@ -133,7 +149,7 @@ public class WriteChunks implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", chunk name: " + name
+    return "\n" + Integer.toString( type ) + ", chunk name: " + path
         + ", routes: " + Arrays.toString( routes ) + ", msg len: "
         + Integer.toString( message.length );
   }

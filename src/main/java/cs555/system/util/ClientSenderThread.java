@@ -137,7 +137,11 @@ public class ClientSenderThread implements Runnable {
   public void processIndividualFile(File file, byte[] request, InputStream is)
       throws IOException, InterruptedException {
 
-    String fileName = file.getAbsolutePath() + "_chunk";
+    String tmpName =
+        ( new StringBuilder() ).append( File.separator ).append( "tmp" )
+            .append( file.getAbsolutePath() ).append( "_chunk" ).toString();
+
+    StringBuilder sb = new StringBuilder();
     int chunkNumber = 0;
 
     @SuppressWarnings( "unused" )
@@ -158,9 +162,12 @@ public class ClientSenderThread implements Runnable {
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
-      WriteChunks writeToChunkServer = new WriteChunks(
-          fileName + Integer.toString( chunkNumber++ ), chunk, routes );
+      WriteChunks writeToChunkServer = new WriteChunks( sb.append( tmpName )
+          .append( Integer.toString( chunkNumber++ ) ).toString(), chunk,
+          routes );
+
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
+      sb.setLength( 0 );
       connection.close();
     }
   }

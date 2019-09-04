@@ -62,7 +62,7 @@ public class EventFactory {
       case Protocol.WRITE_QUERY_RESPONSE :
         return new WriteQueryResponse( marshalledBytes );
 
-      case Protocol.WRITE_CHUNKS :
+      case Protocol.WRITE_CHUNK :
         return new WriteChunks( marshalledBytes );
 
       default :

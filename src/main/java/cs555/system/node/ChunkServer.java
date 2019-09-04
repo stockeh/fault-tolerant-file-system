@@ -3,17 +3,24 @@ package cs555.system.node;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
+import cs555.system.util.FileUtilities;
 import cs555.system.util.HeartbeatHandler;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterResponse;
+import cs555.system.wireformats.WriteChunks;
 
 /**
  * chunk servers initiate and accept both communications and messages
@@ -154,9 +161,43 @@ public class ChunkServer implements Node, Protocol {
         System.out.println( ( ( RegisterResponse ) event ).toString() );
         break;
 
-      case Protocol.WRITE_CHUNKS :
+      case Protocol.WRITE_CHUNK :
+        processIncomingChunk( event );
+        break;
+
+      case Protocol.READ_CHUNK :
         break;
     }
+  }
+
+  /**
+   * 
+   * @param event
+   */
+  private void processIncomingChunk(Event event) {
+    WriteChunks request = ( WriteChunks ) event;
+    try
+    {
+      byte[] message = request.getMessage();
+      byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
+      message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
+          .put( SHA1Integrity ).put( message ).array();
+
+      Path path = Paths.get( request.getPath() );
+      Files.createDirectories( path.getParent() );
+      Files.write( path, message );
+    } catch ( NoSuchAlgorithmException e )
+    {
+      LOG.error( "Unable to compute hash for message. " + e.getMessage() );
+      e.printStackTrace();
+    } catch ( IOException e )
+    {
+      LOG.error( "Unable to save chunk " + request.getPath() + " to disk. "
+          + e.getMessage() );
+      e.printStackTrace();
+    }
+    // byte[] array = Files.readAllBytes( Paths.get( request.getPath() )
+    // );
   }
 
 }

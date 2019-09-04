@@ -21,12 +21,14 @@ public interface Protocol {
 
   final int MAJOR_HEARTBEAT = 4;
 
-  final int WRITE_CHUNKS = 5;
+  final int WRITE_CHUNK = 5;
 
   final int WRITE_QUERY = 6;
 
   final int WRITE_QUERY_RESPONSE = 7;
 
+  final int READ_CHUNK = 8;
+  
   // Constants
 
   final int CLIENT_ID = 8;
@@ -38,5 +40,9 @@ public interface Protocol {
   final byte FAILURE = ( byte ) 500;
 
   final int CHUNK_SIZE = 64000;
+  
+  final int CHUNK_SLICE_SIZE = 8000;
+
+
 
 }

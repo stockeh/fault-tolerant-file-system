@@ -6,7 +6,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
@@ -129,11 +131,47 @@ public class ControllerMetadata {
    * @param freeDiskSpace
    * @param numberOfChunks
    */
-  public void update(String connectionDetails, int freeDiskSpace,
-      int numberOfChunks) {
+  public void updateServerInformation(String connectionDetails,
+      long freeDiskSpace, int numberOfChunks) throws NullPointerException {
     ServerInformation server = connections.get( connectionDetails );
+    if ( server == null )
+    {
+      throw new NullPointerException( "Chunk server connection: "
+          + connectionDetails + ", does not exist on controller." );
+    }
     server.setFreeDiskSpace( freeDiskSpace );
     server.setNumberOfChunks( numberOfChunks );
+  }
+
+  /**
+   * Iterate the map and update the files with their respective chunk
+   * server locations.
+   * 
+   * @param filesFromServer map of <k: file_name, v: List((sequence,
+   *        position))>
+   * @param connectionDetails the host:port associated with the chunk
+   *        server
+   */
+  public void updateFileInformation(
+      Map<String, List<ChunkInformation>> filesFromServer,
+      String connectionDetails) throws NullPointerException {
+    for ( Entry<String, List<ChunkInformation>> entry : filesFromServer
+        .entrySet() )
+    {
+      FileInformation information = files.get( entry.getKey() );
+      if ( information == null )
+      {
+        throw new NullPointerException( "Unable to update because the file: "
+            + entry.getKey() + ", does not exist on controller." );
+      }
+      String[][] chunks = information.getChunks();
+
+      for ( ChunkInformation chunk : entry.getValue() )
+      {
+        chunks[ chunk.getSequence() ][ chunk.getPosition() ] =
+            connectionDetails;
+      }
+    }
   }
 
   /**
@@ -221,7 +259,7 @@ public class ControllerMetadata {
 
     private String connectionDetails;
 
-    private int freeDiskSpace;
+    private long freeDiskSpace;
 
     private int numberOfChunks;
 
@@ -259,7 +297,7 @@ public class ControllerMetadata {
       this.numberOfChunks = numberOfChunks;
     }
 
-    private void setFreeDiskSpace(int freeDiskSpace) {
+    private void setFreeDiskSpace(long freeDiskSpace) {
       this.freeDiskSpace = freeDiskSpace;
     }
   }

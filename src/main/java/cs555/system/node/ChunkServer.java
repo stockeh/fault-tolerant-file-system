@@ -57,7 +57,7 @@ public class ChunkServer implements Node, Protocol {
    * @param port
    */
   private ChunkServer(String host, int port) {
-    this.metadata = new ServerMetadata();
+    this.metadata = new ServerMetadata( host + ":" + Integer.toString( port ) );
     this.host = host;
     this.port = port;
   }
@@ -85,13 +85,7 @@ public class ChunkServer implements Node, Protocol {
    * @param args
    */
   public static void main(String[] args) {
-    if ( args.length < 2 )
-    {
-      LOG.error(
-          "USAGE: java cs555.system.node.ChunkServer controller-host controller-port" );
-      System.exit( 1 );
-    }
-    LOG.info( "chunk server starting up at: " + new Date() );
+    LOG.info( "Chunk server starting up at: " + new Date() );
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
       ChunkServer node =
@@ -102,7 +96,8 @@ public class ChunkServer implements Node, Protocol {
           "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Constants.CHUNK_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+          Constants.CHUNK_ID, Constants.CONTROLLER_HOST,
+          Integer.valueOf( Constants.CONTROLLER_PORT ) );
 
       ServerHeartbeatManager serverHeartbeatManager =
           new ServerHeartbeatManager( node.controllerConnection,

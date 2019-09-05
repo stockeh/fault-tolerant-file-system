@@ -15,7 +15,8 @@ import java.util.Map.Entry;
 import cs555.system.metadata.ServerMetadata.ChunkInformation;
 
 /**
- * 
+ * Message from the chunk server to the controller containing
+ * information about the newly added chunks.
  * 
  * @author stock
  *
@@ -23,6 +24,8 @@ import cs555.system.metadata.ServerMetadata.ChunkInformation;
 public class MinorHeartbeat implements Event {
 
   private int type;
+
+  private String connectionDetails;
 
   private int totalChunks;
 
@@ -32,15 +35,19 @@ public class MinorHeartbeat implements Event {
 
   private boolean isEmpty;
 
+
   /**
    * Default constructor - create a new task initiation
    * 
+   * @param connectionDetails
    * @param totalChunks
    * @param freeSpace
+   * @param files
    */
-  public MinorHeartbeat(int totalChunks, long freeSpace,
-      Map<String, List<ChunkInformation>> files) {
+  public MinorHeartbeat(String connectionDetails, int totalChunks,
+      long freeSpace, Map<String, List<ChunkInformation>> files) {
     this.type = Protocol.MINOR_HEARTBEAT;
+    this.connectionDetails = connectionDetails;
     this.totalChunks = totalChunks;
     this.freeSpace = freeSpace;
     this.files = files;
@@ -62,6 +69,11 @@ public class MinorHeartbeat implements Event {
 
     this.type = din.readInt();
 
+    int len = din.readInt();
+    byte[] connectionDetailBytes = new byte[ len ];
+    din.readFully( connectionDetailBytes );
+    this.connectionDetails = new String( connectionDetailBytes );
+
     this.totalChunks = din.readInt();
 
     this.freeSpace = din.readLong();
@@ -77,7 +89,7 @@ public class MinorHeartbeat implements Event {
       for ( int i = 0; i < numberOfFiles; ++i )
       {
         // 2. read key
-        int len = din.readInt();
+        len = din.readInt();
         byte[] bytes = new byte[ len ];
         din.readFully( bytes );
         String key = new String( bytes );
@@ -101,13 +113,6 @@ public class MinorHeartbeat implements Event {
   }
 
   /**
-   * @return The number of chunks on the chunk server
-   */
-  public int getTotalChunks() {
-    return totalChunks;
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
@@ -115,6 +120,42 @@ public class MinorHeartbeat implements Event {
     return type;
   }
 
+  /**
+   * 
+   * @return the host:ip combination from the connection
+   */
+  public String getConnectionDetails() {
+    return connectionDetails;
+  }
+
+  /**
+   * 
+   * @return the number of chunks on the chunk server
+   */
+  public int getTotalChunks() {
+    return totalChunks;
+  }
+
+  /**
+   * 
+   * @return the amount of free space on a chunk server
+   */
+  public long getFreeSpace() {
+    return freeSpace;
+  }
+
+  /**
+   * 
+   * @return the files that were newly added to the chunk server
+   */
+  public Map<String, List<ChunkInformation>> getFiles() {
+    return files;
+  }
+
+  public boolean isEmpty() {
+    return isEmpty;
+  }
+  
   /**
    * {@inheritDoc}
    */
@@ -126,6 +167,10 @@ public class MinorHeartbeat implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
+
+    byte[] connectionDetailBytes = connectionDetails.getBytes();
+    dout.writeInt( connectionDetailBytes.length );
+    dout.write( connectionDetailBytes );
 
     dout.writeInt( totalChunks );
 
@@ -171,9 +216,9 @@ public class MinorHeartbeat implements Event {
     String extra = this.isEmpty ? ""
         : ", num files: " + Integer.toString( this.files.size() );
 
-    return Integer.toString( this.type ) + " " + ", total chunks: "
+    return Integer.toString( this.type ) + ", connection details: "
+        + this.connectionDetails + ", total chunks: "
         + Integer.toString( this.totalChunks ) + " " + ", free space: "
         + Long.toString( this.freeSpace ) + extra;
   }
-
 }

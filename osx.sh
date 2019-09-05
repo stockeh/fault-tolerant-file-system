@@ -5,16 +5,13 @@
 # This new window will spawn MULTI + 1 Chunk Servers.
 #
 
-HOST=localhost
-PORT=5001
-MULTI="1 2"
-OUTPUT_DIR=/Users/stock/Development/cs/cs555/fault-tolerant-file-system/data
+MULTI="1 2 3"
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
-BUILD="$DIR/build/classes/java/main"
+JAR_PATH="$DIR/conf/:$DIR/build/libs/fault-tolerant-file-system.jar"
 COMPILE="$( ps -ef | grep [c]s555.system.node.Controller )"
 
-SCRIPT="cd $BUILD; java -cp . cs555.system.node.ChunkServer $HOST $PORT;"
+SCRIPT="java -cp $JAR_PATH cs555.system.node.ChunkServer;"
 
 function new_tab() {
     osascript \
@@ -32,10 +29,10 @@ LINES=`find . -name "*.java" -print | xargs wc -l | grep "total" | awk '{$1=$1};
     gradle build
     open -a Terminal .
     open -a Terminal .
-    pushd $BUILD; java -cp . cs555.system.node.Controller $PORT; popd;
+    java -cp $JAR_PATH cs555.system.node.Controller;
 elif [ $1 = "c" ]
 then
-    pushd $BUILD; java -cp . cs555.system.node.Client $HOST $PORT $OUTPUT_DIR; popd;
+    java -cp $JAR_PATH cs555.system.node.Client;
 else
     if [ -n "$MULTI" ]
     then

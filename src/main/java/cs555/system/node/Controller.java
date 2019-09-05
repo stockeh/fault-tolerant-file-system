@@ -19,6 +19,11 @@ import cs555.system.wireformats.WriteRequest;
 import cs555.system.wireformats.WriteResponse;
 
 /**
+ * The control flow of the application occurs through the controller
+ * managing the chunk servers.
+ * 
+ * Chunk servers and clients alike will establish connections with the
+ * controller.
  *
  * @author stock
  *
@@ -73,16 +78,10 @@ public class Controller implements Node {
    * @param args
    */
   public static void main(String[] args) {
-    if ( args.length < 1 )
-    {
-      LOG.error( "USAGE: java cs555.system.node.Controller portnum" );
-      System.exit( 1 );
-    }
-
-    LOG.info( "Controller starting up at: " + new Date() );
+    LOG.info( "Controller node starting up at: " + new Date() );
 
     try ( ServerSocket serverSocket =
-        new ServerSocket( Integer.valueOf( args[ 0 ] ) ) )
+        new ServerSocket( Integer.valueOf( Constants.CONTROLLER_PORT ) ) )
     {
       Controller controller =
           new Controller( InetAddress.getLocalHost().getHostName(),
@@ -138,7 +137,7 @@ public class Controller implements Node {
    */
   @Override
   public void onEvent(Event event, TCPConnection connection) {
-    // LOG.debug( event.toString() );
+    LOG.debug( event.toString() );
     switch ( event.getType() )
     {
       case Protocol.REGISTER_REQUEST :
@@ -237,15 +236,28 @@ public class Controller implements Node {
   }
 
   /**
-   * Manage the incoming heartbeats by ...
+   * Manage the incoming heartbeats by updating the controller metadata
    * 
    * @param event
    * @param connection
    */
   private synchronized void heartbeatHandler(Event event,
       TCPConnection connection) {
-    String details = ( ( MinorHeartbeat ) event ).toString();
-    System.out.println( details );
+    MinorHeartbeat request = ( ( MinorHeartbeat ) event );
+    try
+    {
+      metadata.updateServerInformation( request.getConnectionDetails(),
+          request.getFreeSpace(), request.getTotalChunks() );
+      if ( !request.isEmpty() )
+      {
+        metadata.updateFileInformation( request.getFiles(),
+            request.getConnectionDetails() );
+      }
+    } catch ( NullPointerException e )
+    {
+      LOG.error( e.getMessage() );
+      return;
+    }
   }
 
   /**

@@ -7,6 +7,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import cs555.system.metadata.ServerMetadata.ChunkInformation;
 
 /**
  * 
@@ -16,21 +22,29 @@ import java.io.IOException;
  */
 public class MinorHeartbeat implements Event {
 
-  int type;
+  private int type;
 
-  int totalChunks;
+  private int totalChunks;
 
-  long freeSpace;
+  private long freeSpace;
+
+  private Map<String, List<ChunkInformation>> files;
+
+  private boolean isEmpty;
 
   /**
    * Default constructor - create a new task initiation
    * 
    * @param totalChunks
+   * @param freeSpace
    */
-  public MinorHeartbeat(int totalChunks, long freeSpace) {
+  public MinorHeartbeat(int totalChunks, long freeSpace,
+      Map<String, List<ChunkInformation>> files) {
     this.type = Protocol.MINOR_HEARTBEAT;
     this.totalChunks = totalChunks;
     this.freeSpace = freeSpace;
+    this.files = files;
+    this.isEmpty = files.size() > 0 ? false : true;
   }
 
   /**
@@ -52,6 +66,36 @@ public class MinorHeartbeat implements Event {
 
     this.freeSpace = din.readLong();
 
+    this.isEmpty = din.readBoolean();
+
+    if ( !this.isEmpty )
+    {
+      // 1. read files length
+      int numberOfFiles = din.readInt();
+      this.files = new HashMap<>();
+
+      for ( int i = 0; i < numberOfFiles; ++i )
+      {
+        // 2. read key
+        int len = din.readInt();
+        byte[] bytes = new byte[ len ];
+        din.readFully( bytes );
+        String key = new String( bytes );
+
+        // 3. read list length
+        int numberOfChunks = din.readInt();
+        List<ChunkInformation> value = new ArrayList<>( numberOfChunks );
+
+        // 4. read each list item
+        for ( int chunkNumber = 0; chunkNumber < numberOfChunks; ++chunkNumber )
+        {
+          int sequence = din.readInt();
+          int position = din.readInt();
+          value.add( new ChunkInformation( sequence, position ) );
+        }
+        this.files.put( key, value );
+      }
+    }
     inputStream.close();
     din.close();
   }
@@ -87,6 +131,32 @@ public class MinorHeartbeat implements Event {
 
     dout.writeLong( freeSpace );
 
+    dout.writeBoolean( isEmpty );
+
+    if ( !isEmpty )
+    {
+      // 1. write files length
+      dout.writeInt( files.size() );
+
+      for ( Entry<String, List<ChunkInformation>> entry : files.entrySet() )
+      {
+        // 2. write key
+        byte[] bytes = entry.getKey().getBytes();
+        dout.writeInt( bytes.length );
+        dout.write( bytes );
+
+        // 3. write list length
+        List<ChunkInformation> value = entry.getValue();
+        dout.writeInt( value.size() );
+
+        // 4. write each list item
+        for ( ChunkInformation info : value )
+        {
+          dout.writeInt( info.getSequence() );
+          dout.writeInt( info.getPosition() );
+        }
+      }
+    }
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
@@ -97,9 +167,13 @@ public class MinorHeartbeat implements Event {
 
   @Override
   public String toString() {
-    return Integer.toString( this.type ) + " "
-        + Integer.toString( this.totalChunks ) + " "
-        + Long.toString( this.freeSpace );
+
+    String extra = this.isEmpty ? ""
+        : ", num files: " + Integer.toString( this.files.size() );
+
+    return Integer.toString( this.type ) + " " + ", total chunks: "
+        + Integer.toString( this.totalChunks ) + " " + ", free space: "
+        + Long.toString( this.freeSpace ) + extra;
   }
 
 }

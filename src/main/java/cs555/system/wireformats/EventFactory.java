@@ -56,10 +56,10 @@ public class EventFactory {
       case Protocol.MINOR_HEARTBEAT :
         return new MinorHeartbeat( marshalledBytes );
 
-      case Protocol.WRITE_QUERY :
+      case Protocol.WRITE_REQUEST :
         return new WriteRequest( marshalledBytes );
 
-      case Protocol.WRITE_QUERY_RESPONSE :
+      case Protocol.WRITE_RESPONSE :
         return new WriteResponse( marshalledBytes );
 
       case Protocol.WRITE_CHUNK :

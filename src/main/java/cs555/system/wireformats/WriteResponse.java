@@ -23,7 +23,7 @@ public class WriteResponse implements Event {
   private String[] routes;
 
   public WriteResponse(String[] routes) {
-    this.type = Protocol.WRITE_QUERY_RESPONSE;
+    this.type = Protocol.WRITE_RESPONSE;
     this.routes = routes;
   }
 

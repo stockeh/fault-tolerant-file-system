@@ -1,5 +1,6 @@
 package cs555.system.node;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -182,7 +183,8 @@ public class ChunkServer implements Node, Protocol {
    * message to the other chunk servers.
    * 
    * Prior to writing the chunk to disk the integrity of the chunk is
-   * computed in slices with SHA-1, and prepend to the beginning.
+   * computed in slices with SHA-1, and prepend to the beginning. This
+   * only occurs on the first chunk server.
    * 
    * @param event
    */
@@ -191,24 +193,61 @@ public class ChunkServer implements Node, Protocol {
     try
     {
       byte[] message = request.getMessage();
-      byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
-      message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
-          .put( SHA1Integrity ).put( message ).array();
-
-      Path path = Paths.get( request.getPath() );
+      if ( request.getPosition() == 0 )
+      {
+        byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
+        message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
+            .put( SHA1Integrity ).put( message ).array();
+        request.setMessage( message );
+      }
+      // TODO: use StringBuilder instead for performance?
+      Path path = Paths.get( File.separator, "tmp", request.getName() + "_chunk"
+          + Integer.toString( request.getSequence() ) );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
+      LOG.info( "Finished writing " + request.getName() + " to disk." );
     } catch ( NoSuchAlgorithmException e )
     {
       LOG.error( "Unable to compute hash for message. " + e.getMessage() );
       e.printStackTrace();
     } catch ( IOException e )
     {
-      LOG.error( "Unable to save chunk " + request.getPath() + " to disk. "
+      LOG.error( "Unable to save chunk " + request.getName() + " to disk. "
           + e.getMessage() );
       e.printStackTrace();
     }
-    // TODO: forward chunk data to other servers
+    forwardIncomingChunk( request );
+    metadata.update( request.getName(), request.getSequence(),
+        request.getPosition() );
+  }
+
+  /**
+   * Increment the position within the request and forward to the next
+   * server if applicable.
+   * 
+   * @param request to forward
+   */
+  private void forwardIncomingChunk(WriteChunk request) {
+    request.incrementPosition();
+    if ( request.getPosition() != request.getRoutingPath().length )
+    {
+      try
+      {
+        String[] nextChunkServer =
+            request.getRoutingPath()[ request.getPosition() ].split( ":" );
+        TCPConnection connection =
+            ConnectionUtilities.establishConnection( this, nextChunkServer[ 0 ],
+                Integer.parseInt( nextChunkServer[ 1 ] ) );
+
+        connection.getTCPSender().sendData( request.getBytes() );
+        connection.close();
+      } catch ( NumberFormatException | IOException | InterruptedException e )
+      {
+        LOG.error( "Unable to forward the request for " + request.getName()
+            + ", " + e.getMessage() );
+        e.printStackTrace();
+      }
+    }
   }
 
   /**
@@ -227,7 +266,7 @@ public class ChunkServer implements Node, Protocol {
    */
   private void processOutgoingChunk(Event event, TCPConnection connection) {
     // TODO: read by chunk name, or by file name?
-    
+
     // byte[] array = Files.readAllBytes( Paths.get( request.getPath() )
     // );
   }

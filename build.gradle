@@ -1,7 +1,11 @@
-plugins {
-    id 'java'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.12'
     implementation files('libs/reed-solomon-erasure-coding.jar')
 }

@@ -219,7 +219,7 @@ public class Client implements Node {
     LOG.debug( event.toString() );
     switch ( event.getType() )
     {
-      case Protocol.WRITE_QUERY_RESPONSE :
+      case Protocol.WRITE_RESPONSE :
         senderHandler( event );
         break;
     }

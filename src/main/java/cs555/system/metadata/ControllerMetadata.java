@@ -1,7 +1,6 @@
 package cs555.system.metadata;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -9,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.transport.TCPConnection;
+import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 
 /**
@@ -23,15 +23,10 @@ public class ControllerMetadata {
   private static Logger LOG = new Logger();
 
   /**
-   * How many servers replicate the chunks
-   */
-  private final static int NUMBER_OF_REPLICATIONS = 3;
-
-  /**
    * Files stored on the chunk servers <k: filename , v: file
    * information>
    */
-  private final Map<String, FileMetadata> files = new HashMap<>();
+  private final Map<String, FileInformation> files = new HashMap<>();
 
   /**
    * Connections to all the chunk servers. <k: host:port , v: chunk
@@ -39,12 +34,32 @@ public class ControllerMetadata {
    * 
    * TODO: check if needs to be concurrent. Speed implications?
    */
-  private final Map<String, ChunkServerMetadata> connections =
+  private final Map<String, ServerInformation> connections =
       new ConcurrentHashMap<>();
 
-  private final Comparator<ChunkServerMetadata> comparator = Comparator
-      .comparing( ChunkServerMetadata::getNumberOfChunks ).thenComparing(
-          ChunkServerMetadata::getFreeDiskSpace, Collections.reverseOrder() );
+  private final Comparator<ServerInformation> comparator = Comparator
+      .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
+          ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
+
+  /**
+   * Add a file to the metadata if it does not already exist. Otherwise
+   * return from method signaling the file is not original.
+   * 
+   * @param name of the file to maintain
+   * @param numberOfChunks that make up the file
+   * 
+   * @return true if the file is original, false otherwise
+   */
+  public boolean addFile(String name, int numberOfChunks) {
+    boolean isOriginalFile = !files.containsKey( name );
+
+    if ( isOriginalFile )
+    {
+      files.put( name, new FileInformation( numberOfChunks ) );
+    }
+
+    return isOriginalFile;
+  }
 
   /**
    * Add a new connection ( chunk server ) to the controllers metadata.
@@ -55,7 +70,7 @@ public class ControllerMetadata {
   public void addConnection(String connectionDetails,
       TCPConnection connection) {
     connections.put( connectionDetails,
-        new ChunkServerMetadata( connection, connectionDetails ) );
+        new ServerInformation( connection, connectionDetails ) );
   }
 
   /**
@@ -116,7 +131,7 @@ public class ControllerMetadata {
    */
   public void update(String connectionDetails, int freeDiskSpace,
       int numberOfChunks) {
-    ChunkServerMetadata server = connections.get( connectionDetails );
+    ServerInformation server = connections.get( connectionDetails );
     server.setFreeDiskSpace( freeDiskSpace );
     server.setNumberOfChunks( numberOfChunks );
   }
@@ -126,18 +141,29 @@ public class ControllerMetadata {
    * written too. A list of servers will be returned with the associated
    * connection identifiers.
    * 
+   * TODO: Check if there are any chunk servers, if not respond with
+   * error.
+   * 
+   * TODO: Check if the file already exists and there is a version
+   * increase. Get existing locations if exists
+   * 
+   * @param isOriginalFile computes the list of new chunk servers to
+   *        write too, otherwise will retrieve the existing server
+   *        locations
+   * 
    * @return a list of chunk servers for the client to send data too
    */
-  public String[] getChunkServers() {
+  public String[] getChunkServers(boolean isOriginalFile) {
 
-    List<ChunkServerMetadata> list = new ArrayList<>( connections.values() );
+    List<ServerInformation> list = new ArrayList<>( connections.values() );
 
     // see comparator for sort details
     Collections.sort( list, comparator );
 
     int numberOfConnections =
-        connections.size() < NUMBER_OF_REPLICATIONS ? connections.size()
-            : NUMBER_OF_REPLICATIONS;
+        connections.size() < Constants.NUMBER_OF_REPLICATIONS
+            ? connections.size()
+            : Constants.NUMBER_OF_REPLICATIONS;
 
     String[] output = new String[ numberOfConnections ];
 
@@ -159,17 +185,24 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  private static class FileMetadata {
+  private static class FileInformation {
 
     /**
      * chunk_1: chunk_server_a, chunk_server_b, ... chunk_2: ... ...
-     * 
-     * TODO: Need to know how many chunks make up a file.
      */
     private String[][] chunks;
 
-    private FileMetadata(int numberOfChunks) {
-      chunks = new String[ numberOfChunks ][ NUMBER_OF_REPLICATIONS ];
+    private FileInformation(int numberOfChunks) {
+      chunks = new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
+    }
+
+    /**
+     * 
+     * @return the chunk server locations associated for each chunk within
+     *         the file
+     */
+    private String[][] getChunks() {
+      return chunks;
     }
   }
 
@@ -182,7 +215,7 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  private static class ChunkServerMetadata {
+  private static class ServerInformation {
 
     private TCPConnection connection;
 
@@ -198,12 +231,16 @@ public class ControllerMetadata {
      * @param connection
      * @param connectionDetails
      */
-    private ChunkServerMetadata(TCPConnection connection,
+    private ServerInformation(TCPConnection connection,
         String connectionDetails) {
       this.connection = connection;
       this.connectionDetails = connectionDetails;
       this.freeDiskSpace = 0;
       this.numberOfChunks = 0;
+    }
+
+    private TCPConnection getConnection() {
+      return this.connection;
     }
 
     private String getConnectionDetails() {
@@ -225,17 +262,5 @@ public class ControllerMetadata {
     private void setFreeDiskSpace(int freeDiskSpace) {
       this.freeDiskSpace = freeDiskSpace;
     }
-  }
-
-  public static void main(String[] args) {
-    ControllerMetadata m = new ControllerMetadata();
-    m.addConnection( "a", null );
-    m.update( "a", 100, 0 );
-    m.addConnection( "b", null );
-    m.update( "b", 101, 0 );
-    m.addConnection( "c", null );
-    m.update( "c", 103, 2 );
-    m.displayConnections();
-    System.out.println( Arrays.toString( m.getChunkServers() ) );
   }
 }

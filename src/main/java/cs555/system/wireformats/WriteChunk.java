@@ -24,17 +24,32 @@ public class WriteChunk implements Event {
 
   private int type;
 
-  private String path;
+  private String name;
+
+  private int sequence;
 
   private byte[] message;
 
   private String[] routes;
 
-  public WriteChunk(String name, byte[] message, String[] routes) {
+  private int position;
+
+  /**
+   * 
+   * 
+   * @param name
+   * @param sequence
+   * @param message
+   * @param routes
+   */
+  public WriteChunk(String name, int sequence, byte[] message,
+      String[] routes) {
     this.type = Protocol.WRITE_CHUNK;
-    this.path = name;
+    this.name = name;
+    this.sequence = sequence;
     this.message = message;
     this.routes = routes;
+    this.position = 0;
   }
 
   /**
@@ -55,12 +70,12 @@ public class WriteChunk implements Event {
     int len = din.readInt();
     byte[] nameBytes = new byte[ len ];
     din.readFully( nameBytes );
-    this.path = new String( nameBytes );
+    this.name = new String( nameBytes );
+
+    this.sequence = din.readInt();
 
     int messageLength = din.readInt();
-
     this.message = new byte[ messageLength ];
-
     din.readFully( this.message );
 
     int arrayLength = din.readInt();
@@ -74,6 +89,8 @@ public class WriteChunk implements Event {
       din.readFully( bytes );
       this.routes[ i ] = ( new String( bytes ) );
     }
+
+    this.position = din.readInt();
 
     inputStream.close();
     din.close();
@@ -89,10 +106,19 @@ public class WriteChunk implements Event {
 
   /**
    * 
-   * @return the chunk path location from the client
+   * @return the chunk name from the client
    */
-  public String getPath() {
-    return path;
+  public String getName() {
+    return name;
+  }
+
+  /**
+   * 
+   * @return sequence of chunk in the file - this is the same as the
+   *         chunk number
+   */
+  public int getSequence() {
+    return sequence;
   }
 
   /**
@@ -112,6 +138,25 @@ public class WriteChunk implements Event {
   }
 
   /**
+   * 
+   * @return the current position in the array of routes
+   */
+  public int getPosition() {
+    return position;
+  }
+
+  public void setMessage(byte[] message) {
+    this.message = message;
+  }
+
+  /**
+   * Increment the position for the next connection
+   */
+  public void incrementPosition() {
+    ++position;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -123,9 +168,11 @@ public class WriteChunk implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = path.getBytes();
+    byte[] nameBytes = name.getBytes();
     dout.writeInt( nameBytes.length );
     dout.write( nameBytes );
+
+    dout.writeInt( sequence );
 
     dout.writeInt( message.length );
     dout.write( message );
@@ -139,6 +186,8 @@ public class WriteChunk implements Event {
       dout.write( bytes );
     }
 
+    dout.writeInt( position );
+
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
@@ -147,11 +196,14 @@ public class WriteChunk implements Event {
     return marshalledBytes;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", chunk name: " + path
-        + ", routes: " + Arrays.toString( routes ) + ", msg len: "
-        + Integer.toString( message.length );
+    return "\n" + Integer.toString( type ) + ", chunk name: " + name
+        + ", sequence: " + sequence + ", routes: " + Arrays.toString( routes )
+        + ", msg len: " + Integer.toString( message.length );
   }
 
 }

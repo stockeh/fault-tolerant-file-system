@@ -24,7 +24,7 @@ public class WriteRequest implements Event {
   private int numberOfChunks;
 
   public WriteRequest(String name, int numberOfChunks) {
-    this.type = Protocol.WRITE_QUERY;
+    this.type = Protocol.WRITE_REQUEST;
     this.name = name;
     this.numberOfChunks = numberOfChunks;
   }
@@ -56,10 +56,6 @@ public class WriteRequest implements Event {
     din.close();
   }
 
-  public String getName() {
-    return name;
-  }
-
   /**
    * {@inheritDoc}
    */
@@ -68,6 +64,22 @@ public class WriteRequest implements Event {
     return type;
   }
 
+  /**
+   * 
+   * @return the name of the file 
+   */
+  public String getName() {
+    return name;
+  }
+  
+  /**
+   * 
+   * @return the number of chunks associated with a file
+   */
+  public int getNumberOfChunks() {
+    return numberOfChunks;
+  }
+  
   /**
    * {@inheritDoc}
    */

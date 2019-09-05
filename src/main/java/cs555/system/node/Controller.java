@@ -73,16 +73,10 @@ public class Controller implements Node {
    * @param args
    */
   public static void main(String[] args) {
-    if ( args.length < 1 )
-    {
-      LOG.error( "USAGE: java cs555.system.node.Controller portnum" );
-      System.exit( 1 );
-    }
-
-    LOG.info( "Controller starting up at: " + new Date() );
+    LOG.info( "Controller node starting up at: " + new Date() );
 
     try ( ServerSocket serverSocket =
-        new ServerSocket( Integer.valueOf( args[ 0 ] ) ) )
+        new ServerSocket( Integer.valueOf( Constants.CONTROLLER_PORT ) ) )
     {
       Controller controller =
           new Controller( InetAddress.getLocalHost().getHostName(),

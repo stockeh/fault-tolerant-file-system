@@ -22,4 +22,17 @@ public interface Constants {
   final int CHUNK_SLICE_SIZE = 8000;
 
   final int NUMBER_OF_REPLICATIONS = 3;
+
+  // Application properties specific constants.
+  
+  final String CONF_NAME = "application.properties";
+
+  final String CONTROLLER_HOST =
+      Configurations.getInstance().getProperty( "controller.host" );
+  
+  final String CONTROLLER_PORT =
+      Configurations.getInstance().getProperty( "controller.port" );
+
+  final String CLIENT_OUTBOUND_DIRECTORY =
+      Configurations.getInstance().getProperty( "client.outbound.directory" );
 }

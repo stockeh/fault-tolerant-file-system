@@ -35,8 +35,6 @@ public class Client implements Node {
 
   private TCPConnection controllerConnection;
 
-  private String outboundDirectory;
-
   private static final String EXIT = "exit";
 
   private static final String HELP = "help";
@@ -92,13 +90,7 @@ public class Client implements Node {
    * @param args
    */
   public static void main(String[] args) {
-    if ( args.length < 3 )
-    {
-      LOG.error(
-          "USAGE: java cs555.system.node.Client controller-host controller-port outbound-dir" );
-      System.exit( 1 );
-    }
-    LOG.info( "Client Node starting up at: " + new Date() );
+    LOG.info( "Client node starting up at: " + new Date() );
 
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
@@ -106,10 +98,10 @@ public class Client implements Node {
           serverSocket.getLocalPort() );
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Constants.CLIENT_ID, args[ 0 ], Integer.valueOf( args[ 1 ] ) );
+          Constants.CLIENT_ID, Constants.CONTROLLER_HOST,
+          Integer.valueOf( Constants.CONTROLLER_PORT ) );
 
       node.sender = new ClientSenderThread( node );
-      node.outboundDirectory = args[ 2 ];
       node.interact();
     } catch ( IOException e )
     {
@@ -188,14 +180,16 @@ public class Client implements Node {
    */
   private void uploadFiles() throws IOException {
     List<File> files;
-    try ( Stream<Path> paths = Files.walk( Paths.get( outboundDirectory ) ) )
+    try ( Stream<Path> paths =
+        Files.walk( Paths.get( Constants.CLIENT_OUTBOUND_DIRECTORY ) ) )
     {
       files = paths.filter( Files::isRegularFile ).map( Path::toFile )
           .collect( Collectors.toList() );
     }
     if ( files == null || files.isEmpty() )
     {
-      LOG.info( "There are no files to upload in " + outboundDirectory );
+      LOG.info( "There are no files to upload in "
+          + Constants.CLIENT_OUTBOUND_DIRECTORY );
       return;
     }
     sender.setFiles( files );
@@ -238,7 +232,8 @@ public class Client implements Node {
   private void displayHelp() {
     System.out.println( "\n\t" + EXIT
         + "\t: disconnect from the controller and terminate.\n\n\t" + UPLOAD
-        + "\t: upload all files in " + outboundDirectory + "\n\n\t" + LIST_FILES
+        + "\t: upload all files in " + Constants.CLIENT_OUTBOUND_DIRECTORY
+        + "\n\n\t" + LIST_FILES
         + "\t: list readable files stored on the chunk servers.\n" );
   }
 

@@ -211,9 +211,9 @@ public class ChunkServer implements Node, Protocol {
           + e.getMessage() );
       e.printStackTrace();
     }
-    forwardIncomingChunk( request );
     metadata.update( request.getName(), request.getSequence(),
         request.getPosition() );
+    forwardIncomingChunk( request );
   }
 
   /**

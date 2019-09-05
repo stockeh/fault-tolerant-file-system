@@ -33,7 +33,7 @@ public class ClientSenderThread implements Runnable {
   private boolean running = false;
 
   /**
-   * Default constructor - 
+   * Default constructor -
    * 
    * @param node
    */
@@ -142,11 +142,8 @@ public class ClientSenderThread implements Runnable {
   private void processIndividualFile(File file, byte[] request, InputStream is)
       throws IOException, InterruptedException {
 
-    String tmpName =
-        ( new StringBuilder() ).append( File.separator ).append( "tmp" )
-            .append( file.getAbsolutePath() ).append( "_chunk" ).toString();
+    String name = file.getAbsolutePath();
 
-    StringBuilder sb = new StringBuilder();
     int chunkNumber = 0;
 
     @SuppressWarnings( "unused" )
@@ -167,12 +164,10 @@ public class ClientSenderThread implements Runnable {
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
-      WriteChunk writeToChunkServer = new WriteChunk( sb.append( tmpName )
-          .append( Integer.toString( chunkNumber++ ) ).toString(), chunk,
-          routes );
+      WriteChunk writeToChunkServer =
+          new WriteChunk( name, chunkNumber++, chunk, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
-      sb.setLength( 0 );
       connection.close();
     }
   }

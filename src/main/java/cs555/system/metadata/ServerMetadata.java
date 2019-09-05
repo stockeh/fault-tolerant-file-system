@@ -50,8 +50,16 @@ public class ServerMetadata {
     return ( new File( File.separator ) ).getFreeSpace();
   }
 
+  /**
+   * Update metadata associated with a file
+   * 
+   * @param file
+   * @param sequence
+   * @param position
+   */
   public synchronized void update(String file, int sequence, int position) {
-
+    files.putIfAbsent( file, new ArrayList<ChunkInformation>() );
+    files.get( file ).add( new ChunkInformation( sequence, position ) );
   }
 
   /**

@@ -11,6 +11,7 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterRequest;
 import cs555.system.wireformats.RegisterResponse;
@@ -137,7 +138,7 @@ public class Controller implements Node {
    */
   @Override
   public void onEvent(Event event, TCPConnection connection) {
-    LOG.debug( event.toString() );
+    // LOG.debug( event.toString() );
     switch ( event.getType() )
     {
       case Protocol.REGISTER_REQUEST :
@@ -170,7 +171,7 @@ public class Controller implements Node {
 
     boolean isOriginalFile =
         metadata.addFile( request.getName(), request.getNumberOfChunks() );
-    String[] serversToConnect = metadata.getChunkServers(isOriginalFile);
+    String[] serversToConnect = metadata.getChunkServers( isOriginalFile );
     WriteResponse response = new WriteResponse( serversToConnect );
     try
     {
@@ -235,9 +236,16 @@ public class Controller implements Node {
     }
   }
 
+  /**
+   * Manage the incoming heartbeats by ...
+   * 
+   * @param event
+   * @param connection
+   */
   private synchronized void heartbeatHandler(Event event,
       TCPConnection connection) {
-    // String details = ( ( MinorHeartbeat ) event ).toString();
+    String details = ( ( MinorHeartbeat ) event ).toString();
+    System.out.println( details );
   }
 
   /**

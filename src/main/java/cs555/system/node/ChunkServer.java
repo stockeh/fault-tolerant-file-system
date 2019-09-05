@@ -1,5 +1,6 @@
 package cs555.system.node;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -199,22 +200,25 @@ public class ChunkServer implements Node, Protocol {
             .put( SHA1Integrity ).put( message ).array();
         request.setMessage( message );
       }
-      Path path = Paths.get( request.getPath() );
+      // TODO: use StringBuilder instead for performance?
+      Path path = Paths.get( File.separator, "tmp", request.getName() + "_chunk"
+          + Integer.toString( request.getSequence() ) );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
-      LOG.info( "Finished writing " + request.getPath() + " to disk." );
+      LOG.info( "Finished writing " + request.getName() + " to disk." );
     } catch ( NoSuchAlgorithmException e )
     {
       LOG.error( "Unable to compute hash for message. " + e.getMessage() );
       e.printStackTrace();
     } catch ( IOException e )
     {
-      LOG.error( "Unable to save chunk " + request.getPath() + " to disk. "
+      LOG.error( "Unable to save chunk " + request.getName() + " to disk. "
           + e.getMessage() );
       e.printStackTrace();
     }
     forwardIncomingChunk( request );
-    // metadata.update();
+    metadata.update( request.getName(), request.getSequence(),
+        request.getPosition() );
   }
 
   /**
@@ -239,7 +243,7 @@ public class ChunkServer implements Node, Protocol {
         connection.close();
       } catch ( NumberFormatException | IOException | InterruptedException e )
       {
-        LOG.error( "Unable to forward the request for " + request.getPath()
+        LOG.error( "Unable to forward the request for " + request.getName()
             + ", " + e.getMessage() );
         e.printStackTrace();
       }

@@ -62,14 +62,14 @@ public class MinorHeartbeat implements Event {
 
     this.type = din.readInt();
 
+    this.totalChunks = din.readInt();
+
+    this.freeSpace = din.readLong();
+
     this.isEmpty = din.readBoolean();
 
     if ( !this.isEmpty )
     {
-      this.totalChunks = din.readInt();
-
-      this.freeSpace = din.readLong();
-
       // 1. read files length
       int numberOfFiles = din.readInt();
       this.files = new HashMap<>();
@@ -127,14 +127,14 @@ public class MinorHeartbeat implements Event {
 
     dout.writeInt( type );
 
+    dout.writeInt( totalChunks );
+
+    dout.writeLong( freeSpace );
+
     dout.writeBoolean( isEmpty );
 
     if ( !isEmpty )
     {
-      dout.writeInt( totalChunks );
-
-      dout.writeLong( freeSpace );
-
       // 1. write files length
       dout.writeInt( files.size() );
 
@@ -167,9 +167,13 @@ public class MinorHeartbeat implements Event {
 
   @Override
   public String toString() {
-    return Integer.toString( this.type ) + " "
-        + Integer.toString( this.totalChunks ) + " "
-        + Long.toString( this.freeSpace );
+
+    String extra = this.isEmpty ? ""
+        : ", num files: " + Integer.toString( this.files.size() );
+
+    return Integer.toString( this.type ) + " " + ", total chunks: "
+        + Integer.toString( this.totalChunks ) + " " + ", free space: "
+        + Long.toString( this.freeSpace ) + extra;
   }
 
 }

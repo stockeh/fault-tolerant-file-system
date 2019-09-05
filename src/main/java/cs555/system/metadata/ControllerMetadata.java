@@ -26,7 +26,7 @@ public class ControllerMetadata {
    * Files stored on the chunk servers <k: filename , v: file
    * information>
    */
-  private final Map<String, FileMetadata> files = new HashMap<>();
+  private final Map<String, FileInformation> files = new HashMap<>();
 
   /**
    * Connections to all the chunk servers. <k: host:port , v: chunk
@@ -34,12 +34,12 @@ public class ControllerMetadata {
    * 
    * TODO: check if needs to be concurrent. Speed implications?
    */
-  private final Map<String, ChunkServerMetadata> connections =
+  private final Map<String, ServerInformation> connections =
       new ConcurrentHashMap<>();
 
-  private final Comparator<ChunkServerMetadata> comparator = Comparator
-      .comparing( ChunkServerMetadata::getNumberOfChunks ).thenComparing(
-          ChunkServerMetadata::getFreeDiskSpace, Collections.reverseOrder() );
+  private final Comparator<ServerInformation> comparator = Comparator
+      .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
+          ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
 
   /**
    * Add a file to the metadata if it does not already exist. Otherwise
@@ -55,7 +55,7 @@ public class ControllerMetadata {
 
     if ( isOriginalFile )
     {
-      files.put( name, new FileMetadata( numberOfChunks ) );
+      files.put( name, new FileInformation( numberOfChunks ) );
     }
 
     return isOriginalFile;
@@ -70,7 +70,7 @@ public class ControllerMetadata {
   public void addConnection(String connectionDetails,
       TCPConnection connection) {
     connections.put( connectionDetails,
-        new ChunkServerMetadata( connection, connectionDetails ) );
+        new ServerInformation( connection, connectionDetails ) );
   }
 
   /**
@@ -131,7 +131,7 @@ public class ControllerMetadata {
    */
   public void update(String connectionDetails, int freeDiskSpace,
       int numberOfChunks) {
-    ChunkServerMetadata server = connections.get( connectionDetails );
+    ServerInformation server = connections.get( connectionDetails );
     server.setFreeDiskSpace( freeDiskSpace );
     server.setNumberOfChunks( numberOfChunks );
   }
@@ -155,7 +155,7 @@ public class ControllerMetadata {
    */
   public String[] getChunkServers(boolean isOriginalFile) {
 
-    List<ChunkServerMetadata> list = new ArrayList<>( connections.values() );
+    List<ServerInformation> list = new ArrayList<>( connections.values() );
 
     // see comparator for sort details
     Collections.sort( list, comparator );
@@ -185,14 +185,14 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  private static class FileMetadata {
+  private static class FileInformation {
 
     /**
      * chunk_1: chunk_server_a, chunk_server_b, ... chunk_2: ... ...
      */
     private String[][] chunks;
 
-    private FileMetadata(int numberOfChunks) {
+    private FileInformation(int numberOfChunks) {
       chunks = new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
     }
 
@@ -215,7 +215,7 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  private static class ChunkServerMetadata {
+  private static class ServerInformation {
 
     private TCPConnection connection;
 
@@ -231,7 +231,7 @@ public class ControllerMetadata {
      * @param connection
      * @param connectionDetails
      */
-    private ChunkServerMetadata(TCPConnection connection,
+    private ServerInformation(TCPConnection connection,
         String connectionDetails) {
       this.connection = connection;
       this.connectionDetails = connectionDetails;

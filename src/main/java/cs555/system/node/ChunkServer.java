@@ -214,21 +214,23 @@ public class ChunkServer implements Node, Protocol {
       e.printStackTrace();
     }
     forwardIncomingChunk( request );
+    // metadata.update();
   }
 
   /**
-   * Increment the position within the request and forward the
+   * Increment the position within the request and forward to the next
+   * server if applicable.
    * 
-   * @param request
+   * @param request to forward
    */
   private void forwardIncomingChunk(WriteChunk request) {
     request.incrementPosition();
-    String[] nextChunkServer =
-        request.getRoutingPath()[ request.getPosition() ].split( ":" );
     if ( request.getPosition() != request.getRoutingPath().length )
     {
       try
       {
+        String[] nextChunkServer =
+            request.getRoutingPath()[ request.getPosition() ].split( ":" );
         TCPConnection connection =
             ConnectionUtilities.establishConnection( this, nextChunkServer[ 0 ],
                 Integer.parseInt( nextChunkServer[ 1 ] ) );

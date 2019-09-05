@@ -80,6 +80,8 @@ public class WriteChunk implements Event {
       this.routes[ i ] = ( new String( bytes ) );
     }
 
+    this.position = din.readInt();
+
     inputStream.close();
     din.close();
   }
@@ -162,6 +164,8 @@ public class WriteChunk implements Event {
       dout.writeInt( bytes.length );
       dout.write( bytes );
     }
+
+    dout.writeInt( position );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();

@@ -202,6 +202,7 @@ public class ChunkServer implements Node, Protocol {
       Path path = Paths.get( request.getPath() );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
+      LOG.info( "Finished writing " + request.getPath() + " to disk." );
     } catch ( NoSuchAlgorithmException e )
     {
       LOG.error( "Unable to compute hash for message. " + e.getMessage() );
@@ -212,25 +213,34 @@ public class ChunkServer implements Node, Protocol {
           + e.getMessage() );
       e.printStackTrace();
     }
-    request.incrementPosition();
     forwardIncomingChunk( request );
   }
 
   /**
+   * Increment the position within the request and forward the
    * 
    * @param request
    */
   private void forwardIncomingChunk(WriteChunk request) {
+    request.incrementPosition();
     String[] nextChunkServer =
         request.getRoutingPath()[ request.getPosition() ].split( ":" );
-    try
+    if ( request.getPosition() != request.getRoutingPath().length )
     {
-      TCPConnection connection = ConnectionUtilities.establishConnection( this,
-          nextChunkServer[ 0 ], Integer.parseInt( nextChunkServer[ 1 ] ) );
+      try
+      {
+        TCPConnection connection =
+            ConnectionUtilities.establishConnection( this, nextChunkServer[ 0 ],
+                Integer.parseInt( nextChunkServer[ 1 ] ) );
 
-    } catch ( NumberFormatException | IOException e )
-    {
-      e.printStackTrace();
+        connection.getTCPSender().sendData( request.getBytes() );
+        connection.close();
+      } catch ( NumberFormatException | IOException | InterruptedException e )
+      {
+        LOG.error( "Unable to forward the request for " + request.getPath()
+            + ", " + e.getMessage() );
+        e.printStackTrace();
+      }
     }
   }
 

@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import cs555.system.wireformats.MinorHeartbeat;
 
 /**
+ * Maintains information about the chunk server and the newly added
+ * chunks associated with a file ( on this servver ).
  * 
  * @author stock
  *
@@ -20,17 +22,25 @@ public class ServerMetadata {
 
   private final Map<String, List<ChunkInformation>> files;
 
-  public ServerMetadata() {
+  private final String connectionDetails;
+
+  /**
+   * Default constructor -
+   * 
+   * @param connectionDetails
+   */
+  public ServerMetadata(String connectionDetails) {
+    this.connectionDetails = connectionDetails;
     this.numberOfChunks = new AtomicInteger( 0 );
     this.files = new HashMap<>();
   }
 
   /**
-   * Increment the <b>number of chunks</b> for a given chunk server.
    * 
+   * @return the host:string identifier associated with the server
    */
-  public void incrementNumberOfChunks() {
-    numberOfChunks.incrementAndGet();
+  public String getConnectionDetails() {
+    return connectionDetails;
   }
 
   /**
@@ -48,6 +58,14 @@ public class ServerMetadata {
    */
   public long getFreeDiskSpace() {
     return ( new File( File.separator ) ).getFreeSpace();
+  }
+
+  /**
+   * Increment the <b>number of chunks</b> for a given chunk server.
+   * 
+   */
+  public void incrementNumberOfChunks() {
+    numberOfChunks.incrementAndGet();
   }
 
   /**
@@ -70,8 +88,8 @@ public class ServerMetadata {
    * @throws IOException
    */
   public synchronized byte[] getMinorHeartbeatBytes() throws IOException {
-    MinorHeartbeat message =
-        new MinorHeartbeat( getNumberOfChunks(), getFreeDiskSpace(), files );
+    MinorHeartbeat message = new MinorHeartbeat( getConnectionDetails(),
+        getNumberOfChunks(), getFreeDiskSpace(), files );
 
     byte[] bytes = message.getBytes();
     files.clear();

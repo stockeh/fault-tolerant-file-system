@@ -57,7 +57,7 @@ public class ChunkServer implements Node, Protocol {
    * @param port
    */
   private ChunkServer(String host, int port) {
-    this.metadata = new ServerMetadata();
+    this.metadata = new ServerMetadata( host + ":" + Integer.toString( port ) );
     this.host = host;
     this.port = port;
   }
@@ -96,7 +96,8 @@ public class ChunkServer implements Node, Protocol {
           "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Constants.CHUNK_ID, Constants.CONTROLLER_HOST, Integer.valueOf( Constants.CONTROLLER_PORT ) );
+          Constants.CHUNK_ID, Constants.CONTROLLER_HOST,
+          Integer.valueOf( Constants.CONTROLLER_PORT ) );
 
       ServerHeartbeatManager serverHeartbeatManager =
           new ServerHeartbeatManager( node.controllerConnection,

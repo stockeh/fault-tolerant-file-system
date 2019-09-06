@@ -236,31 +236,6 @@ public class Controller implements Node {
   }
 
   /**
-   * Manage the incoming heartbeats by updating the controller metadata
-   * 
-   * @param event
-   * @param connection
-   */
-  private synchronized void heartbeatHandler(Event event,
-      TCPConnection connection) {
-    MinorHeartbeat request = ( ( MinorHeartbeat ) event );
-    try
-    {
-      metadata.updateServerInformation( request.getConnectionDetails(),
-          request.getFreeSpace(), request.getTotalChunks() );
-      if ( !request.isEmpty() )
-      {
-        metadata.updateFileInformation( request.getFiles(),
-            request.getConnectionDetails() );
-      }
-    } catch ( NullPointerException e )
-    {
-      LOG.error( e.getMessage() );
-      return;
-    }
-  }
-
-  /**
    * Verify the node had <b>not</b> previously been registered, and the
    * address that is specified in the registration request and the IP
    * address of the request (the socket’s input stream) match.
@@ -297,5 +272,32 @@ public class Controller implements Node {
               + "the IP of the socket.";
     }
     return message;
+  }
+  
+  /**
+   * Manage the incoming heartbeats by updating the controller metadata
+   * 
+   * @param event
+   * @param connection
+   */
+  private synchronized void heartbeatHandler(Event event,
+      TCPConnection connection) {
+    MinorHeartbeat request = ( ( MinorHeartbeat ) event );
+    try
+    {
+      // TODO: Should the total chunks be written here from the server, or
+      // just be incremented from the controller.
+      metadata.updateServerInformation( request.getConnectionDetails(),
+          request.getFreeSpace() );
+      if ( !request.isEmpty() )
+      {
+        metadata.updateFileInformation( request.getFiles(),
+            request.getConnectionDetails() );
+      }
+    } catch ( NullPointerException e )
+    {
+      LOG.error( e.getMessage() );
+      return;
+    }
   }
 }

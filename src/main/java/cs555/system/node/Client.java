@@ -191,7 +191,22 @@ public class Client implements Node {
    * @param input from the user scanner, e.g., 'read 2'
    */
   private void readFileRequest(String[] input) {
+    int fileNumber;
+    try
+    {
+      if ( input.length != 2 )
+      {
+        throw new IllegalArgumentException(
+            "Invalid argument for \'" + READ + "\' input." );
+      }
+      fileNumber = Integer.parseInt( input[ 1 ] );
+    } catch ( IllegalArgumentException e )
+    {
+      LOG.error( "Unable to send read request. " + e.getMessage() );
+      e.printStackTrace();
+    }
     
+
   }
 
   /**

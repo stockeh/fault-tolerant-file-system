@@ -62,8 +62,8 @@ public class EventFactory {
       case Protocol.WRITE_RESPONSE :
         return new WriteResponse( marshalledBytes );
 
-      case Protocol.WRITE_CHUNK :
-        return new WriteChunk( marshalledBytes );
+      case Protocol.WRITE_CHUNK_REQUEST :
+        return new WriteChunkRequest( marshalledBytes );
 
       case Protocol.LIST_FILE_REQUEST :
         return new ListFileRequest( marshalledBytes );

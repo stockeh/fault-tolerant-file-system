@@ -20,7 +20,7 @@ import java.util.Arrays;
  * @author stock
  *
  */
-public class WriteChunk implements Event {
+public class WriteChunkRequest implements Event {
 
   private int type;
 
@@ -42,9 +42,9 @@ public class WriteChunk implements Event {
    * @param message
    * @param routes
    */
-  public WriteChunk(String name, int sequence, byte[] message,
+  public WriteChunkRequest(String name, int sequence, byte[] message,
       String[] routes) {
-    this.type = Protocol.WRITE_CHUNK;
+    this.type = Protocol.WRITE_CHUNK_REQUEST;
     this.name = name;
     this.sequence = sequence;
     this.message = message;
@@ -59,7 +59,7 @@ public class WriteChunk implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteChunk(byte[] marshalledBytes) throws IOException {
+  public WriteChunkRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =

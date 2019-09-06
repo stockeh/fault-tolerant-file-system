@@ -23,7 +23,7 @@ import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterResponse;
-import cs555.system.wireformats.WriteChunk;
+import cs555.system.wireformats.WriteChunkRequest;
 
 /**
  * chunk servers initiate and accept both communications and messages
@@ -163,11 +163,11 @@ public class ChunkServer implements Node, Protocol {
         System.out.println( ( ( RegisterResponse ) event ).toString() );
         break;
 
-      case Protocol.WRITE_CHUNK :
+      case Protocol.WRITE_CHUNK_REQUEST :
         processIncomingChunk( event );
         break;
 
-      case Protocol.READ_CHUNK :
+      case Protocol.READ_REQUEST :
         processOutgoingChunk( event, connection );
         break;
     }
@@ -184,7 +184,7 @@ public class ChunkServer implements Node, Protocol {
    * @param event
    */
   private void processIncomingChunk(Event event) {
-    WriteChunk request = ( WriteChunk ) event;
+    WriteChunkRequest request = ( WriteChunkRequest ) event;
     try
     {
       byte[] message = request.getMessage();
@@ -222,7 +222,7 @@ public class ChunkServer implements Node, Protocol {
    * 
    * @param request to forward
    */
-  private void forwardIncomingChunk(WriteChunk request) {
+  private void forwardIncomingChunk(WriteChunkRequest request) {
     request.incrementPosition();
     if ( request.getPosition() != request.getRoutingPath().length )
     {

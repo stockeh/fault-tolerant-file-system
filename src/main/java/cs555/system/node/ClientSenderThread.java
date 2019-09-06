@@ -10,7 +10,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
-import cs555.system.wireformats.WriteChunk;
+import cs555.system.wireformats.WriteChunkRequest;
 import cs555.system.wireformats.WriteRequest;
 
 /**
@@ -164,8 +164,8 @@ public class ClientSenderThread implements Runnable {
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
-      WriteChunk writeToChunkServer =
-          new WriteChunk( name, chunkNumber++, chunk, routes );
+      WriteChunkRequest writeToChunkServer =
+          new WriteChunkRequest( name, chunkNumber++, chunk, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
       connection.close();

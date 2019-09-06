@@ -15,13 +15,16 @@ public class ControllerMetadataTest {
   @Test
   public void testGetChunkServers() {
     metadata.addConnection( "a", null );
-    metadata.updateServerInformation( "a", 100, 3 );
+    metadata.getConnections().get( "a" ).setNumberOfChunks( 3 );
+    metadata.updateServerInformation( "a", 100 );
 
     metadata.addConnection( "b", null );
-    metadata.updateServerInformation( "b", 101, 2 );
+    metadata.getConnections().get( "b" ).setFreeDiskSpace( 2 );
+    metadata.updateServerInformation( "b", 101 );
 
     metadata.addConnection( "c", null );
-    metadata.updateServerInformation( "c", 102, 2 );
+    metadata.getConnections().get( "c" ).setFreeDiskSpace( 2 );
+    metadata.updateServerInformation( "c", 102 );
 
     boolean isOriginalFile = true;
     String[] servers = metadata.getChunkServers( isOriginalFile );

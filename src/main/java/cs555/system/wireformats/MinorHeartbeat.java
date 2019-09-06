@@ -152,10 +152,15 @@ public class MinorHeartbeat implements Event {
     return files;
   }
 
+  /**
+   * 
+   * @return true if there are no new files with metadata, false
+   *         otherwise
+   */
   public boolean isEmpty() {
     return isEmpty;
   }
-  
+
   /**
    * {@inheritDoc}
    */

@@ -79,7 +79,6 @@ public class WriteChunk implements Event {
     din.readFully( this.message );
 
     int arrayLength = din.readInt();
-
     this.routes = new String[ arrayLength ];
 
     for ( int i = 0; i < arrayLength; ++i )

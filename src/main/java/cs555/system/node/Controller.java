@@ -11,6 +11,7 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterRequest;
@@ -155,6 +156,29 @@ public class Controller implements Node {
       case Protocol.WRITE_REQUEST :
         constructWriteResponse( event, connection );
         break;
+
+      case Protocol.LIST_FILE_REQUEST :
+        listFileHandler( connection );
+    }
+  }
+
+  /**
+   * Upon the client sending a request for the files available to read,
+   * the controller will respond with a name of readable filenames.
+   * 
+   * @param connection
+   */
+  private void listFileHandler(TCPConnection connection) {
+    ListFileResponse response =
+        new ListFileResponse( metadata.getReadableFiles() );
+    try
+    {
+      connection.getTCPSender().sendData( response.getBytes() );
+    } catch ( IOException e )
+    {
+      LOG.error(
+          "Unable to send response message to client. " + e.getMessage() );
+      e.printStackTrace();
     }
   }
 
@@ -236,31 +260,6 @@ public class Controller implements Node {
   }
 
   /**
-   * Manage the incoming heartbeats by updating the controller metadata
-   * 
-   * @param event
-   * @param connection
-   */
-  private synchronized void heartbeatHandler(Event event,
-      TCPConnection connection) {
-    MinorHeartbeat request = ( ( MinorHeartbeat ) event );
-    try
-    {
-      metadata.updateServerInformation( request.getConnectionDetails(),
-          request.getFreeSpace(), request.getTotalChunks() );
-      if ( !request.isEmpty() )
-      {
-        metadata.updateFileInformation( request.getFiles(),
-            request.getConnectionDetails() );
-      }
-    } catch ( NullPointerException e )
-    {
-      LOG.error( e.getMessage() );
-      return;
-    }
-  }
-
-  /**
    * Verify the node had <b>not</b> previously been registered, and the
    * address that is specified in the registration request and the IP
    * address of the request (the socket’s input stream) match.
@@ -297,5 +296,32 @@ public class Controller implements Node {
               + "the IP of the socket.";
     }
     return message;
+  }
+
+  /**
+   * Manage the incoming heartbeats by updating the controller metadata
+   * 
+   * @param event
+   * @param connection
+   */
+  private synchronized void heartbeatHandler(Event event,
+      TCPConnection connection) {
+    MinorHeartbeat request = ( ( MinorHeartbeat ) event );
+    try
+    {
+      // TODO: Should the total chunks be written here from the server, or
+      // just be incremented from the controller.
+      metadata.updateServerInformation( request.getConnectionDetails(),
+          request.getFreeSpace() );
+      if ( !request.isEmpty() )
+      {
+        metadata.updateFileInformation( request.getFiles(),
+            request.getConnectionDetails() );
+      }
+    } catch ( NullPointerException e )
+    {
+      LOG.error( e.getMessage() );
+      return;
+    }
   }
 }

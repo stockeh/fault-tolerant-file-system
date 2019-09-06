@@ -3,7 +3,6 @@ package cs555.system.metadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,7 +27,7 @@ public class ControllerMetadata {
    * Files stored on the chunk servers <k: filename , v: file
    * information>
    */
-  private final Map<String, FileInformation> files = new HashMap<>();
+  private final Map<String, FileInformation> files = new ConcurrentHashMap<>();
 
   /**
    * Connections to all the chunk servers. <k: host:port , v: chunk
@@ -42,6 +41,23 @@ public class ControllerMetadata {
   private final Comparator<ServerInformation> comparator = Comparator
       .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
           ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
+
+  /**
+   * 
+   * @return the map of files containing file names and information
+   */
+  public Map<String, FileInformation> getFiles() {
+    return files;
+  }
+
+  /**
+   * 
+   * @return the map of connections containing chunk server identifier
+   *         and information
+   */
+  public Map<String, ServerInformation> getConnections() {
+    return connections;
+  }
 
   /**
    * Add a file to the metadata if it does not already exist. Otherwise
@@ -129,10 +145,9 @@ public class ControllerMetadata {
    * 
    * @param connectionDetails
    * @param freeDiskSpace
-   * @param numberOfChunks
    */
   public void updateServerInformation(String connectionDetails,
-      long freeDiskSpace, int numberOfChunks) throws NullPointerException {
+      long freeDiskSpace) throws NullPointerException {
     ServerInformation server = connections.get( connectionDetails );
     if ( server == null )
     {
@@ -140,7 +155,6 @@ public class ControllerMetadata {
           + connectionDetails + ", does not exist on controller." );
     }
     server.setFreeDiskSpace( freeDiskSpace );
-    server.setNumberOfChunks( numberOfChunks );
   }
 
   /**
@@ -179,6 +193,9 @@ public class ControllerMetadata {
    * written too. A list of servers will be returned with the associated
    * connection identifiers.
    * 
+   * The total number of chunks for a given connected chunk server is
+   * incremented with the assumption that the chunk will be written.
+   * 
    * TODO: Check if there are any chunk servers, if not respond with
    * error.
    * 
@@ -207,10 +224,40 @@ public class ControllerMetadata {
 
     for ( int i = 0; i < numberOfConnections; ++i )
     {
-      output[ i ] = list.get( i ).getConnectionDetails();
+      String connectionDetails = list.get( i ).getConnectionDetails();
+      output[ i ] = connectionDetails;
+      connections.get( connectionDetails ).incrementNumberOfChunks();
     }
 
     return output;
+  }
+
+  /**
+   * Iterate over all the files and capture a list of readable items,
+   * i.e., all chunks have been written for some files.
+   * 
+   * @return a list of readable files
+   */
+  public List<String> getReadableFiles() {
+    List<String> readableFiles = new ArrayList<>();
+    for ( Entry<String, FileInformation> entry : files.entrySet() )
+    {
+      boolean readable = true;
+
+      String[][] chunks = entry.getValue().getChunks();
+      for ( int i = 0; i < chunks.length; i++ )
+      {
+        if ( chunks[ i ][ 0 ] == null )
+        {
+          readable = false;
+        }
+      }
+      if ( readable )
+      {
+        readableFiles.add( entry.getKey() );
+      }
+    }
+    return readableFiles;
   }
 
   /**
@@ -223,7 +270,7 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  private static class FileInformation {
+  static class FileInformation {
 
     /**
      * chunk_1: chunk_server_a, chunk_server_b, ... chunk_2: ... ...
@@ -253,7 +300,7 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  private static class ServerInformation {
+  static class ServerInformation {
 
     private TCPConnection connection;
 
@@ -278,27 +325,31 @@ public class ControllerMetadata {
     }
 
     private TCPConnection getConnection() {
-      return this.connection;
+      return connection;
     }
 
     private String getConnectionDetails() {
-      return this.connectionDetails;
+      return connectionDetails;
     }
 
     private long getFreeDiskSpace() {
-      return this.freeDiskSpace;
+      return freeDiskSpace;
     }
 
     private long getNumberOfChunks() {
-      return this.numberOfChunks;
+      return numberOfChunks;
     }
 
-    private void setNumberOfChunks(int numberOfChunks) {
+    public void setNumberOfChunks(int numberOfChunks) {
       this.numberOfChunks = numberOfChunks;
     }
 
-    private void setFreeDiskSpace(long freeDiskSpace) {
+    public void setFreeDiskSpace(long freeDiskSpace) {
       this.freeDiskSpace = freeDiskSpace;
+    }
+
+    private void incrementNumberOfChunks() {
+      ++numberOfChunks;
     }
   }
 }

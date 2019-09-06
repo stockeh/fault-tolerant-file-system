@@ -59,7 +59,7 @@ public class ServerMetadata {
   public long getFreeDiskSpace() {
     return ( new File( File.separator ) ).getFreeSpace();
   }
-
+  
   /**
    * Increment the <b>number of chunks</b> for a given chunk server.
    * 

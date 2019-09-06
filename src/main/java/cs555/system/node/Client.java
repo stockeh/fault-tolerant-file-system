@@ -12,11 +12,14 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import cs555.system.metadata.ClientMetadata;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.ListFileRequest;
+import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.WriteResponse;
 
@@ -35,13 +38,17 @@ public class Client implements Node {
 
   private TCPConnection controllerConnection;
 
+  private ClientMetadata metadata;
+
   private static final String EXIT = "exit";
 
   private static final String HELP = "help";
 
   private static final String UPLOAD = "upload";
 
-  private static final String LIST_FILES = "list";
+  private static final String LIST = "list";
+
+  private static final String READ = "read";
 
   private String host;
 
@@ -56,6 +63,7 @@ public class Client implements Node {
    * @param port
    */
   private Client(String host, int port) {
+    this.metadata = new ClientMetadata();
     this.host = host;
     this.port = port;
   }
@@ -123,7 +131,8 @@ public class Client implements Node {
     {
       @SuppressWarnings( "resource" )
       Scanner scan = new Scanner( System.in );
-      switch ( scan.nextLine().toLowerCase() )
+      String[] input = scan.nextLine().toLowerCase().split( "\\s+" );
+      switch ( input[ 0 ] )
       {
         case UPLOAD :
           try
@@ -147,8 +156,12 @@ public class Client implements Node {
           }
           break;
 
-        case LIST_FILES :
-          listControllerFiles();
+        case LIST :
+          listFilesRequest();
+          break;
+
+        case READ :
+          readFileRequest( input );
           break;
 
         case EXIT :
@@ -169,6 +182,16 @@ public class Client implements Node {
     }
     LOG.info( host + ":" + port + " has unregistered and is terminating." );
     System.exit( 0 );
+  }
+
+  /**
+   * Request to the controller to return a list of chunk servers to read
+   * a given file.
+   * 
+   * @param input from the user scanner, e.g., 'read 2'
+   */
+  private void readFileRequest(String[] input) {
+    
   }
 
   /**
@@ -201,8 +224,17 @@ public class Client implements Node {
    * stored on the chunk servers.
    * 
    */
-  private void listControllerFiles() {
-
+  private void listFilesRequest() {
+    try
+    {
+      controllerConnection.getTCPSender()
+          .sendData( new ListFileRequest().getBytes() );
+    } catch ( IOException e )
+    {
+      LOG.error(
+          "Unable to send request message to controller. " + e.getMessage() );
+      e.printStackTrace();
+    }
   }
 
   /**
@@ -216,9 +248,46 @@ public class Client implements Node {
       case Protocol.WRITE_RESPONSE :
         senderHandler( event );
         break;
+
+      case Protocol.LIST_FILE_RESPONSE :
+        displayReadableFiles( event );
+        break;
     }
   }
 
+  /**
+   * Process the response from the controller to list the files in a
+   * readable way.
+   * 
+   * @param event
+   */
+  private void displayReadableFiles(Event event) {
+    List<String> readableFiles = ( ( ListFileResponse ) event ).getFileNames();
+    metadata.setReadableFiles( readableFiles );
+    if ( readableFiles.size() == 0 )
+    {
+      System.out
+          .println( "\nThere are no readable files known to the controller."
+              + "\nPlease upload files with the \'" + UPLOAD + "\' input.\n" );
+      return;
+    }
+    System.out.println( "\tThere are " + readableFiles.size()
+        + " file(s) available to read.\n" );
+    for ( int i = 0; i < readableFiles.size(); ++i )
+    {
+      System.out.println(
+          "\t" + Integer.toString( i ) + "\t: " + readableFiles.get( i ) );
+    }
+    System.out.println( "\nRead a file using the \'" + READ
+        + " #\' input with the associated number.\n" );
+  }
+
+  /**
+   * Routes have been received from the controller, so the client sender
+   * can be unlocked.
+   * 
+   * @param event
+   */
   private void senderHandler(Event event) {
     String[] routes = ( ( WriteResponse ) event ).getRoutingPath();
     sender.setRoutes( routes );
@@ -233,8 +302,10 @@ public class Client implements Node {
     System.out.println( "\n\t" + EXIT
         + "\t: disconnect from the controller and terminate.\n\n\t" + UPLOAD
         + "\t: upload all files in " + Constants.CLIENT_OUTBOUND_DIRECTORY
-        + "\n\n\t" + LIST_FILES
-        + "\t: list readable files stored on the chunk servers.\n" );
+        + "\n\n\t" + LIST
+        + "\t: list readable files stored on the chunk servers." + "\n\n\t"
+        + READ + " #\t: read a file identified by a number listed from the \'"
+        + LIST + "\' input.\n" );
   }
 
 }

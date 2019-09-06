@@ -11,7 +11,7 @@ import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.WriteChunkRequest;
-import cs555.system.wireformats.WriteRequest;
+import cs555.system.wireformats.WriteFileRequest;
 
 /**
  * 
@@ -101,7 +101,7 @@ public class ClientSenderThread implements Runnable {
         {
           int numberOfChunks = ( int ) Math.ceil( file.length() / 1000.0 );
           byte[] request =
-              ( new WriteRequest( file.getAbsolutePath(), numberOfChunks ) )
+              ( new WriteFileRequest( file.getAbsolutePath(), numberOfChunks ) )
                   .getBytes();
           processIndividualFile( file, request, is );
         } catch ( IOException e )

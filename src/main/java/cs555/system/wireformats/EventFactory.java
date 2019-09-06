@@ -56,11 +56,11 @@ public class EventFactory {
       case Protocol.MINOR_HEARTBEAT :
         return new MinorHeartbeat( marshalledBytes );
 
-      case Protocol.WRITE_REQUEST :
-        return new WriteRequest( marshalledBytes );
+      case Protocol.WRITE_FILE_REQUEST :
+        return new WriteFileRequest( marshalledBytes );
 
-      case Protocol.WRITE_RESPONSE :
-        return new WriteResponse( marshalledBytes );
+      case Protocol.WRITE_FILE_RESPONSE :
+        return new WriteFileResponse( marshalledBytes );
 
       case Protocol.WRITE_CHUNK_REQUEST :
         return new WriteChunkRequest( marshalledBytes );
@@ -70,7 +70,13 @@ public class EventFactory {
 
       case Protocol.LIST_FILE_RESPONSE :
         return new ListFileResponse( marshalledBytes );
-        
+
+      case Protocol.READ_FILE_REQUEST :
+        return new ReadFileRequest( marshalledBytes );
+
+      case Protocol.READ_FILE_RESPONSE :
+        return new ReadFileResponse( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

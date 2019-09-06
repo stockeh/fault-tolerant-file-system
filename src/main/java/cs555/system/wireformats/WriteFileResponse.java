@@ -16,14 +16,14 @@ import java.util.Arrays;
  * @author stock
  *
  */
-public class WriteResponse implements Event {
+public class WriteFileResponse implements Event {
 
   private int type;
 
   private String[] routes;
 
-  public WriteResponse(String[] routes) {
-    this.type = Protocol.WRITE_RESPONSE;
+  public WriteFileResponse(String[] routes) {
+    this.type = Protocol.WRITE_FILE_RESPONSE;
     this.routes = routes;
   }
 
@@ -34,7 +34,7 @@ public class WriteResponse implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteResponse(byte[] marshalledBytes) throws IOException {
+  public WriteFileResponse(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =

@@ -17,16 +17,16 @@ public class ReadFileResponse implements Event {
 
   private int type;
 
-  private String filename;
+  private String[][] chunks;
 
   /**
    * Default constructor -
    * 
    * @param fileName
    */
-  public ReadFileResponse(String fileName) {
+  public ReadFileResponse(String[][] chunks) {
     this.type = Protocol.READ_FILE_RESPONSE;
-    this.filename = fileName;
+    this.chunks = chunks;
   }
 
   /**
@@ -44,11 +44,6 @@ public class ReadFileResponse implements Event {
 
     this.type = din.readInt();
 
-    int len = din.readInt();
-    byte[] filenameBytes = new byte[ len ];
-    din.readFully( filenameBytes );
-    this.filename = new String( filenameBytes );
-
     inputStream.close();
     din.close();
   }
@@ -63,10 +58,10 @@ public class ReadFileResponse implements Event {
 
   /**
    * 
-   * @return the filename associated with a read request
+   * @return the chunks associated with a read response
    */
-  public String getFilename() {
-    return filename;
+  public String[][] getChunks() {
+    return chunks;
   }
 
   /**
@@ -80,10 +75,6 @@ public class ReadFileResponse implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
-
-    byte[] filenameBytes = filename.getBytes();
-    dout.writeInt( filenameBytes.length );
-    dout.write( filenameBytes );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();

@@ -21,7 +21,8 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.ListFileRequest;
 import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.WriteResponse;
+import cs555.system.wireformats.ReadFileRequest;
+import cs555.system.wireformats.WriteFileResponse;
 
 /**
  * Single client to communicate with the file systems controller and
@@ -191,7 +192,7 @@ public class Client implements Node {
    * @param input from the user scanner, e.g., 'read 2'
    */
   private void readFileRequest(String[] input) {
-    int fileNumber;
+    int fileNumber = -1;
     try
     {
       if ( input.length != 2 )
@@ -205,7 +206,17 @@ public class Client implements Node {
       LOG.error( "Unable to send read request. " + e.getMessage() );
       e.printStackTrace();
     }
-    
+    try
+    {
+      ReadFileRequest request =
+          new ReadFileRequest( metadata.getReadableFiles().get( fileNumber ) );
+      controllerConnection.getTCPSender().sendData( request.getBytes() );
+    } catch ( IOException | IndexOutOfBoundsException e )
+    {
+      LOG.error(
+          "Unable to send read request to controller. " + e.getMessage() );
+      e.printStackTrace();
+    }
 
   }
 
@@ -260,7 +271,7 @@ public class Client implements Node {
     LOG.debug( event.toString() );
     switch ( event.getType() )
     {
-      case Protocol.WRITE_RESPONSE :
+      case Protocol.WRITE_FILE_RESPONSE :
         senderHandler( event );
         break;
 
@@ -304,7 +315,7 @@ public class Client implements Node {
    * @param event
    */
   private void senderHandler(Event event) {
-    String[] routes = ( ( WriteResponse ) event ).getRoutingPath();
+    String[] routes = ( ( WriteFileResponse ) event ).getRoutingPath();
     sender.setRoutes( routes );
     sender.unlock();
   }

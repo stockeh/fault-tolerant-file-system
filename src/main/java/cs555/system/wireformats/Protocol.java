@@ -19,9 +19,9 @@ public interface Protocol {
 
   final int MAJOR_HEARTBEAT = 4;
 
-  final int WRITE_REQUEST = 5;
+  final int WRITE_FILE_REQUEST = 5;
 
-  final int WRITE_RESPONSE = 6;
+  final int WRITE_FILE_RESPONSE = 6;
 
   final int WRITE_CHUNK_REQUEST = 7;
 
@@ -33,8 +33,8 @@ public interface Protocol {
 
   final int READ_FILE_RESPONSE = 11;
 
-  final int READ_REQUEST = 12;
+  final int READ_CHUNK_REQUEST = 12;
 
-  final int READ_RESPONSE = 13;
+  final int READ_CHUNK_RESPONSE = 13;
 
 }

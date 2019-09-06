@@ -270,7 +270,7 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  static class FileInformation {
+  public static class FileInformation {
 
     /**
      * chunk_1: chunk_server_a, chunk_server_b, ... chunk_2: ... ...
@@ -286,7 +286,7 @@ public class ControllerMetadata {
      * @return the chunk server locations associated for each chunk within
      *         the file
      */
-    private String[][] getChunks() {
+    public String[][] getChunks() {
       return chunks;
     }
   }

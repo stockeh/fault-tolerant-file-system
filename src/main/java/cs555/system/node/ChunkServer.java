@@ -167,7 +167,7 @@ public class ChunkServer implements Node, Protocol {
         processIncomingChunk( event );
         break;
 
-      case Protocol.READ_REQUEST :
+      case Protocol.READ_CHUNK_REQUEST :
         processOutgoingChunk( event, connection );
         break;
     }

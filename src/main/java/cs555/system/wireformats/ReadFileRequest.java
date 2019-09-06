@@ -10,6 +10,9 @@ import java.io.IOException;
 
 /**
  * 
+ * Request from the client to the controller requesting a list of
+ * chunk servers to read chunk data from for a given file.
+ * 
  * @author stock
  *
  */

@@ -15,7 +15,7 @@ import java.io.IOException;
  * @author stock
  *
  */
-public class WriteRequest implements Event {
+public class WriteFileRequest implements Event {
 
   private int type;
 
@@ -23,8 +23,8 @@ public class WriteRequest implements Event {
 
   private int numberOfChunks;
 
-  public WriteRequest(String name, int numberOfChunks) {
-    this.type = Protocol.WRITE_REQUEST;
+  public WriteFileRequest(String name, int numberOfChunks) {
+    this.type = Protocol.WRITE_FILE_REQUEST;
     this.name = name;
     this.numberOfChunks = numberOfChunks;
   }
@@ -36,7 +36,7 @@ public class WriteRequest implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteRequest(byte[] marshalledBytes) throws IOException {
+  public WriteFileRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =

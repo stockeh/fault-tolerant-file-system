@@ -182,7 +182,7 @@ public class ControllerMetadata {
 
       for ( ChunkInformation chunk : entry.getValue() )
       {
-        chunks[ chunk.getSequence() ][ chunk.getPosition() ] =
+        chunks[ chunk.getSequence() ][ chunk.getReplication() ] =
             connectionDetails;
       }
     }

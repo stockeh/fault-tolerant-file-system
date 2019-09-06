@@ -188,7 +188,7 @@ public class ChunkServer implements Node, Protocol {
     try
     {
       byte[] message = request.getMessage();
-      if ( request.getPosition() == 0 )
+      if ( request.getReplicationPosition() == 0 )
       {
         byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
         message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
@@ -212,7 +212,7 @@ public class ChunkServer implements Node, Protocol {
       e.printStackTrace();
     }
     metadata.update( request.getName(), request.getSequence(),
-        request.getPosition() );
+        request.getReplicationPosition() );
     forwardIncomingChunk( request );
   }
 
@@ -223,13 +223,13 @@ public class ChunkServer implements Node, Protocol {
    * @param request to forward
    */
   private void forwardIncomingChunk(WriteChunkRequest request) {
-    request.incrementPosition();
-    if ( request.getPosition() != request.getRoutingPath().length )
+    request.incrementReplicationPosition();
+    if ( request.getReplicationPosition() != request.getRoutingPath().length )
     {
       try
       {
         String[] nextChunkServer =
-            request.getRoutingPath()[ request.getPosition() ].split( ":" );
+            request.getRoutingPath()[ request.getReplicationPosition() ].split( ":" );
         TCPConnection connection =
             ConnectionUtilities.establishConnection( this, nextChunkServer[ 0 ],
                 Integer.parseInt( nextChunkServer[ 1 ] ) );

@@ -10,27 +10,26 @@ import java.io.IOException;
 
 /**
  * 
+ * Request from the client to the controller requesting a list of
+ * chunk servers to read chunk data from for a given file.
+ * 
  * @author stock
  *
  */
-public class ReadFileResponse implements Event {
+public class ReadChunkRequest implements Event {
 
   private int type;
 
   private String filename;
 
-  private String[][] chunks;
-
   /**
    * Default constructor -
    * 
-   * @param filename
-   * @param chunks sequence and chunk server information for a file
+   * @param fileName
    */
-  public ReadFileResponse(String filename, String[][] chunks) {
-    this.type = Protocol.READ_FILE_RESPONSE;
-    this.filename = filename;
-    this.chunks = chunks;
+  public ReadChunkRequest(String fileName) {
+    this.type = Protocol.READ_FILE_REQUEST;
+    this.filename = fileName;
   }
 
   /**
@@ -40,7 +39,7 @@ public class ReadFileResponse implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public ReadFileResponse(byte[] marshalledBytes) throws IOException {
+  public ReadChunkRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -53,21 +52,6 @@ public class ReadFileResponse implements Event {
     din.readFully( filenameBytes );
     this.filename = new String( filenameBytes );
 
-    int numChunks = din.readInt();
-    int numReplications = din.readInt();
-
-    this.chunks = new String[ numChunks ][ numReplications ];
-
-    for ( int sequence = 0; sequence < numChunks; ++sequence )
-    {
-      for ( int replication = 0; replication < numReplications; ++replication )
-      {
-        len = din.readInt();
-        byte[] replicationIdentifier = new byte[ len ];
-        din.readFully( replicationIdentifier );
-        chunks[ sequence ][ replication ] = new String( replicationIdentifier );
-      }
-    }
     inputStream.close();
     din.close();
   }
@@ -89,14 +73,6 @@ public class ReadFileResponse implements Event {
   }
 
   /**
-   * 
-   * @return the chunks associated with a read response
-   */
-  public String[][] getChunks() {
-    return chunks;
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
@@ -108,23 +84,9 @@ public class ReadFileResponse implements Event {
 
     dout.writeInt( type );
 
-    byte[] bytes = filename.getBytes();
-    dout.writeInt( bytes.length );
-    dout.write( bytes );
-
-    dout.writeInt( chunks.length );
-
-    dout.writeInt( chunks[ 0 ].length );
-
-    for ( String[] chunkReplication : chunks )
-    {
-      for ( String replication : chunkReplication )
-      {
-        bytes = replication.getBytes();
-        dout.writeInt( bytes.length );
-        dout.write( bytes );
-      }
-    }
+    byte[] filenameBytes = filename.getBytes();
+    dout.writeInt( filenameBytes.length );
+    dout.write( filenameBytes );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();

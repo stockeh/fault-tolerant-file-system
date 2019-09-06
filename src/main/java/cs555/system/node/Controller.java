@@ -156,15 +156,15 @@ public class Controller implements Node {
         break;
 
       case Protocol.WRITE_FILE_REQUEST :
-        writeFileHandler( event, connection );
+        writeFileRequestHandler( event, connection );
         break;
 
       case Protocol.LIST_FILE_REQUEST :
-        listFileHandler( connection );
+        listFileRequestHandler( connection );
         break;
 
       case Protocol.READ_FILE_REQUEST :
-        readFileHandler( event, connection );
+        readFileRequestHandler( event, connection );
         break;
     }
   }
@@ -176,10 +176,10 @@ public class Controller implements Node {
    * @param event the object containing node details
    * @param connection the connection details, i.e., TCPSender
    */
-  private void readFileHandler(Event event, TCPConnection connection) {
+  private void readFileRequestHandler(Event event, TCPConnection connection) {
     String filename = ( ( ReadFileRequest ) event ).getFilename();
     String[][] chunks = metadata.getFiles().get( filename ).getChunks();
-    ReadFileResponse response = new ReadFileResponse( chunks );
+    ReadFileResponse response = new ReadFileResponse( filename, chunks );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );
@@ -197,7 +197,7 @@ public class Controller implements Node {
    * 
    * @param connection
    */
-  private void listFileHandler(TCPConnection connection) {
+  private void listFileRequestHandler(TCPConnection connection) {
     ListFileResponse response =
         new ListFileResponse( metadata.getReadableFiles() );
     try
@@ -218,7 +218,7 @@ public class Controller implements Node {
    * @param event the object containing node details
    * @param connection the connection details, i.e., TCPSender
    */
-  private void writeFileHandler(Event event, TCPConnection connection) {
+  private void writeFileRequestHandler(Event event, TCPConnection connection) {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
     boolean isOriginalFile =

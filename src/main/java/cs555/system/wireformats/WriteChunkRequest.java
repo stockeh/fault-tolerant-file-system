@@ -32,7 +32,7 @@ public class WriteChunkRequest implements Event {
 
   private String[] routes;
 
-  private int position;
+  private int replicationPosition;
 
   /**
    * 
@@ -49,7 +49,7 @@ public class WriteChunkRequest implements Event {
     this.sequence = sequence;
     this.message = message;
     this.routes = routes;
-    this.position = 0;
+    this.replicationPosition = 0;
   }
 
   /**
@@ -89,7 +89,7 @@ public class WriteChunkRequest implements Event {
       this.routes[ i ] = ( new String( bytes ) );
     }
 
-    this.position = din.readInt();
+    this.replicationPosition = din.readInt();
 
     inputStream.close();
     din.close();
@@ -140,8 +140,8 @@ public class WriteChunkRequest implements Event {
    * 
    * @return the current position in the array of routes
    */
-  public int getPosition() {
-    return position;
+  public int getReplicationPosition() {
+    return replicationPosition;
   }
 
   public void setMessage(byte[] message) {
@@ -151,8 +151,8 @@ public class WriteChunkRequest implements Event {
   /**
    * Increment the position for the next connection
    */
-  public void incrementPosition() {
-    ++position;
+  public void incrementReplicationPosition() {
+    ++replicationPosition;
   }
 
   /**
@@ -185,7 +185,7 @@ public class WriteChunkRequest implements Event {
       dout.write( bytes );
     }
 
-    dout.writeInt( position );
+    dout.writeInt( replicationPosition );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();

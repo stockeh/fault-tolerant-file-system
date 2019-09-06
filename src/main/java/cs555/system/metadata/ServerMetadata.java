@@ -20,6 +20,9 @@ public class ServerMetadata {
 
   private final AtomicInteger numberOfChunks;
 
+  /**
+   * map <k: filename, v: List<(sequence, replication)>>
+   */
   private final Map<String, List<ChunkInformation>> files;
 
   private final String connectionDetails;
@@ -59,7 +62,7 @@ public class ServerMetadata {
   public long getFreeDiskSpace() {
     return ( new File( File.separator ) ).getFreeSpace();
   }
-  
+
   /**
    * Increment the <b>number of chunks</b> for a given chunk server.
    * 
@@ -71,13 +74,14 @@ public class ServerMetadata {
   /**
    * Update metadata associated with a file
    * 
-   * @param file
+   * @param filename
    * @param sequence
-   * @param position
+   * @param replication
    */
-  public synchronized void update(String file, int sequence, int position) {
-    files.putIfAbsent( file, new ArrayList<ChunkInformation>() );
-    files.get( file ).add( new ChunkInformation( sequence, position ) );
+  public synchronized void update(String filename, int sequence,
+      int replication) {
+    files.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
+    files.get( filename ).add( new ChunkInformation( sequence, replication ) );
   }
 
   /**
@@ -105,21 +109,27 @@ public class ServerMetadata {
    */
   public static class ChunkInformation {
 
+    /**
+     * Chunk number
+     */
     private int sequence;
 
-    private int position;
+    /**
+     * Replication position
+     */
+    private int replication;
 
     /**
      * Default constructor -
      * 
      * @param sequence of chunk in the file - this is the same as the
      *        chunk number
-     * @param position of the chunk returned to the client form the
+     * @param replication of the chunk returned to the client form the
      *        controller
      */
-    public ChunkInformation(int sequence, int position) {
+    public ChunkInformation(int sequence, int replication) {
       this.sequence = sequence;
-      this.position = position;
+      this.replication = replication;
     }
 
     /**
@@ -136,8 +146,8 @@ public class ServerMetadata {
      * @return the position of the chunk returned to the client form the
      *         controller
      */
-    public int getPosition() {
-      return position;
+    public int getReplication() {
+      return replication;
     }
 
   }

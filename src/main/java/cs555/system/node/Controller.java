@@ -11,6 +11,7 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.RegisterRequest;
@@ -155,6 +156,29 @@ public class Controller implements Node {
       case Protocol.WRITE_REQUEST :
         constructWriteResponse( event, connection );
         break;
+
+      case Protocol.LIST_FILE_REQUEST :
+        listFileHandler( connection );
+    }
+  }
+
+  /**
+   * Upon the client sending a request for the files available to read,
+   * the controller will respond with a name of readable filenames.
+   * 
+   * @param connection
+   */
+  private void listFileHandler(TCPConnection connection) {
+    ListFileResponse response =
+        new ListFileResponse( metadata.getReadableFiles() );
+    try
+    {
+      connection.getTCPSender().sendData( response.getBytes() );
+    } catch ( IOException e )
+    {
+      LOG.error(
+          "Unable to send response message to client. " + e.getMessage() );
+      e.printStackTrace();
     }
   }
 
@@ -273,7 +297,7 @@ public class Controller implements Node {
     }
     return message;
   }
-  
+
   /**
    * Manage the incoming heartbeats by updating the controller metadata
    * 

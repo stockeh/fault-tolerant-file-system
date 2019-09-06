@@ -65,6 +65,12 @@ public class EventFactory {
       case Protocol.WRITE_CHUNK :
         return new WriteChunk( marshalledBytes );
 
+      case Protocol.LIST_FILE_REQUEST :
+        return new ListFileRequest( marshalledBytes );
+
+      case Protocol.LIST_FILE_RESPONSE :
+        return new ListFileResponse( marshalledBytes );
+        
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

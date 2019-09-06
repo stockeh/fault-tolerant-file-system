@@ -3,7 +3,6 @@ package cs555.system.metadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -231,6 +230,34 @@ public class ControllerMetadata {
     }
 
     return output;
+  }
+
+  /**
+   * Iterate over all the files and capture a list of readable items,
+   * i.e., all chunks have been written for some files.
+   * 
+   * @return a list of readable files
+   */
+  public List<String> getReadableFiles() {
+    List<String> readableFiles = new ArrayList<>();
+    for ( Entry<String, FileInformation> entry : files.entrySet() )
+    {
+      boolean readable = true;
+
+      String[][] chunks = entry.getValue().getChunks();
+      for ( int i = 0; i < chunks.length; i++ )
+      {
+        if ( chunks[ i ][ 0 ] == null )
+        {
+          readable = false;
+        }
+      }
+      if ( readable )
+      {
+        readableFiles.add( entry.getKey() );
+      }
+    }
+    return readableFiles;
   }
 
   /**

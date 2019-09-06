@@ -27,4 +27,8 @@ public interface Protocol {
 
   final int READ_CHUNK = 8;
 
+  final int LIST_FILE_REQUEST = 9;
+
+  final int LIST_FILE_RESPONSE = 10;
+
 }

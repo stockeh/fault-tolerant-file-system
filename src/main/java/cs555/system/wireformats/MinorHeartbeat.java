@@ -203,7 +203,7 @@ public class MinorHeartbeat implements Event {
         for ( ChunkInformation info : value )
         {
           dout.writeInt( info.getSequence() );
-          dout.writeInt( info.getPosition() );
+          dout.writeInt( info.getReplication() );
         }
       }
     }

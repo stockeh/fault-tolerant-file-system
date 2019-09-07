@@ -20,11 +20,11 @@ import java.util.Arrays;
  * @author stock
  *
  */
-public class WriteChunk implements Event {
+public class WriteChunkRequest implements Event {
 
   private int type;
 
-  private String name;
+  private String filename;
 
   private int sequence;
 
@@ -32,24 +32,24 @@ public class WriteChunk implements Event {
 
   private String[] routes;
 
-  private int position;
+  private int replicationPosition;
 
   /**
    * 
    * 
-   * @param name
+   * @param filename
    * @param sequence
    * @param message
    * @param routes
    */
-  public WriteChunk(String name, int sequence, byte[] message,
+  public WriteChunkRequest(String filename, int sequence, byte[] message,
       String[] routes) {
-    this.type = Protocol.WRITE_CHUNK;
-    this.name = name;
+    this.type = Protocol.WRITE_CHUNK_REQUEST;
+    this.filename = filename;
     this.sequence = sequence;
     this.message = message;
     this.routes = routes;
-    this.position = 0;
+    this.replicationPosition = 0;
   }
 
   /**
@@ -59,7 +59,7 @@ public class WriteChunk implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteChunk(byte[] marshalledBytes) throws IOException {
+  public WriteChunkRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -70,7 +70,7 @@ public class WriteChunk implements Event {
     int len = din.readInt();
     byte[] nameBytes = new byte[ len ];
     din.readFully( nameBytes );
-    this.name = new String( nameBytes );
+    this.filename = new String( nameBytes );
 
     this.sequence = din.readInt();
 
@@ -89,7 +89,7 @@ public class WriteChunk implements Event {
       this.routes[ i ] = ( new String( bytes ) );
     }
 
-    this.position = din.readInt();
+    this.replicationPosition = din.readInt();
 
     inputStream.close();
     din.close();
@@ -105,10 +105,10 @@ public class WriteChunk implements Event {
 
   /**
    * 
-   * @return the chunk name from the client
+   * @return the file name from the client
    */
-  public String getName() {
-    return name;
+  public String getFilename() {
+    return filename;
   }
 
   /**
@@ -140,8 +140,8 @@ public class WriteChunk implements Event {
    * 
    * @return the current position in the array of routes
    */
-  public int getPosition() {
-    return position;
+  public int getReplicationPosition() {
+    return replicationPosition;
   }
 
   public void setMessage(byte[] message) {
@@ -151,8 +151,8 @@ public class WriteChunk implements Event {
   /**
    * Increment the position for the next connection
    */
-  public void incrementPosition() {
-    ++position;
+  public void incrementReplicationPosition() {
+    ++replicationPosition;
   }
 
   /**
@@ -167,7 +167,7 @@ public class WriteChunk implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = name.getBytes();
+    byte[] nameBytes = filename.getBytes();
     dout.writeInt( nameBytes.length );
     dout.write( nameBytes );
 
@@ -185,7 +185,7 @@ public class WriteChunk implements Event {
       dout.write( bytes );
     }
 
-    dout.writeInt( position );
+    dout.writeInt( replicationPosition );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -200,7 +200,7 @@ public class WriteChunk implements Event {
    */
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", chunk name: " + name
+    return "\n" + Integer.toString( type ) + ", chunk name: " + filename
         + ", sequence: " + sequence + ", routes: " + Arrays.toString( routes )
         + ", msg len: " + Integer.toString( message.length );
   }

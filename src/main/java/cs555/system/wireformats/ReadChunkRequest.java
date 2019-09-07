@@ -7,24 +7,32 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
- * Response message from the controller to the client containing chunk
- * server details upon a write query being received.
+ * 
+ * Request from the client to the controller requesting a list of
+ * chunk servers to read chunk data from for a given file.
  * 
  * @author stock
  *
  */
-public class WriteResponse implements Event {
+public class ReadChunkRequest implements Event {
 
   private int type;
 
-  private String[] routes;
+  private String filename;
 
-  public WriteResponse(String[] routes) {
-    this.type = Protocol.WRITE_RESPONSE;
-    this.routes = routes;
+  private int sequence;
+
+  /**
+   * Default constructor -
+   * 
+   * @param fileName
+   */
+  public ReadChunkRequest(String fileName, int sequence) {
+    this.type = Protocol.READ_CHUNK_REQUEST;
+    this.filename = fileName;
+    this.sequence = sequence;
   }
 
   /**
@@ -34,7 +42,7 @@ public class WriteResponse implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteResponse(byte[] marshalledBytes) throws IOException {
+  public ReadChunkRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -42,24 +50,15 @@ public class WriteResponse implements Event {
 
     this.type = din.readInt();
 
-    int arrayLength = din.readInt();
+    int len = din.readInt();
+    byte[] filenameBytes = new byte[ len ];
+    din.readFully( filenameBytes );
+    this.filename = new String( filenameBytes );
 
-    this.routes = new String[ arrayLength ];
-
-    for ( int i = 0; i < arrayLength; ++i )
-    {
-      int len = din.readInt();
-      byte[] bytes = new byte[ len ];
-      din.readFully( bytes );
-      this.routes[ i ] = ( new String( bytes ) );
-    }
+    this.sequence = din.readInt();
 
     inputStream.close();
     din.close();
-  }
-
-  public String[] getRoutingPath() {
-    return routes;
   }
 
   /**
@@ -68,6 +67,22 @@ public class WriteResponse implements Event {
   @Override
   public int getType() {
     return type;
+  }
+
+  /**
+   * 
+   * @return the filename associated with a read request
+   */
+  public String getFilename() {
+    return filename;
+  }
+
+  /**
+   * 
+   * @return the sequence number for the chunk associated with the file
+   */
+  public int getSequence() {
+    return sequence;
   }
 
   /**
@@ -82,14 +97,11 @@ public class WriteResponse implements Event {
 
     dout.writeInt( type );
 
-    dout.writeInt( routes.length );
+    byte[] filenameBytes = filename.getBytes();
+    dout.writeInt( filenameBytes.length );
+    dout.write( filenameBytes );
 
-    for ( String item : routes )
-    {
-      byte[] bytes = item.getBytes();
-      dout.writeInt( bytes.length );
-      dout.write( bytes );
-    }
+    dout.writeInt( sequence );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -101,7 +113,7 @@ public class WriteResponse implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes );
+    return "\n" + Integer.toString( type );
   }
 
 }

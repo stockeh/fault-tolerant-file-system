@@ -2,7 +2,6 @@ package cs555.system.util;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import cs555.system.node.Node;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
@@ -26,11 +25,10 @@ public class ConnectionUtilities {
    * @param host name associated with outgoing node
    * @param port number associated with outgoing node
    * @return connection to server
-   * @throws UnknownHostException
    * @throws IOException
    */
   public static TCPConnection establishConnection(Node node, String host,
-      Integer port) throws UnknownHostException, IOException {
+      Integer port) throws IOException {
     Socket socketToTheServer = new Socket( host, port );
     return new TCPConnection( node, socketToTheServer );
   }
@@ -53,8 +51,9 @@ public class ConnectionUtilities {
       TCPConnection connection =
           establishConnection( node, controllerHost, controllerPort );
 
-      RegisterRequest registerRequest = new RegisterRequest( Protocol.REGISTER_REQUEST, identifier,
-          node.getHost(), node.getPort() );
+      RegisterRequest registerRequest =
+          new RegisterRequest( Protocol.REGISTER_REQUEST, identifier,
+              node.getHost(), node.getPort() );
 
       LOG.info( "Client Identifier: " + node.getHost() + ":" + node.getPort() );
       connection.getTCPSender().sendData( registerRequest.getBytes() );
@@ -79,12 +78,14 @@ public class ConnectionUtilities {
    */
   public static void unregisterNode(Node node, int identifier,
       TCPConnection controllerConnection) {
-    RegisterRequest registerRequest = new RegisterRequest( Protocol.UNREGISTER_REQUEST, identifier,
-        node.getHost(), node.getPort() );
+    RegisterRequest registerRequest =
+        new RegisterRequest( Protocol.UNREGISTER_REQUEST, identifier,
+            node.getHost(), node.getPort() );
 
     try
     {
-      controllerConnection.getTCPSender().sendData( registerRequest.getBytes() );
+      controllerConnection.getTCPSender()
+          .sendData( registerRequest.getBytes() );
       controllerConnection.close();
     } catch ( IOException | InterruptedException e )
     {

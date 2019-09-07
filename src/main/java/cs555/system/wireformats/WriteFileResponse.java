@@ -7,26 +7,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
- * Request from the client to the controller requesting a list of
- * chunk servers to write chunks of a file too.
+ * Response message from the controller to the client containing chunk
+ * server details upon a write query being received.
  * 
  * @author stock
  *
  */
-public class WriteRequest implements Event {
+public class WriteFileResponse implements Event {
 
   private int type;
 
-  private String name;
+  private String[] routes;
 
-  private int numberOfChunks;
-
-  public WriteRequest(String name, int numberOfChunks) {
-    this.type = Protocol.WRITE_REQUEST;
-    this.name = name;
-    this.numberOfChunks = numberOfChunks;
+  public WriteFileResponse(String[] routes) {
+    this.type = Protocol.WRITE_FILE_RESPONSE;
+    this.routes = routes;
   }
 
   /**
@@ -36,7 +34,7 @@ public class WriteRequest implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteRequest(byte[] marshalledBytes) throws IOException {
+  public WriteFileResponse(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -44,16 +42,24 @@ public class WriteRequest implements Event {
 
     this.type = din.readInt();
 
-    int len = din.readInt();
-    byte[] bytes = new byte[ len ];
-    din.readFully( bytes );
+    int arrayLength = din.readInt();
 
-    this.name = new String( bytes );
+    this.routes = new String[ arrayLength ];
 
-    this.numberOfChunks = din.readInt();
+    for ( int i = 0; i < arrayLength; ++i )
+    {
+      int len = din.readInt();
+      byte[] bytes = new byte[ len ];
+      din.readFully( bytes );
+      this.routes[ i ] = ( new String( bytes ) );
+    }
 
     inputStream.close();
     din.close();
+  }
+
+  public String[] getRoutingPath() {
+    return routes;
   }
 
   /**
@@ -64,22 +70,6 @@ public class WriteRequest implements Event {
     return type;
   }
 
-  /**
-   * 
-   * @return the name of the file 
-   */
-  public String getName() {
-    return name;
-  }
-  
-  /**
-   * 
-   * @return the number of chunks associated with a file
-   */
-  public int getNumberOfChunks() {
-    return numberOfChunks;
-  }
-  
   /**
    * {@inheritDoc}
    */
@@ -92,11 +82,14 @@ public class WriteRequest implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = name.getBytes();
-    dout.writeInt( nameBytes.length );
-    dout.write( nameBytes );
+    dout.writeInt( routes.length );
 
-    dout.writeInt( numberOfChunks );
+    for ( String item : routes )
+    {
+      byte[] bytes = item.getBytes();
+      dout.writeInt( bytes.length );
+      dout.write( bytes );
+    }
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -108,8 +101,7 @@ public class WriteRequest implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", file name: " + name
-        + ", number of chunks: " + Integer.toString( numberOfChunks );
+    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes );
   }
 
 }

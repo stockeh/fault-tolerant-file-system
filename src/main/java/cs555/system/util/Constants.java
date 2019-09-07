@@ -21,7 +21,7 @@ public interface Constants {
 
   final int CHUNK_SLICE_SIZE = 8000;
 
-  final int NUMBER_OF_REPLICATIONS = 3;
+  final int NUMBER_OF_REPLICATIONS = 1;
 
   // Application properties specific constants.
 

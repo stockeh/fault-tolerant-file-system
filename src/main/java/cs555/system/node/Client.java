@@ -8,7 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -21,7 +23,10 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.ListFileRequest;
 import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.WriteResponse;
+import cs555.system.wireformats.ReadChunkResponse;
+import cs555.system.wireformats.ReadFileRequest;
+import cs555.system.wireformats.ReadFileResponse;
+import cs555.system.wireformats.WriteFileResponse;
 
 /**
  * Single client to communicate with the file systems controller and
@@ -33,6 +38,11 @@ import cs555.system.wireformats.WriteResponse;
 public class Client implements Node {
 
   public static Logger LOG = new Logger();
+
+  /**
+   * <k: filename, v: Thread()>
+   */
+  private Map<String, ClientReaderThread> readers;
 
   private ClientSenderThread sender = null;
 
@@ -63,6 +73,7 @@ public class Client implements Node {
    * @param port
    */
   private Client(String host, int port) {
+    this.readers = new HashMap<>();
     this.metadata = new ClientMetadata();
     this.host = host;
     this.port = port;
@@ -191,7 +202,32 @@ public class Client implements Node {
    * @param input from the user scanner, e.g., 'read 2'
    */
   private void readFileRequest(String[] input) {
-    
+    int fileNumber = -1;
+    try
+    {
+      if ( input.length != 2 )
+      {
+        throw new IllegalArgumentException(
+            "Invalid argument for \'" + READ + "\' input." );
+      }
+      fileNumber = Integer.parseInt( input[ 1 ] );
+    } catch ( IllegalArgumentException e )
+    {
+      LOG.error( "Unable to send read request. " + e.getMessage() );
+      e.printStackTrace();
+    }
+    try
+    {
+      ReadFileRequest request =
+          new ReadFileRequest( metadata.getReadableFiles().get( fileNumber ) );
+      controllerConnection.getTCPSender().sendData( request.getBytes() );
+    } catch ( IOException | IndexOutOfBoundsException e )
+    {
+      LOG.error(
+          "Unable to send read request to controller. " + e.getMessage() );
+      e.printStackTrace();
+    }
+
   }
 
   /**
@@ -216,7 +252,7 @@ public class Client implements Node {
       return;
     }
     sender.setFiles( files );
-    ( new Thread( sender ) ).start();
+    ( new Thread( sender, "Client Sender" ) ).start();
   }
 
   /**
@@ -245,21 +281,61 @@ public class Client implements Node {
     LOG.debug( event.toString() );
     switch ( event.getType() )
     {
-      case Protocol.WRITE_RESPONSE :
+      case Protocol.WRITE_FILE_RESPONSE :
         senderHandler( event );
         break;
 
       case Protocol.LIST_FILE_RESPONSE :
         displayReadableFiles( event );
         break;
+
+      case Protocol.READ_FILE_RESPONSE :
+        readFileResponseHandler( event );
+        break;
+
+      case Protocol.READ_CHUNK_RESPONSE :
+        readChunkResponseHandler( event );
+        break;
     }
+  }
+
+  /**
+   * Process an incoming chunk from a given chunk server.
+   * 
+   * @param event the object containing message details
+   */
+  private void readChunkResponseHandler(Event event) {
+    ReadChunkResponse response = ( ReadChunkResponse ) event;
+    ClientReaderThread reader = readers.get( response.getFilename() );
+    if ( reader == null )
+    {
+      LOG.error( "Unable to retrieve reader thread to obtain file." );
+      return;
+    }
+    reader.setReadChunkResponse( response );
+    reader.unlock();
+  }
+
+  /**
+   * A response from the controller containing chunk locations for a
+   * given file will trigger this handler to start requesting individual
+   * chunk servers for chunks of said file.
+   * 
+   * @param event the object containing message details
+   */
+  private void readFileResponseHandler(Event event) {
+    ReadFileResponse response = ( ( ReadFileResponse ) event );
+    ClientReaderThread reader = new ClientReaderThread( this, response );
+    readers.put( response.getFilename(), reader );
+    LOG.debug( "Starting client reader thread." );
+    ( new Thread( reader, "Client Reader" ) ).start();
   }
 
   /**
    * Process the response from the controller to list the files in a
    * readable way.
    * 
-   * @param event
+   * @param event the object containing message details
    */
   private void displayReadableFiles(Event event) {
     List<String> readableFiles = ( ( ListFileResponse ) event ).getFileNames();
@@ -286,10 +362,10 @@ public class Client implements Node {
    * Routes have been received from the controller, so the client sender
    * can be unlocked.
    * 
-   * @param event
+   * @param event the object containing message details
    */
   private void senderHandler(Event event) {
-    String[] routes = ( ( WriteResponse ) event ).getRoutingPath();
+    String[] routes = ( ( WriteFileResponse ) event ).getRoutingPath();
     sender.setRoutes( routes );
     sender.unlock();
   }

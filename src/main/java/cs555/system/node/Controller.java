@@ -14,10 +14,12 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
+import cs555.system.wireformats.ReadFileRequest;
+import cs555.system.wireformats.ReadFileResponse;
 import cs555.system.wireformats.RegisterRequest;
 import cs555.system.wireformats.RegisterResponse;
-import cs555.system.wireformats.WriteRequest;
-import cs555.system.wireformats.WriteResponse;
+import cs555.system.wireformats.WriteFileRequest;
+import cs555.system.wireformats.WriteFileResponse;
 
 /**
  * The control flow of the application occurs through the controller
@@ -153,12 +155,39 @@ public class Controller implements Node {
         heartbeatHandler( event, connection );
         break;
 
-      case Protocol.WRITE_REQUEST :
-        constructWriteResponse( event, connection );
+      case Protocol.WRITE_FILE_REQUEST :
+        writeFileRequestHandler( event, connection );
         break;
 
       case Protocol.LIST_FILE_REQUEST :
-        listFileHandler( connection );
+        listFileRequestHandler( connection );
+        break;
+
+      case Protocol.READ_FILE_REQUEST :
+        readFileRequestHandler( event, connection );
+        break;
+    }
+  }
+
+  /**
+   * Construct a message to send back to the client containing
+   * information of where to retrieve chunk data.
+   * 
+   * @param event the object containing node details
+   * @param connection the connection details, i.e., TCPSender
+   */
+  private void readFileRequestHandler(Event event, TCPConnection connection) {
+    String filename = ( ( ReadFileRequest ) event ).getFilename();
+    String[][] chunks = metadata.getFiles().get( filename ).getChunks();
+    ReadFileResponse response = new ReadFileResponse( filename, chunks );
+    try
+    {
+      connection.getTCPSender().sendData( response.getBytes() );
+    } catch ( IOException e )
+    {
+      LOG.error(
+          "Unable to send response message to client. " + e.getMessage() );
+      e.printStackTrace();
     }
   }
 
@@ -168,7 +197,7 @@ public class Controller implements Node {
    * 
    * @param connection
    */
-  private void listFileHandler(TCPConnection connection) {
+  private void listFileRequestHandler(TCPConnection connection) {
     ListFileResponse response =
         new ListFileResponse( metadata.getReadableFiles() );
     try
@@ -189,13 +218,13 @@ public class Controller implements Node {
    * @param event the object containing node details
    * @param connection the connection details, i.e., TCPSender
    */
-  private void constructWriteResponse(Event event, TCPConnection connection) {
-    WriteRequest request = ( WriteRequest ) event;
+  private void writeFileRequestHandler(Event event, TCPConnection connection) {
+    WriteFileRequest request = ( WriteFileRequest ) event;
 
     boolean isOriginalFile =
         metadata.addFile( request.getName(), request.getNumberOfChunks() );
     String[] serversToConnect = metadata.getChunkServers( isOriginalFile );
-    WriteResponse response = new WriteResponse( serversToConnect );
+    WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );

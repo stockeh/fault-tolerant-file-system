@@ -1,8 +1,10 @@
 package cs555.system.metadata;
 
+import static org.junit.Assert.fail;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import cs555.system.util.Constants;
 
 public class ControllerMetadataTest {
   ControllerMetadata metadata;
@@ -28,8 +30,17 @@ public class ControllerMetadataTest {
 
     boolean isOriginalFile = true;
     String[] servers = metadata.getChunkServers( isOriginalFile );
-
-    Assert.assertArrayEquals( servers, new String[] { "c", "b", "a" } );
+    if ( Constants.NUMBER_OF_REPLICATIONS == 3 )
+    {
+      Assert.assertArrayEquals( servers, new String[] { "c", "b", "a" } );
+    } else if ( Constants.NUMBER_OF_REPLICATIONS == 1 )
+    {
+      System.out.println( "HERE" );
+      Assert.assertArrayEquals( servers, new String[] { "c" } );
+    } else
+    {
+      fail( "Invalid number of replications." );
+    }
   }
 
 }

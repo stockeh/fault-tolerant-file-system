@@ -15,6 +15,7 @@ public class FileUtilities {
 
   private static Logger LOG = new Logger();
 
+  // TODO: math.ceil?
   private final static int NUMBER_OF_SLICES =
       ( int ) Constants.CHUNK_SIZE / Constants.CHUNK_SLICE_SIZE;
 

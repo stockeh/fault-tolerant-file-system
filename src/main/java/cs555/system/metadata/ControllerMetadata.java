@@ -249,7 +249,9 @@ public class ControllerMetadata {
       {
         if ( chunks[ i ][ 0 ] == null )
         {
+          LOG.debug( "File \'" + entry.getKey() + "\' is not readable." );
           readable = false;
+          break;
         }
       }
       if ( readable )

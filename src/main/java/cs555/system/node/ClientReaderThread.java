@@ -122,8 +122,8 @@ public class ClientReaderThread implements Runnable {
         {
           lock.wait();
         }
-        fileBytes[ readChunkResponse.getSequence() ] =
-            readChunkResponse.getMessage();
+        LOG.debug( "sequence: " + sequence );
+        fileBytes[ sequence ] = readChunkResponse.getMessage();
         connection.close();
       } catch ( IOException | InterruptedException e )
       {

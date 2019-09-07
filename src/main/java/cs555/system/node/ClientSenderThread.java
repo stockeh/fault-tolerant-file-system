@@ -99,7 +99,8 @@ public class ClientSenderThread implements Runnable {
       {
         try ( InputStream is = new FileInputStream( file ) )
         {
-          int numberOfChunks = ( int ) Math.ceil( file.length() / 1000.0 );
+          int numberOfChunks = ( int ) Math
+              .ceil( ( double ) file.length() / Constants.CHUNK_SIZE );
           byte[] request =
               ( new WriteFileRequest( file.getAbsolutePath(), numberOfChunks ) )
                   .getBytes();
@@ -146,12 +147,9 @@ public class ClientSenderThread implements Runnable {
 
     int chunkNumber = 0;
 
-    @SuppressWarnings( "unused" )
-    int readBytes = 0;
-    // TODO: Check if the byte[] needs cleared before reading last
-    // chunk.
+    int length = 0;
     byte[] chunk = new byte[ Constants.CHUNK_SIZE ];
-    while ( ( readBytes = is.read( chunk ) ) != -1 )
+    while ( ( length = is.read( chunk ) ) != -1 )
     {
       this.node.getControllerConnection().getTCPSender().sendData( request );
       lock.wait();
@@ -160,10 +158,14 @@ public class ClientSenderThread implements Runnable {
         throw new IOException( "There are no routes to send chunk too." );
       }
       LOG.debug( "routes: " + Arrays.toString( routes ) );
+
       String[] initialConnection = routes[ 0 ].split( ":" );
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
+      // Pad elements b[k] through b[b.length-1] with zeros
+      Arrays.fill( chunk, length, Constants.CHUNK_SIZE, ( byte ) 0 );
+      
       WriteChunkRequest writeToChunkServer =
           new WriteChunkRequest( name, chunkNumber++, chunk, routes );
 

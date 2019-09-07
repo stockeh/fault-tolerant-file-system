@@ -283,8 +283,8 @@ public class ChunkServer implements Node, Protocol {
       byte[] messageContent = Arrays.copyOfRange( message,
           FileUtilities.INTEGRITY_SIZE, message.length );
 
-      ReadChunkResponse response = new ReadChunkResponse( request.getFilename(),
-          request.getSequence(), messageContent );
+      ReadChunkResponse response =
+          new ReadChunkResponse( request.getFilename(), messageContent );
       try
       {
         connection.getTCPSender().sendData( response.getBytes() );

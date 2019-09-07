@@ -19,13 +19,13 @@ public class WriteFileRequest implements Event {
 
   private int type;
 
-  private String name;
+  private String filename;
 
   private int numberOfChunks;
 
   public WriteFileRequest(String name, int numberOfChunks) {
     this.type = Protocol.WRITE_FILE_REQUEST;
-    this.name = name;
+    this.filename = name;
     this.numberOfChunks = numberOfChunks;
   }
 
@@ -47,8 +47,7 @@ public class WriteFileRequest implements Event {
     int len = din.readInt();
     byte[] bytes = new byte[ len ];
     din.readFully( bytes );
-
-    this.name = new String( bytes );
+    this.filename = new String( bytes );
 
     this.numberOfChunks = din.readInt();
 
@@ -68,8 +67,8 @@ public class WriteFileRequest implements Event {
    * 
    * @return the name of the file 
    */
-  public String getName() {
-    return name;
+  public String getFilename() {
+    return filename;
   }
   
   /**
@@ -92,7 +91,7 @@ public class WriteFileRequest implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = name.getBytes();
+    byte[] nameBytes = filename.getBytes();
     dout.writeInt( nameBytes.length );
     dout.write( nameBytes );
 
@@ -108,7 +107,7 @@ public class WriteFileRequest implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", file name: " + name
+    return "\n" + Integer.toString( type ) + ", file name: " + filename
         + ", number of chunks: " + Integer.toString( numberOfChunks );
   }
 

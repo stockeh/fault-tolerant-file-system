@@ -222,7 +222,7 @@ public class Controller implements Node {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
     boolean isOriginalFile =
-        metadata.addFile( request.getName(), request.getNumberOfChunks() );
+        metadata.addFile( request.getFilename(), request.getNumberOfChunks() );
     String[] serversToConnect = metadata.getChunkServers( isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try

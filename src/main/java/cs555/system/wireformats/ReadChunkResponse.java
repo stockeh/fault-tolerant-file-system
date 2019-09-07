@@ -20,21 +20,17 @@ public class ReadChunkResponse implements Event {
 
   private String filename;
 
-  private int sequence;
-
   private byte[] message;
 
   /**
    * Default constructor -
    * 
    * @param name
-   * @param sequence
    * @param message
    */
-  public ReadChunkResponse(String name, int sequence, byte[] message) {
+  public ReadChunkResponse(String filename, byte[] message) {
     this.type = Protocol.READ_CHUNK_RESPONSE;
-    this.filename = name;
-    this.sequence = sequence;
+    this.filename = filename;
     this.message = message;
   }
 
@@ -52,8 +48,6 @@ public class ReadChunkResponse implements Event {
         new DataInputStream( new BufferedInputStream( inputStream ) );
 
     this.type = din.readInt();
-    
-    this.sequence = din.readInt();
 
     int len = din.readInt();
     byte[] nameBytes = new byte[ len ];
@@ -86,14 +80,6 @@ public class ReadChunkResponse implements Event {
 
   /**
    * 
-   * @return the sequence number of the file
-   */
-  public int getSequence() {
-    return sequence;
-  }
-
-  /**
-   * 
    * @return the chunk content from the client
    */
   public byte[] getMessage() {
@@ -111,8 +97,6 @@ public class ReadChunkResponse implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
-    
-    dout.writeInt( sequence );
 
     byte[] nameBytes = filename.getBytes();
     dout.writeInt( nameBytes.length );

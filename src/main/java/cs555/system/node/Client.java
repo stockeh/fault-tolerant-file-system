@@ -4,12 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,10 +23,9 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.ListFileRequest;
 import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.Protocol;
-import cs555.system.wireformats.ReadChunkRequest;
+import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.ReadFileRequest;
 import cs555.system.wireformats.ReadFileResponse;
-import cs555.system.wireformats.WriteChunkRequest;
 import cs555.system.wireformats.WriteFileResponse;
 
 /**
@@ -38,6 +38,11 @@ import cs555.system.wireformats.WriteFileResponse;
 public class Client implements Node {
 
   public static Logger LOG = new Logger();
+
+  /**
+   * <k: filename, v: Thread()>
+   */
+  private Map<String, ClientReaderThread> readers;
 
   private ClientSenderThread sender = null;
 
@@ -68,6 +73,7 @@ public class Client implements Node {
    * @param port
    */
   private Client(String host, int port) {
+    this.readers = new HashMap<>();
     this.metadata = new ClientMetadata();
     this.host = host;
     this.port = port;
@@ -284,55 +290,38 @@ public class Client implements Node {
         break;
 
       case Protocol.READ_FILE_RESPONSE :
-        readFileHandlerResponse( event );
+        readFileResponseHandler( event );
+        break;
+
+      case Protocol.READ_CHUNK_RESPONSE :
+        readChunkResponseHandler( event );
     }
   }
 
+  private void readChunkResponseHandler(Event event) {
+    ReadChunkResponse response = ( ReadChunkResponse ) event;
+    ClientReaderThread reader = readers.get( response.getFilename() );
+    
+    if ( reader == null )
+    {
+      LOG.error( "Unable to retrieve reader thread to obtain file." );
+      return;
+    }
+    
+  }
+
   /**
-   * 
+   * A response from the controller containing chunk locations for a
+   * given file will trigger this handler to start requesting individual
+   * chunk servers for chunks of said file.
    * 
    * @param event the object containing message details
    */
-  private void readFileHandlerResponse(Event event) {
+  private void readFileResponseHandler(Event event) {
     ReadFileResponse response = ( ( ReadFileResponse ) event );
-    String[][] chunks = response.getChunks();
-
-    byte[] request = null;
-    try
-    {
-      request = new ReadChunkRequest( response.getFilename() ).getBytes();
-    } catch ( IOException e )
-    {
-      LOG.error( "Unable to convert ReadChunkRequest() message to byte array. "
-          + e.getMessage() );
-      e.printStackTrace();
-    }
-
-    int replication = 0;
-    for ( int sequence = 0; sequence < chunks.length; )
-    {
-      String[] connectionDetails =
-          chunks[ sequence ][ replication ].split( ":" );
-      try
-      {
-        TCPConnection connection = ConnectionUtilities.establishConnection(
-            this, connectionDetails[ 0 ],
-            Integer.parseInt( connectionDetails[ 1 ] ) );
-        connection.getTCPSender().sendData( request );
-        connection.close();
-      } catch ( IOException | InterruptedException e )
-      {
-        LOG.error(
-            "Unable to send ReadChunkRequest() message to chunk server \'"
-                + chunks[ sequence ][ replication ]
-                + "\' try next replication if possible. " + e.getMessage() );
-        ++replication;
-        continue;
-      }
-      ++sequence;
-      replication = 0;
-
-    }
+    ClientReaderThread reader = new ClientReaderThread( this, response );
+    readers.put( response.getFilename(), reader );
+    ( new Thread( reader ) ).start();
   }
 
   /**

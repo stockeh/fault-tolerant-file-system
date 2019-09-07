@@ -10,26 +10,32 @@ import java.io.IOException;
 
 /**
  * 
- * Request from the client to the controller requesting a list of
- * chunk servers to read chunk data from for a given file.
  * 
  * @author stock
  *
  */
-public class ReadChunkRequest implements Event {
+public class ReadChunkResponse implements Event {
 
   private int type;
 
   private String filename;
 
+  private int sequence;
+
+  private byte[] message;
+
   /**
    * Default constructor -
    * 
-   * @param fileName
+   * @param name
+   * @param sequence
+   * @param message
    */
-  public ReadChunkRequest(String fileName) {
-    this.type = Protocol.READ_CHUNK_REQUEST;
-    this.filename = fileName;
+  public ReadChunkResponse(String name, int sequence, byte[] message) {
+    this.type = Protocol.READ_CHUNK_RESPONSE;
+    this.filename = name;
+    this.sequence = sequence;
+    this.message = message;
   }
 
   /**
@@ -39,18 +45,24 @@ public class ReadChunkRequest implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public ReadChunkRequest(byte[] marshalledBytes) throws IOException {
+  public ReadChunkResponse(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
         new DataInputStream( new BufferedInputStream( inputStream ) );
 
     this.type = din.readInt();
+    
+    this.sequence = din.readInt();
 
     int len = din.readInt();
-    byte[] filenameBytes = new byte[ len ];
-    din.readFully( filenameBytes );
-    this.filename = new String( filenameBytes );
+    byte[] nameBytes = new byte[ len ];
+    din.readFully( nameBytes );
+    this.filename = new String( nameBytes );
+
+    int messageLength = din.readInt();
+    this.message = new byte[ messageLength ];
+    din.readFully( this.message );
 
     inputStream.close();
     din.close();
@@ -66,10 +78,26 @@ public class ReadChunkRequest implements Event {
 
   /**
    * 
-   * @return the filename associated with a read request
+   * @return the chunk name from the client
    */
   public String getFilename() {
     return filename;
+  }
+
+  /**
+   * 
+   * @return the sequence number of the file
+   */
+  public int getSequence() {
+    return sequence;
+  }
+
+  /**
+   * 
+   * @return the chunk content from the client
+   */
+  public byte[] getMessage() {
+    return message;
   }
 
   /**
@@ -83,10 +111,15 @@ public class ReadChunkRequest implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
+    
+    dout.writeInt( sequence );
 
-    byte[] filenameBytes = filename.getBytes();
-    dout.writeInt( filenameBytes.length );
-    dout.write( filenameBytes );
+    byte[] nameBytes = filename.getBytes();
+    dout.writeInt( nameBytes.length );
+    dout.write( nameBytes );
+
+    dout.writeInt( message.length );
+    dout.write( message );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -96,9 +129,13 @@ public class ReadChunkRequest implements Event {
     return marshalledBytes;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type );
+    return "\n" + Integer.toString( type ) + ", msg len: "
+        + Integer.toString( message.length );
   }
 
 }

@@ -305,7 +305,6 @@ public class Client implements Node {
    * @param event the object containing message details
    */
   private void readChunkResponseHandler(Event event) {
-    LOG.debug( "HEREEEEEE" );
     ReadChunkResponse response = ( ReadChunkResponse ) event;
     ClientReaderThread reader = readers.get( response.getFilename() );
     if ( reader == null )

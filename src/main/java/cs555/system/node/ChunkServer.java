@@ -288,7 +288,7 @@ public class ChunkServer implements Node, Protocol {
       try
       {
         connection.getTCPSender().sendData( response.getBytes() );
-        LOG.debug( "Sent ReachChunkRequest() message to client." );
+        LOG.debug( "Sent ReadChunkRequest() message to client." );
       } catch ( IOException e )
       {
         LOG.error(

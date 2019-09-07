@@ -113,6 +113,7 @@ public class ClientReaderThread implements Runnable {
         TCPConnection connection = ConnectionUtilities.establishConnection(
             node, connectionDetails[ 0 ],
             Integer.parseInt( connectionDetails[ 1 ] ) );
+        connection.start();
         byte[] request =
             new ReadChunkRequest( readFileResponse.getFilename(), sequence )
                 .getBytes();
@@ -145,7 +146,7 @@ public class ClientReaderThread implements Runnable {
   }
 
   /**
-   * Save the chunk file bytes to disk.
+   * Save the file to disk.
    * 
    * @param filename to write back to disk
    * @param fileBytes contain the content of the file
@@ -153,8 +154,11 @@ public class ClientReaderThread implements Runnable {
    */
   private void writeFile(String filename, byte[] fileBytes) throws IOException {
     Timestamp timestamp = new Timestamp( System.currentTimeMillis() );
-    Path path = Paths.get( filename + "_" + timestamp.toInstant() );
+    String updatedFilename = filename + "_" + timestamp.toInstant();
+    Path path = Paths.get( updatedFilename );
     Files.createDirectories( path.getParent() );
     Files.write( path, fileBytes );
+    LOG.info(
+        "Finished writing the file \'" + updatedFilename + "\' to disk." );
   }
 }

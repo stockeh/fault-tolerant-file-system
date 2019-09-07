@@ -1,11 +1,11 @@
 package cs555.system.node;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Timestamp;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
@@ -15,6 +15,7 @@ import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.ReadFileResponse;
 
 /**
+ * 
  * 
  * @author stock
  *
@@ -64,25 +65,13 @@ public class ClientReaderThread implements Runnable {
   }
 
   /**
-   * 
+   * Continuously send requests to the chunk servers for chunk data.
+   * Writing to disk if all chunks are successfully returned.
    */
   @Override
   public void run() {
     String[][] chunks = readFileResponse.getChunks();
-
-    byte[] request = null;
-    try
-    {
-      request =
-          new ReadChunkRequest( readFileResponse.getFilename() ).getBytes();
-    } catch ( IOException e )
-    {
-      LOG.error( "Unable to convert ReadChunkRequest() message to byte array. "
-          + e.getMessage() );
-      e.printStackTrace();
-      return;
-    }
-    byte[][] bytes = processIncomingChunks( chunks, request );
+    byte[][] bytes = processIncomingChunks( chunks );
     if ( bytes != null )
     {
       int numberOfChunks = bytes.length;
@@ -105,13 +94,14 @@ public class ClientReaderThread implements Runnable {
   }
 
   /**
+   * Iterate over the connection details from the controller, requesting
+   * chunk data from each chunk server.
    * 
-   * 
-   * @param chunks
-   * @param request
-   * @return
+   * @param chunks containing the chunk server connection details for
+   *        each chunk in the file
+   * @return a 2-dimensional array of chunk bytes for the given server
    */
-  private byte[][] processIncomingChunks(String[][] chunks, byte[] request) {
+  private byte[][] processIncomingChunks(String[][] chunks) {
     byte[][] fileBytes = new byte[ chunks.length ][ Constants.CHUNK_SIZE ];
     int replication = 0;
     for ( int sequence = 0; sequence < chunks.length; )
@@ -123,6 +113,9 @@ public class ClientReaderThread implements Runnable {
         TCPConnection connection = ConnectionUtilities.establishConnection(
             node, connectionDetails[ 0 ],
             Integer.parseInt( connectionDetails[ 1 ] ) );
+        byte[] request =
+            new ReadChunkRequest( readFileResponse.getFilename(), sequence )
+                .getBytes();
         connection.getTCPSender().sendData( request );
         synchronized ( this.lock )
         {
@@ -154,12 +147,13 @@ public class ClientReaderThread implements Runnable {
   /**
    * Save the chunk file bytes to disk.
    * 
-   * @param filename
-   * @param fileBytes
+   * @param filename to write back to disk
+   * @param fileBytes contain the content of the file
    * @throws IOException
    */
   private void writeFile(String filename, byte[] fileBytes) throws IOException {
-    Path path = Paths.get( filename );
+    Timestamp timestamp = new Timestamp( System.currentTimeMillis() );
+    Path path = Paths.get( filename + "_" + timestamp.toInstant() );
     Files.createDirectories( path.getParent() );
     Files.write( path, fileBytes );
   }

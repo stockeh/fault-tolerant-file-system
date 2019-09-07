@@ -22,14 +22,17 @@ public class ReadChunkRequest implements Event {
 
   private String filename;
 
+  private int sequence;
+
   /**
    * Default constructor -
    * 
    * @param fileName
    */
-  public ReadChunkRequest(String fileName) {
+  public ReadChunkRequest(String fileName, int sequence) {
     this.type = Protocol.READ_CHUNK_REQUEST;
     this.filename = fileName;
+    this.sequence = sequence;
   }
 
   /**
@@ -52,6 +55,8 @@ public class ReadChunkRequest implements Event {
     din.readFully( filenameBytes );
     this.filename = new String( filenameBytes );
 
+    this.sequence = din.readInt();
+
     inputStream.close();
     din.close();
   }
@@ -73,6 +78,14 @@ public class ReadChunkRequest implements Event {
   }
 
   /**
+   * 
+   * @return the sequence number for the chunk associated with the file
+   */
+  public int getSequence() {
+    return sequence;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -87,6 +100,8 @@ public class ReadChunkRequest implements Event {
     byte[] filenameBytes = filename.getBytes();
     dout.writeInt( filenameBytes.length );
     dout.write( filenameBytes );
+
+    dout.writeInt( sequence );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();

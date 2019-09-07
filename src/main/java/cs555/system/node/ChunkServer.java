@@ -22,6 +22,7 @@ import cs555.system.util.FileUtilities;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
+import cs555.system.wireformats.ReadChunkRequest;
 import cs555.system.wireformats.RegisterResponse;
 import cs555.system.wireformats.WriteChunkRequest;
 
@@ -164,12 +165,13 @@ public class ChunkServer implements Node, Protocol {
         break;
 
       case Protocol.WRITE_CHUNK_REQUEST :
-        processIncomingChunk( event );
+        writeChunkHandler( event );
         break;
 
       case Protocol.READ_CHUNK_REQUEST :
-        processOutgoingChunk( event, connection );
+        readChunkHandler( event, connection );
         break;
+
     }
   }
 
@@ -183,7 +185,7 @@ public class ChunkServer implements Node, Protocol {
    * 
    * @param event
    */
-  private void processIncomingChunk(Event event) {
+  private void writeChunkHandler(Event event) {
     WriteChunkRequest request = ( WriteChunkRequest ) event;
     try
     {
@@ -196,22 +198,22 @@ public class ChunkServer implements Node, Protocol {
         request.setMessage( message );
       }
       // TODO: use StringBuilder instead for performance?
-      Path path = Paths.get( File.separator, "tmp", request.getName() + "_chunk"
-          + Integer.toString( request.getSequence() ) );
+      Path path = Paths.get( File.separator, "tmp", request.getFilename()
+          + "_chunk" + Integer.toString( request.getSequence() ) );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
-      LOG.info( "Finished writing " + request.getName() + " to disk." );
+      LOG.info( "Finished writing " + request.getFilename() + " to disk." );
     } catch ( NoSuchAlgorithmException e )
     {
       LOG.error( "Unable to compute hash for message. " + e.getMessage() );
       e.printStackTrace();
     } catch ( IOException e )
     {
-      LOG.error( "Unable to save chunk " + request.getName() + " to disk. "
+      LOG.error( "Unable to save chunk " + request.getFilename() + " to disk. "
           + e.getMessage() );
       e.printStackTrace();
     }
-    metadata.update( request.getName(), request.getSequence(),
+    metadata.update( request.getFilename(), request.getSequence(),
         request.getReplicationPosition() );
     forwardIncomingChunk( request );
   }
@@ -229,7 +231,8 @@ public class ChunkServer implements Node, Protocol {
       try
       {
         String[] nextChunkServer =
-            request.getRoutingPath()[ request.getReplicationPosition() ].split( ":" );
+            request.getRoutingPath()[ request.getReplicationPosition() ]
+                .split( ":" );
         TCPConnection connection =
             ConnectionUtilities.establishConnection( this, nextChunkServer[ 0 ],
                 Integer.parseInt( nextChunkServer[ 1 ] ) );
@@ -238,7 +241,7 @@ public class ChunkServer implements Node, Protocol {
         connection.close();
       } catch ( NumberFormatException | IOException | InterruptedException e )
       {
-        LOG.error( "Unable to forward the request for " + request.getName()
+        LOG.error( "Unable to forward the request for " + request.getFilename()
             + ", " + e.getMessage() );
         e.printStackTrace();
       }
@@ -259,11 +262,22 @@ public class ChunkServer implements Node, Protocol {
    * @param event
    * @param connection
    */
-  private void processOutgoingChunk(Event event, TCPConnection connection) {
-    // TODO: read by chunk name, or by file name?
-
-    // byte[] array = Files.readAllBytes( Paths.get( request.getPath() )
-    // );
+  private void readChunkHandler(Event event, TCPConnection connection) {
+    ReadChunkRequest request = ( ReadChunkRequest ) event;
+    try
+    {
+      byte[] array = Files
+          .readAllBytes( Paths.get( File.separator, "tmp", request.getFilename()
+              + "_chunk" + Integer.toString( request.getSequence() ) ) );
+    } catch ( IOException e )
+    {
+      LOG.error( "Unable to read chunk file: \'" + request.getFilename()
+          + "\', chunk: \'" + request.getSequence() + "\' from disk." );
+      e.printStackTrace();
+    }
+    
+    
+    
   }
 
 }

@@ -24,7 +24,7 @@ public class WriteChunkRequest implements Event {
 
   private int type;
 
-  private String name;
+  private String filename;
 
   private int sequence;
 
@@ -37,15 +37,15 @@ public class WriteChunkRequest implements Event {
   /**
    * 
    * 
-   * @param name
+   * @param filename
    * @param sequence
    * @param message
    * @param routes
    */
-  public WriteChunkRequest(String name, int sequence, byte[] message,
+  public WriteChunkRequest(String filename, int sequence, byte[] message,
       String[] routes) {
     this.type = Protocol.WRITE_CHUNK_REQUEST;
-    this.name = name;
+    this.filename = filename;
     this.sequence = sequence;
     this.message = message;
     this.routes = routes;
@@ -70,7 +70,7 @@ public class WriteChunkRequest implements Event {
     int len = din.readInt();
     byte[] nameBytes = new byte[ len ];
     din.readFully( nameBytes );
-    this.name = new String( nameBytes );
+    this.filename = new String( nameBytes );
 
     this.sequence = din.readInt();
 
@@ -105,10 +105,10 @@ public class WriteChunkRequest implements Event {
 
   /**
    * 
-   * @return the chunk name from the client
+   * @return the file name from the client
    */
-  public String getName() {
-    return name;
+  public String getFilename() {
+    return filename;
   }
 
   /**
@@ -167,7 +167,7 @@ public class WriteChunkRequest implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = name.getBytes();
+    byte[] nameBytes = filename.getBytes();
     dout.writeInt( nameBytes.length );
     dout.write( nameBytes );
 
@@ -200,7 +200,7 @@ public class WriteChunkRequest implements Event {
    */
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", chunk name: " + name
+    return "\n" + Integer.toString( type ) + ", chunk name: " + filename
         + ", sequence: " + sequence + ", routes: " + Arrays.toString( routes )
         + ", msg len: " + Integer.toString( message.length );
   }

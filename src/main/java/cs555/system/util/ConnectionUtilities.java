@@ -2,7 +2,6 @@ package cs555.system.util;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import cs555.system.node.Node;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;

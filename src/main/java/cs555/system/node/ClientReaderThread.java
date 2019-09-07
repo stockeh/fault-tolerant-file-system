@@ -117,7 +117,7 @@ public class ClientReaderThread implements Runnable {
             new ReadChunkRequest( readFileResponse.getFilename(), sequence )
                 .getBytes();
         connection.getTCPSender().sendData( request );
-        synchronized ( this.lock )
+        synchronized ( lock )
         {
           lock.wait();
         }

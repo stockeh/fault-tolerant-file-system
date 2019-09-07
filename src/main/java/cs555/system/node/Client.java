@@ -252,7 +252,7 @@ public class Client implements Node {
       return;
     }
     sender.setFiles( files );
-    ( new Thread( sender ) ).start();
+    ( new Thread( sender, "Client Sender" ) ).start();
   }
 
   /**
@@ -295,19 +295,26 @@ public class Client implements Node {
 
       case Protocol.READ_CHUNK_RESPONSE :
         readChunkResponseHandler( event );
+        break;
     }
   }
 
+  /**
+   * Process an incoming chunk from a given chunk server.
+   * 
+   * @param event the object containing message details
+   */
   private void readChunkResponseHandler(Event event) {
+    LOG.debug( "HEREEEEEE" );
     ReadChunkResponse response = ( ReadChunkResponse ) event;
     ClientReaderThread reader = readers.get( response.getFilename() );
-    
     if ( reader == null )
     {
       LOG.error( "Unable to retrieve reader thread to obtain file." );
       return;
     }
-    
+    reader.setReadChunkResponse( response );
+    reader.unlock();
   }
 
   /**
@@ -321,14 +328,15 @@ public class Client implements Node {
     ReadFileResponse response = ( ( ReadFileResponse ) event );
     ClientReaderThread reader = new ClientReaderThread( this, response );
     readers.put( response.getFilename(), reader );
-    ( new Thread( reader ) ).start();
+    LOG.debug( "Starting client reader thread." );
+    ( new Thread( reader, "Client Reader" ) ).start();
   }
 
   /**
    * Process the response from the controller to list the files in a
    * readable way.
    * 
-   * @param event
+   * @param event the object containing message details
    */
   private void displayReadableFiles(Event event) {
     List<String> readableFiles = ( ( ListFileResponse ) event ).getFileNames();
@@ -355,7 +363,7 @@ public class Client implements Node {
    * Routes have been received from the controller, so the client sender
    * can be unlocked.
    * 
-   * @param event
+   * @param event the object containing message details
    */
   private void senderHandler(Event event) {
     String[] routes = ( ( WriteFileResponse ) event ).getRoutingPath();

@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
@@ -23,6 +24,7 @@ import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.ReadChunkRequest;
+import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.RegisterResponse;
 import cs555.system.wireformats.WriteChunkRequest;
 
@@ -171,7 +173,6 @@ public class ChunkServer implements Node, Protocol {
       case Protocol.READ_CHUNK_REQUEST :
         readChunkHandler( event, connection );
         break;
-
     }
   }
 
@@ -264,9 +265,10 @@ public class ChunkServer implements Node, Protocol {
    */
   private void readChunkHandler(Event event, TCPConnection connection) {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
+    byte[] message = null;
     try
     {
-      byte[] array = Files
+      message = Files
           .readAllBytes( Paths.get( File.separator, "tmp", request.getFilename()
               + "_chunk" + Integer.toString( request.getSequence() ) ) );
     } catch ( IOException e )
@@ -274,10 +276,26 @@ public class ChunkServer implements Node, Protocol {
       LOG.error( "Unable to read chunk file: \'" + request.getFilename()
           + "\', chunk: \'" + request.getSequence() + "\' from disk." );
       e.printStackTrace();
+      return;
     }
-    
-    
-    
+    if ( message != null && FileUtilities.validateSHA1Integrity( message ) )
+    {
+      byte[] messageContent = Arrays.copyOfRange( message,
+          FileUtilities.INTEGRITY_SIZE, message.length );
+
+      ReadChunkResponse response = new ReadChunkResponse( request.getFilename(),
+          request.getSequence(), messageContent );
+      try
+      {
+        connection.getTCPSender().sendData( response.getBytes() );
+        LOG.debug( "Sent ReachChunkRequest() message to client." );
+      } catch ( IOException e )
+      {
+        LOG.error(
+            "Unable to send request message to client. " + e.getMessage() );
+        e.printStackTrace();
+      }
+    }
   }
 
 }

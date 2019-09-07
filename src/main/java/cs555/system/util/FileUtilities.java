@@ -3,6 +3,7 @@ package cs555.system.util;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 /**
  * Utility class for all file related activities.
@@ -12,8 +13,13 @@ import java.security.NoSuchAlgorithmException;
  */
 public class FileUtilities {
 
+  private static Logger LOG = new Logger();
+
   private final static int NUMBER_OF_SLICES =
       ( int ) Constants.CHUNK_SIZE / Constants.CHUNK_SLICE_SIZE;
+
+  // digest returns 20 byte hashes
+  public final static int INTEGRITY_SIZE = 20 * NUMBER_OF_SLICES;
 
   /**
    * Computes the SHA-1 hash of a byte array as a 160 bit ( 20 byte )
@@ -35,8 +41,7 @@ public class FileUtilities {
       throw e;
     }
 
-    // digest returns 20 byte hashes TODO: make global?
-    ByteBuffer buffer = ByteBuffer.allocate( 20 * NUMBER_OF_SLICES );
+    ByteBuffer buffer = ByteBuffer.allocate( INTEGRITY_SIZE );
     for ( int i = 0; i < NUMBER_OF_SLICES; ++i )
     {
       digest.update( message, i * Constants.CHUNK_SLICE_SIZE,
@@ -46,7 +51,28 @@ public class FileUtilities {
     return buffer.array();
   }
 
-  public static boolean checkSHA1Integrity() {
-    return false;
+  /**
+   * Validate the integrity of a chunk file written to disk.
+   * 
+   * @param hash digest with integrity information
+   * @return true if is valid, false other
+   */
+  public static boolean validateSHA1Integrity(byte[] message) {
+    byte[] originalSHA1 = Arrays.copyOfRange( message, 0, INTEGRITY_SIZE );
+    byte[] writtenMessage =
+        Arrays.copyOfRange( message, INTEGRITY_SIZE, message.length );
+
+    byte[] newSHA1;
+    try
+    {
+      newSHA1 = SHA1FromBytes( writtenMessage );
+    } catch ( NoSuchAlgorithmException e )
+    {
+      LOG.error( "Unable to compute SHA-1 integrity for the written message."
+          + e.getMessage() );
+      return false;
+    }
+    return Arrays.equals( originalSHA1, newSHA1 );
   }
+
 }

@@ -77,6 +77,12 @@ public class EventFactory {
       case Protocol.READ_FILE_RESPONSE :
         return new ReadFileResponse( marshalledBytes );
 
+      case Protocol.READ_CHUNK_REQUEST :
+        return new ReadChunkRequest( marshalledBytes );
+
+      case Protocol.READ_CHUNK_RESPONSE :
+        return new ReadChunkResponse( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

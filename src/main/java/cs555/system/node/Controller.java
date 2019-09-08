@@ -232,7 +232,7 @@ public class Controller implements Node {
 
     boolean isOriginalFile = metadata.addFile( request.getFilename(),
         request.getFilelength(), request.getNumberOfChunks() );
-    String[] serversToConnect = metadata.getChunkServers( isOriginalFile );
+    String[] serversToConnect = metadata.getChunkServers( request.getFilename(), isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {

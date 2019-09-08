@@ -3,9 +3,11 @@ package cs555.system.metadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
@@ -38,7 +40,7 @@ public class ControllerMetadata {
   private final Map<String, ServerInformation> connections =
       new ConcurrentHashMap<>();
 
-  private final Comparator<ServerInformation> comparator = Comparator
+  public static final Comparator<ServerInformation> COMPARATOR = Comparator
       .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
           ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
 
@@ -203,18 +205,20 @@ public class ControllerMetadata {
    * TODO: Check if the file already exists and there is a version
    * increase. Get existing locations if exists
    * 
+   * @param filename is the name of the file that will be added to the
+   *        server information for each chunk.
    * @param isOriginalFile computes the list of new chunk servers to
    *        write too, otherwise will retrieve the existing server
    *        locations
    * 
    * @return a list of chunk servers for the client to send data too
    */
-  public String[] getChunkServers(boolean isOriginalFile) {
+  public String[] getChunkServers(String filename, boolean isOriginalFile) {
 
     List<ServerInformation> list = new ArrayList<>( connections.values() );
 
     // see comparator for sort details
-    Collections.sort( list, comparator );
+    Collections.sort( list, ControllerMetadata.COMPARATOR );
 
     int numberOfConnections =
         connections.size() < Constants.NUMBER_OF_REPLICATIONS
@@ -227,6 +231,7 @@ public class ControllerMetadata {
     {
       String connectionDetails = list.get( i ).getConnectionDetails();
       output[ i ] = connectionDetails;
+      connections.get( connectionDetails ).addFileOnServer( filename );
       connections.get( connectionDetails ).incrementNumberOfChunks();
     }
 
@@ -326,7 +331,8 @@ public class ControllerMetadata {
 
     private String connectionDetails;
 
-    private List<String> filesOnServer;
+    // Set to maintain uniqueness of filenames
+    private Set<String> filesOnServer;
 
     private long freeDiskSpace;
 
@@ -342,7 +348,7 @@ public class ControllerMetadata {
         String connectionDetails) {
       this.connection = connection;
       this.connectionDetails = connectionDetails;
-      this.filesOnServer = new ArrayList<>();
+      this.filesOnServer = new HashSet<>();
       this.freeDiskSpace = 0;
       this.numberOfChunks = 0;
     }
@@ -363,7 +369,7 @@ public class ControllerMetadata {
       return connectionDetails;
     }
 
-    public List<String> getFilesOnServer() {
+    public Set<String> getFilesOnServer() {
       return filesOnServer;
     }
 
@@ -391,7 +397,7 @@ public class ControllerMetadata {
      * @return true if the server file set did not already contain the
      *         specified element
      */
-    private boolean addFileOnServer(String filename) {
+    public boolean addFileOnServer(String filename) {
       return filesOnServer.add( filename );
     }
 
@@ -417,7 +423,7 @@ public class ControllerMetadata {
      * Increment the number of chunks for a specific chunk server.
      * 
      */
-    private void incrementNumberOfChunks() {
+    public void incrementNumberOfChunks() {
       ++numberOfChunks;
     }
   }

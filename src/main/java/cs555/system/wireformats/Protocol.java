@@ -37,6 +37,6 @@ public interface Protocol {
 
   final int READ_CHUNK_RESPONSE = 13;
 
-  final int TEST = 14;
+  final int HEALTH_REQUEST = 14;
 
 }

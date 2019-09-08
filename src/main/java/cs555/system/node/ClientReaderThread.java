@@ -69,6 +69,7 @@ public class ClientReaderThread implements Runnable {
   /**
    * Continuously send requests to the chunk servers for chunk data.
    * Writing to disk if all chunks are successfully returned.
+   * 
    */
   @Override
   public void run() {
@@ -151,13 +152,14 @@ public class ClientReaderThread implements Runnable {
   }
 
   /**
-   * Save the file to disk.
+   * Save the file requested for read to disk.
    * 
    * @param filename to write back to disk
    * @param file contain the content of the file
    * @throws IOException
    */
-  private void writeFileToDisk(String filename, byte[] file) throws IOException {
+  private void writeFileToDisk(String filename, byte[] file)
+      throws IOException {
     Timestamp timestamp = new Timestamp( System.currentTimeMillis() );
     String updatedFilename = filename + "_" + timestamp.toInstant();
     Path path = Paths.get( updatedFilename );

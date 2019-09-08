@@ -5,6 +5,8 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.Date;
 import java.util.Scanner;
+import java.util.Timer;
+import cs555.system.heartbeat.ControllerHeartbeatManager;
 import cs555.system.metadata.ControllerMetadata;
 import cs555.system.metadata.ControllerMetadata.FileInformation;
 import cs555.system.transport.TCPConnection;
@@ -94,8 +96,13 @@ public class Controller implements Node {
       ( new Thread( new TCPServerThread( controller, serverSocket ),
           "Server Thread" ) ).start();
 
-      controller.interact();
+      ControllerHeartbeatManager controllerHeartbeatManager =
+          new ControllerHeartbeatManager( controller.metadata );
+      Timer timer = new Timer();
+      final int interval = 10 * 1000; // 15 seconds in milliseconds
+      timer.schedule( controllerHeartbeatManager, 1000, interval );
 
+      controller.interact();
     } catch ( IOException e )
     {
       LOG.error( "Unable to successfully start controller. Exiting. "

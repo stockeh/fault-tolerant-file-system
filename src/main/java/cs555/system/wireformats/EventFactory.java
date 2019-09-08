@@ -83,6 +83,9 @@ public class EventFactory {
       case Protocol.READ_CHUNK_RESPONSE :
         return new ReadChunkResponse( marshalledBytes );
 
+      case Protocol.HEALTH_REQUEST :
+        return new HealthRequest( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

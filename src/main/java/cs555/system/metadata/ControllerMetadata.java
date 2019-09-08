@@ -98,8 +98,8 @@ public class ControllerMetadata {
    * 
    * @param connectionDetails
    */
-  public void removeConnection(String connectionDetails) {
-    connections.remove( connectionDetails );
+  public ServerInformation removeConnection(String connectionDetails) {
+    return connections.remove( connectionDetails );
   }
 
   /**
@@ -320,11 +320,13 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  static class ServerInformation {
+  public static class ServerInformation {
 
     private TCPConnection connection;
 
     private String connectionDetails;
+
+    private List<String> filesOnServer;
 
     private long freeDiskSpace;
 
@@ -340,34 +342,81 @@ public class ControllerMetadata {
         String connectionDetails) {
       this.connection = connection;
       this.connectionDetails = connectionDetails;
+      this.filesOnServer = new ArrayList<>();
       this.freeDiskSpace = 0;
       this.numberOfChunks = 0;
     }
 
-    private TCPConnection getConnection() {
+    /**
+     * 
+     * @return the TCPConnection associated with the server
+     */
+    public TCPConnection getConnection() {
       return connection;
     }
 
-    private String getConnectionDetails() {
+    /**
+     * 
+     * @return the host:port connection details of the server
+     */
+    public String getConnectionDetails() {
       return connectionDetails;
     }
 
+    public List<String> getFilesOnServer() {
+      return filesOnServer;
+    }
+
+    /**
+     * 
+     * @return the free disk space on the server as last updated by the
+     *         minor heartbeat
+     */
     private long getFreeDiskSpace() {
       return freeDiskSpace;
     }
 
+    /**
+     * 
+     * @return the number of chunks written to a server
+     */
     private long getNumberOfChunks() {
       return numberOfChunks;
     }
 
+    /**
+     * Add a given filename to the server information.
+     * 
+     * @param filename
+     * @return true if the server file set did not already contain the
+     *         specified element
+     */
+    private boolean addFileOnServer(String filename) {
+      return filesOnServer.add( filename );
+    }
+
+    /**
+     * Update the number of chunks for a specified server.
+     * 
+     * @param numberOfChunks
+     */
     public void setNumberOfChunks(int numberOfChunks) {
       this.numberOfChunks = numberOfChunks;
     }
 
+    /**
+     * Update the amount of free disk space for a specified server.
+     * 
+     * @param freeDiskSpace
+     */
     public void setFreeDiskSpace(long freeDiskSpace) {
       this.freeDiskSpace = freeDiskSpace;
     }
 
+    /**
+     * Increment the number of chunks for a specific chunk server.
+     * 
+     */
     private void incrementNumberOfChunks() {
       ++numberOfChunks;
     }

@@ -82,6 +82,7 @@ public class ServerMetadata {
       int replication) {
     files.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
     files.get( filename ).add( new ChunkInformation( sequence, replication ) );
+    incrementNumberOfChunks();
   }
 
   /**

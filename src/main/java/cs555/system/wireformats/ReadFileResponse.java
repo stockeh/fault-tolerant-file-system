@@ -19,17 +19,21 @@ public class ReadFileResponse implements Event {
 
   private String filename;
 
+  private int filelength;
+
   private String[][] chunks;
 
   /**
    * Default constructor -
    * 
    * @param filename
+   * @param filelength
    * @param chunks sequence and chunk server information for a file
    */
-  public ReadFileResponse(String filename, String[][] chunks) {
+  public ReadFileResponse(String filename, int filelength, String[][] chunks) {
     this.type = Protocol.READ_FILE_RESPONSE;
     this.filename = filename;
+    this.filelength = filelength;
     this.chunks = chunks;
   }
 
@@ -52,6 +56,8 @@ public class ReadFileResponse implements Event {
     byte[] filenameBytes = new byte[ len ];
     din.readFully( filenameBytes );
     this.filename = new String( filenameBytes );
+
+    this.filelength = din.readInt();
 
     int numChunks = din.readInt();
     int numReplications = din.readInt();
@@ -90,6 +96,14 @@ public class ReadFileResponse implements Event {
 
   /**
    * 
+   * @return the file length associated with a file
+   */
+  public int getFilelength() {
+    return filelength;
+  }
+
+  /**
+   * 
    * @return the chunks associated with a read response
    */
   public String[][] getChunks() {
@@ -112,8 +126,9 @@ public class ReadFileResponse implements Event {
     dout.writeInt( bytes.length );
     dout.write( bytes );
 
-    dout.writeInt( chunks.length );
+    dout.writeInt( filelength );
 
+    dout.writeInt( chunks.length );
     dout.writeInt( chunks[ 0 ].length );
 
     for ( String[] chunkReplication : chunks )

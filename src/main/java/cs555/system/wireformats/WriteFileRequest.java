@@ -23,9 +23,12 @@ public class WriteFileRequest implements Event {
 
   private int numberOfChunks;
 
-  public WriteFileRequest(String name, int numberOfChunks) {
+  private int filelength;
+
+  public WriteFileRequest(String name, int filelength, int numberOfChunks) {
     this.type = Protocol.WRITE_FILE_REQUEST;
     this.filename = name;
+    this.filelength = filelength;
     this.numberOfChunks = numberOfChunks;
   }
 
@@ -51,6 +54,8 @@ public class WriteFileRequest implements Event {
 
     this.numberOfChunks = din.readInt();
 
+    this.filelength = din.readInt();
+
     inputStream.close();
     din.close();
   }
@@ -65,12 +70,12 @@ public class WriteFileRequest implements Event {
 
   /**
    * 
-   * @return the name of the file 
+   * @return the name of the file
    */
   public String getFilename() {
     return filename;
   }
-  
+
   /**
    * 
    * @return the number of chunks associated with a file
@@ -78,7 +83,15 @@ public class WriteFileRequest implements Event {
   public int getNumberOfChunks() {
     return numberOfChunks;
   }
-  
+
+  /**
+   * 
+   * @return the length of the file being written
+   */
+  public int getFilelength() {
+    return filelength;
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -97,6 +110,8 @@ public class WriteFileRequest implements Event {
 
     dout.writeInt( numberOfChunks );
 
+    dout.writeInt( filelength );
+
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
@@ -108,7 +123,8 @@ public class WriteFileRequest implements Event {
   @Override
   public String toString() {
     return "\n" + Integer.toString( type ) + ", file name: " + filename
-        + ", number of chunks: " + Integer.toString( numberOfChunks );
+        + ", number of chunks: " + Integer.toString( numberOfChunks )
+        + ", file length: " + filelength;
   }
 
 }

@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.util.Date;
 import java.util.Scanner;
 import cs555.system.metadata.ControllerMetadata;
+import cs555.system.metadata.ControllerMetadata.FileInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
@@ -178,8 +179,9 @@ public class Controller implements Node {
    */
   private void readFileRequestHandler(Event event, TCPConnection connection) {
     String filename = ( ( ReadFileRequest ) event ).getFilename();
-    String[][] chunks = metadata.getFiles().get( filename ).getChunks();
-    ReadFileResponse response = new ReadFileResponse( filename, chunks );
+    FileInformation fileInformation = metadata.getFiles().get( filename );
+    ReadFileResponse response = new ReadFileResponse( filename,
+        fileInformation.getFilelength(), fileInformation.getChunks() );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );
@@ -221,8 +223,8 @@ public class Controller implements Node {
   private void writeFileRequestHandler(Event event, TCPConnection connection) {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
-    boolean isOriginalFile =
-        metadata.addFile( request.getFilename(), request.getNumberOfChunks() );
+    boolean isOriginalFile = metadata.addFile( request.getFilename(),
+        request.getFilelength(), request.getNumberOfChunks() );
     String[] serversToConnect = metadata.getChunkServers( isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try

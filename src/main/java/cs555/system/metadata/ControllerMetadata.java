@@ -63,17 +63,18 @@ public class ControllerMetadata {
    * Add a file to the metadata if it does not already exist. Otherwise
    * return from method signaling the file is not original.
    * 
-   * @param name of the file to maintain
+   * @param filename of the file to maintain
+   * @param filelength
    * @param numberOfChunks that make up the file
    * 
    * @return true if the file is original, false otherwise
    */
-  public boolean addFile(String name, int numberOfChunks) {
-    boolean isOriginalFile = !files.containsKey( name );
+  public boolean addFile(String filename, int filelength, int numberOfChunks) {
+    boolean isOriginalFile = !files.containsKey( filename );
 
     if ( isOriginalFile )
     {
-      files.put( name, new FileInformation( numberOfChunks ) );
+      files.put( filename, new FileInformation( filelength, numberOfChunks ) );
     }
 
     return isOriginalFile;
@@ -279,8 +280,17 @@ public class ControllerMetadata {
      */
     private String[][] chunks;
 
-    private FileInformation(int numberOfChunks) {
-      chunks = new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
+    private int filelenth;
+
+    /**
+     * 
+     * @param filelength
+     * @param numberOfChunks
+     */
+    private FileInformation(int filelength, int numberOfChunks) {
+      this.chunks =
+          new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
+      this.filelenth = filelength;
     }
 
     /**
@@ -290,6 +300,14 @@ public class ControllerMetadata {
      */
     public String[][] getChunks() {
       return chunks;
+    }
+
+    /**
+     * 
+     * @return the length of the file being returned
+     */
+    public int getFilelength() {
+      return filelenth;
     }
   }
 

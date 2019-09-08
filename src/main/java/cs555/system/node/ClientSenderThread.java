@@ -99,11 +99,11 @@ public class ClientSenderThread implements Runnable {
       {
         try ( InputStream is = new FileInputStream( file ) )
         {
-          int numberOfChunks = ( int ) Math
-              .ceil( ( double ) file.length() / Constants.CHUNK_SIZE );
-          byte[] request =
-              ( new WriteFileRequest( file.getAbsolutePath(), numberOfChunks ) )
-                  .getBytes();
+          int filelength = ( int ) file.length();
+          int numberOfChunks =
+              ( int ) Math.ceil( ( double ) filelength / Constants.CHUNK_SIZE );
+          byte[] request = ( new WriteFileRequest( file.getAbsolutePath(),
+              filelength, numberOfChunks ) ).getBytes();
           processIndividualFile( file, request, is );
         } catch ( IOException e )
         {
@@ -165,7 +165,7 @@ public class ClientSenderThread implements Runnable {
 
       // Pad elements b[k] through b[b.length-1] with zeros
       Arrays.fill( chunk, length, Constants.CHUNK_SIZE, ( byte ) 0 );
-      
+
       WriteChunkRequest writeToChunkServer =
           new WriteChunkRequest( name, chunkNumber++, chunk, routes );
 

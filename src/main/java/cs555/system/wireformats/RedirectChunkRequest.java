@@ -9,27 +9,37 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Request from the client to the controller requesting a list of
- * chunk servers to write chunks of a file too.
  * 
  * @author stock
  *
  */
-public class WriteFileRequest implements Event {
+public class RedirectChunkRequest implements Event {
 
   private int type;
 
   private String filename;
 
-  private int numberOfChunks;
+  private int sequence;
 
-  private int filelength;
+  private int replicationPosition;
 
-  public WriteFileRequest(String name, int filelength, int numberOfChunks) {
-    this.type = Protocol.WRITE_FILE_REQUEST;
-    this.filename = name;
-    this.filelength = filelength;
-    this.numberOfChunks = numberOfChunks;
+  private String destinationDetails;
+
+  /**
+   * Default constructor -
+   * 
+   * @param filename
+   * @param sequence
+   * @param replicationPosition
+   * @param destinationDetails
+   */
+  public RedirectChunkRequest(String filename, int sequence,
+      int replicationPosition, String destinationDetails) {
+    this.type = Protocol.REDIRECT_CHUNK_REQUEST;
+    this.filename = filename;
+    this.sequence = sequence;
+    this.replicationPosition = replicationPosition;
+    this.destinationDetails = destinationDetails;
   }
 
   /**
@@ -39,7 +49,7 @@ public class WriteFileRequest implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public WriteFileRequest(byte[] marshalledBytes) throws IOException {
+  public RedirectChunkRequest(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -52,9 +62,14 @@ public class WriteFileRequest implements Event {
     din.readFully( bytes );
     this.filename = new String( bytes );
 
-    this.numberOfChunks = din.readInt();
+    this.sequence = din.readInt();
 
-    this.filelength = din.readInt();
+    this.replicationPosition = din.readInt();
+
+    len = din.readInt();
+    bytes = new byte[ len ];
+    din.readFully( bytes );
+    this.destinationDetails = new String( bytes );
 
     inputStream.close();
     din.close();
@@ -68,28 +83,20 @@ public class WriteFileRequest implements Event {
     return type;
   }
 
-  /**
-   * 
-   * @return the name of the file
-   */
   public String getFilename() {
     return filename;
   }
 
-  /**
-   * 
-   * @return the number of chunks associated with a file
-   */
-  public int getNumberOfChunks() {
-    return numberOfChunks;
+  public int getSequence() {
+    return sequence;
   }
 
-  /**
-   * 
-   * @return the length of the file being written
-   */
-  public int getFilelength() {
-    return filelength;
+  public String getDestinationDetails() {
+    return destinationDetails;
+  }
+
+  public int getReplicationPosition() {
+    return replicationPosition;
   }
 
   /**
@@ -104,13 +111,17 @@ public class WriteFileRequest implements Event {
 
     dout.writeInt( type );
 
-    byte[] nameBytes = filename.getBytes();
-    dout.writeInt( nameBytes.length );
-    dout.write( nameBytes );
+    byte[] bytes = filename.getBytes();
+    dout.writeInt( bytes.length );
+    dout.write( bytes );
 
-    dout.writeInt( numberOfChunks );
+    dout.writeInt( sequence );
 
-    dout.writeInt( filelength );
+    dout.writeInt( replicationPosition );
+
+    bytes = destinationDetails.getBytes();
+    dout.writeInt( bytes.length );
+    dout.write( bytes );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -122,9 +133,7 @@ public class WriteFileRequest implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", file name: " + filename
-        + ", number of chunks: " + Integer.toString( numberOfChunks )
-        + ", file length: " + filelength;
+    return "\n" + Integer.toString( type );
   }
 
 }

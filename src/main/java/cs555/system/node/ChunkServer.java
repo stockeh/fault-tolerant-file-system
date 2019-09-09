@@ -1,15 +1,12 @@
 package cs555.system.node;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
@@ -25,6 +22,7 @@ import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.ReadChunkRequest;
 import cs555.system.wireformats.ReadChunkResponse;
+import cs555.system.wireformats.RedirectChunkRequest;
 import cs555.system.wireformats.RegisterResponse;
 import cs555.system.wireformats.WriteChunkRequest;
 
@@ -173,6 +171,47 @@ public class ChunkServer implements Node, Protocol {
       case Protocol.READ_CHUNK_REQUEST :
         readChunkHandler( event, connection );
         break;
+
+      case Protocol.REDIRECT_CHUNK_REQUEST :
+        redirectChunkHandler( event );
+    }
+  }
+
+  /**
+   * Upon a server failing, redirected chunks are sent to source nodes
+   * with legitimate copies of date and forwarded as a replication to
+   * another server.
+   * 
+   * @param event
+   */
+  private void redirectChunkHandler(Event event) {
+    RedirectChunkRequest redirectRequest = ( RedirectChunkRequest ) event;
+    byte[] message = FileUtilities.readChunkSequence(
+        redirectRequest.getFilename(), redirectRequest.getSequence() );
+    if ( message != null )
+    {
+      try
+      {
+        String[] destination =
+            redirectRequest.getDestinationDetails().split( ":" );
+        TCPConnection connection = ConnectionUtilities.establishConnection(
+            this, destination[ 0 ], Integer.parseInt( destination[ 1 ] ) );
+
+        WriteChunkRequest writeRequest =
+            new WriteChunkRequest( redirectRequest.getFilename(),
+                redirectRequest.getSequence(), message, new String[] { "" } );
+
+        writeRequest
+            .setReplicationPosition( redirectRequest.getReplicationPosition() );
+
+        connection.getTCPSender().sendData( writeRequest.getBytes() );
+        connection.close();
+      } catch ( NumberFormatException | IOException | InterruptedException e )
+      {
+        LOG.error( "Unable to forward the request for "
+            + redirectRequest.getFilename() + ", " + e.getMessage() );
+        e.printStackTrace();
+      }
     }
   }
 
@@ -191,16 +230,15 @@ public class ChunkServer implements Node, Protocol {
     try
     {
       byte[] message = request.getMessage();
-      if ( request.getReplicationPosition() == 0 )
+      if ( message.length == Constants.CHUNK_SIZE )
       {
         byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
         message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
             .put( SHA1Integrity ).put( message ).array();
         request.setMessage( message );
       }
-      // TODO: use StringBuilder instead for performance?
-      Path path = Paths.get( File.separator, "tmp", request.getFilename()
-          + "_chunk" + Integer.toString( request.getSequence() ) );
+      Path path = FileUtilities.getPathLocation( request.getFilename(),
+          request.getSequence() );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
       LOG.info( "Finished writing " + request.getFilename() + " to disk." );
@@ -227,7 +265,7 @@ public class ChunkServer implements Node, Protocol {
    */
   private void forwardIncomingChunk(WriteChunkRequest request) {
     request.incrementReplicationPosition();
-    if ( request.getReplicationPosition() != request.getRoutingPath().length )
+    if ( request.getReplicationPosition() < request.getRoutingPath().length )
     {
       try
       {
@@ -265,26 +303,12 @@ public class ChunkServer implements Node, Protocol {
    */
   private void readChunkHandler(Event event, TCPConnection connection) {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
-    byte[] message = null;
-    try
+    byte[] message = FileUtilities.readChunkSequence( request.getFilename(),
+        request.getSequence() );
+    if ( message != null )
     {
-      message = Files
-          .readAllBytes( Paths.get( File.separator, "tmp", request.getFilename()
-              + "_chunk" + Integer.toString( request.getSequence() ) ) );
-    } catch ( IOException e )
-    {
-      LOG.error( "Unable to read chunk file: \'" + request.getFilename()
-          + "\', chunk: \'" + request.getSequence() + "\' from disk." );
-      e.printStackTrace();
-      return;
-    }
-    if ( message != null && FileUtilities.validateSHA1Integrity( message ) )
-    {
-      byte[] messageContent = Arrays.copyOfRange( message,
-          FileUtilities.INTEGRITY_SIZE, message.length );
-
       ReadChunkResponse response =
-          new ReadChunkResponse( request.getFilename(), messageContent );
+          new ReadChunkResponse( request.getFilename(), message );
       try
       {
         connection.getTCPSender().sendData( response.getBytes() );
@@ -296,6 +320,8 @@ public class ChunkServer implements Node, Protocol {
         e.printStackTrace();
       }
     }
+    // TODO: else response with error and send request to controller for
+    // another chunk location to get data from.
   }
 
 }

@@ -1,6 +1,11 @@
 package cs555.system.util;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -15,7 +20,6 @@ public class FileUtilities {
 
   private static Logger LOG = new Logger();
 
-  // TODO: math.ceil?
   private final static int NUMBER_OF_SLICES =
       ( int ) Constants.CHUNK_SIZE / Constants.CHUNK_SLICE_SIZE;
 
@@ -74,6 +78,51 @@ public class FileUtilities {
       return false;
     }
     return Arrays.equals( originalSHA1, newSHA1 );
+  }
+
+  /**
+   * Read a chunk of a file denoted by the <tt>filename</tt> and
+   * <tt>sequence</tt> number into a <tt>byte[]</tt>.
+   * 
+   * @param filename
+   * @param sequence
+   * @return the resulting <tt>byte[]</tt> array, or null if
+   *         unsuccessful
+   */
+  public static byte[] readChunkSequence(String filename, int sequence) {
+    byte[] message = null;
+    try
+    {
+      message = Files
+          .readAllBytes( FileUtilities.getPathLocation( filename, sequence ) );
+    } catch ( IOException e )
+    {
+      LOG.error( "Unable to read chunk file: \'" + filename + "\', chunk: \'"
+          + sequence + "\' from disk." );
+      e.printStackTrace();
+      return null;
+    }
+    if ( message != null && FileUtilities.validateSHA1Integrity( message ) )
+    {
+      message = Arrays.copyOfRange( message, FileUtilities.INTEGRITY_SIZE,
+          message.length );
+    }
+    return message;
+  }
+
+  /**
+   * Get the path common location for writing and reading chunks on
+   * disk.
+   * 
+   * TODO: use StringBuilder instead for performance?
+   * 
+   * @param filename
+   * @param sequence
+   * @return the resulting <tt>Path</tt>
+   */
+  public static Path getPathLocation(String filename, int sequence) {
+    return Paths.get( File.separator, "tmp",
+        filename + "_chunk" + Integer.toString( sequence ) );
   }
 
 }

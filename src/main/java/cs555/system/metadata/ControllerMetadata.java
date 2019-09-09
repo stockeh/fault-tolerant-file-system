@@ -3,9 +3,11 @@ package cs555.system.metadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
@@ -38,7 +40,7 @@ public class ControllerMetadata {
   private final Map<String, ServerInformation> connections =
       new ConcurrentHashMap<>();
 
-  private final Comparator<ServerInformation> comparator = Comparator
+  public static final Comparator<ServerInformation> COMPARATOR = Comparator
       .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
           ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
 
@@ -63,17 +65,18 @@ public class ControllerMetadata {
    * Add a file to the metadata if it does not already exist. Otherwise
    * return from method signaling the file is not original.
    * 
-   * @param name of the file to maintain
+   * @param filename of the file to maintain
+   * @param filelength
    * @param numberOfChunks that make up the file
    * 
    * @return true if the file is original, false otherwise
    */
-  public boolean addFile(String name, int numberOfChunks) {
-    boolean isOriginalFile = !files.containsKey( name );
+  public boolean addFile(String filename, int filelength, int numberOfChunks) {
+    boolean isOriginalFile = !files.containsKey( filename );
 
     if ( isOriginalFile )
     {
-      files.put( name, new FileInformation( numberOfChunks ) );
+      files.put( filename, new FileInformation( filelength, numberOfChunks ) );
     }
 
     return isOriginalFile;
@@ -97,8 +100,8 @@ public class ControllerMetadata {
    * 
    * @param connectionDetails
    */
-  public void removeConnection(String connectionDetails) {
-    connections.remove( connectionDetails );
+  public ServerInformation removeConnection(String connectionDetails) {
+    return connections.remove( connectionDetails );
   }
 
   /**
@@ -202,18 +205,20 @@ public class ControllerMetadata {
    * TODO: Check if the file already exists and there is a version
    * increase. Get existing locations if exists
    * 
+   * @param filename is the name of the file that will be added to the
+   *        server information for each chunk.
    * @param isOriginalFile computes the list of new chunk servers to
    *        write too, otherwise will retrieve the existing server
    *        locations
    * 
    * @return a list of chunk servers for the client to send data too
    */
-  public String[] getChunkServers(boolean isOriginalFile) {
+  public String[] getChunkServers(String filename, boolean isOriginalFile) {
 
     List<ServerInformation> list = new ArrayList<>( connections.values() );
 
     // see comparator for sort details
-    Collections.sort( list, comparator );
+    Collections.sort( list, ControllerMetadata.COMPARATOR );
 
     int numberOfConnections =
         connections.size() < Constants.NUMBER_OF_REPLICATIONS
@@ -226,6 +231,7 @@ public class ControllerMetadata {
     {
       String connectionDetails = list.get( i ).getConnectionDetails();
       output[ i ] = connectionDetails;
+      connections.get( connectionDetails ).addFileOnServer( filename );
       connections.get( connectionDetails ).incrementNumberOfChunks();
     }
 
@@ -279,8 +285,17 @@ public class ControllerMetadata {
      */
     private String[][] chunks;
 
-    private FileInformation(int numberOfChunks) {
-      chunks = new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
+    private int filelenth;
+
+    /**
+     * 
+     * @param filelength
+     * @param numberOfChunks
+     */
+    private FileInformation(int filelength, int numberOfChunks) {
+      this.chunks =
+          new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
+      this.filelenth = filelength;
     }
 
     /**
@@ -290,6 +305,14 @@ public class ControllerMetadata {
      */
     public String[][] getChunks() {
       return chunks;
+    }
+
+    /**
+     * 
+     * @return the length of the file being returned
+     */
+    public int getFilelength() {
+      return filelenth;
     }
   }
 
@@ -302,11 +325,14 @@ public class ControllerMetadata {
    * @author stock
    *
    */
-  static class ServerInformation {
+  public static class ServerInformation {
 
     private TCPConnection connection;
 
     private String connectionDetails;
+
+    // Set to maintain uniqueness of filenames
+    private Set<String> filesOnServer;
 
     private long freeDiskSpace;
 
@@ -322,35 +348,82 @@ public class ControllerMetadata {
         String connectionDetails) {
       this.connection = connection;
       this.connectionDetails = connectionDetails;
+      this.filesOnServer = new HashSet<>();
       this.freeDiskSpace = 0;
       this.numberOfChunks = 0;
     }
 
-    private TCPConnection getConnection() {
+    /**
+     * 
+     * @return the TCPConnection associated with the server
+     */
+    public TCPConnection getConnection() {
       return connection;
     }
 
-    private String getConnectionDetails() {
+    /**
+     * 
+     * @return the host:port connection details of the server
+     */
+    public String getConnectionDetails() {
       return connectionDetails;
     }
 
+    public Set<String> getFilesOnServer() {
+      return filesOnServer;
+    }
+
+    /**
+     * 
+     * @return the free disk space on the server as last updated by the
+     *         minor heartbeat
+     */
     private long getFreeDiskSpace() {
       return freeDiskSpace;
     }
 
+    /**
+     * 
+     * @return the number of chunks written to a server
+     */
     private long getNumberOfChunks() {
       return numberOfChunks;
     }
 
+    /**
+     * Add a given filename to the server information.
+     * 
+     * @param filename
+     * @return true if the server file set did not already contain the
+     *         specified element
+     */
+    public boolean addFileOnServer(String filename) {
+      return filesOnServer.add( filename );
+    }
+
+    /**
+     * Update the number of chunks for a specified server.
+     * 
+     * @param numberOfChunks
+     */
     public void setNumberOfChunks(int numberOfChunks) {
       this.numberOfChunks = numberOfChunks;
     }
 
+    /**
+     * Update the amount of free disk space for a specified server.
+     * 
+     * @param freeDiskSpace
+     */
     public void setFreeDiskSpace(long freeDiskSpace) {
       this.freeDiskSpace = freeDiskSpace;
     }
 
-    private void incrementNumberOfChunks() {
+    /**
+     * Increment the number of chunks for a specific chunk server.
+     * 
+     */
+    public void incrementNumberOfChunks() {
       ++numberOfChunks;
     }
   }

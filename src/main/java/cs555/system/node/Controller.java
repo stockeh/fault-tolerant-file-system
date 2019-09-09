@@ -5,7 +5,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.Date;
 import java.util.Scanner;
+import java.util.Timer;
+import cs555.system.heartbeat.ControllerHeartbeatManager;
 import cs555.system.metadata.ControllerMetadata;
+import cs555.system.metadata.ControllerMetadata.FileInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
@@ -93,8 +96,13 @@ public class Controller implements Node {
       ( new Thread( new TCPServerThread( controller, serverSocket ),
           "Server Thread" ) ).start();
 
-      controller.interact();
+      ControllerHeartbeatManager controllerHeartbeatManager =
+          new ControllerHeartbeatManager( controller.metadata );
+      Timer timer = new Timer();
+      final int interval = 10 * 1000; // 15 seconds in milliseconds
+      timer.schedule( controllerHeartbeatManager, 1000, interval );
 
+      controller.interact();
     } catch ( IOException e )
     {
       LOG.error( "Unable to successfully start controller. Exiting. "
@@ -178,8 +186,9 @@ public class Controller implements Node {
    */
   private void readFileRequestHandler(Event event, TCPConnection connection) {
     String filename = ( ( ReadFileRequest ) event ).getFilename();
-    String[][] chunks = metadata.getFiles().get( filename ).getChunks();
-    ReadFileResponse response = new ReadFileResponse( filename, chunks );
+    FileInformation fileInformation = metadata.getFiles().get( filename );
+    ReadFileResponse response = new ReadFileResponse( filename,
+        fileInformation.getFilelength(), fileInformation.getChunks() );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );
@@ -221,9 +230,9 @@ public class Controller implements Node {
   private void writeFileRequestHandler(Event event, TCPConnection connection) {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
-    boolean isOriginalFile =
-        metadata.addFile( request.getFilename(), request.getNumberOfChunks() );
-    String[] serversToConnect = metadata.getChunkServers( isOriginalFile );
+    boolean isOriginalFile = metadata.addFile( request.getFilename(),
+        request.getFilelength(), request.getNumberOfChunks() );
+    String[] serversToConnect = metadata.getChunkServers( request.getFilename(), isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {

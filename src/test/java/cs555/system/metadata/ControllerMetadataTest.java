@@ -29,7 +29,8 @@ public class ControllerMetadataTest {
     metadata.updateServerInformation( "c", 102 );
 
     boolean isOriginalFile = true;
-    String[] servers = metadata.getChunkServers( isOriginalFile );
+    String[] servers =
+        metadata.getChunkServers( "fake-file-name", isOriginalFile );
     if ( Constants.NUMBER_OF_REPLICATIONS == 3 )
     {
       Assert.assertArrayEquals( servers, new String[] { "c", "b", "a" } );

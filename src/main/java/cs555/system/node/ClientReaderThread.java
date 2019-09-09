@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
@@ -15,7 +16,8 @@ import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.ReadFileResponse;
 
 /**
- * 
+ * Client reader responsible for sending requests to servers to obtain
+ * chunks for a specified file.
  * 
  * @author stock
  *
@@ -67,6 +69,7 @@ public class ClientReaderThread implements Runnable {
   /**
    * Continuously send requests to the chunk servers for chunk data.
    * Writing to disk if all chunks are successfully returned.
+   * 
    */
   @Override
   public void run() {
@@ -81,9 +84,12 @@ public class ClientReaderThread implements Runnable {
       {
         fileBytes.put( bytes[ i ] );
       }
+      // truncate file to original file length before writing
+      byte[] file = Arrays.copyOfRange( fileBytes.array(), 0,
+          readFileResponse.getFilelength() );
       try
       {
-        writeFile( readFileResponse.getFilename(), fileBytes.array() );
+        writeFileToDisk( readFileResponse.getFilename(), file );
       } catch ( IOException e )
       {
         LOG.error( "Unable to save file \'" + readFileResponse.getFilename()
@@ -104,7 +110,7 @@ public class ClientReaderThread implements Runnable {
   private byte[][] processIncomingChunks(String[][] chunks) {
     byte[][] fileBytes = new byte[ chunks.length ][ Constants.CHUNK_SIZE ];
     int replication = 0;
-    for ( int sequence = 0; sequence < chunks.length; )
+    for ( int sequence = 0; sequence < chunks.length; ++sequence )
     {
       String[] connectionDetails =
           chunks[ sequence ][ replication ].split( ":" );
@@ -135,29 +141,30 @@ public class ClientReaderThread implements Runnable {
         if ( ++replication >= chunks[ 0 ].length )
         {
           LOG.error(
-              "File is not readable beacause a given chunk can not be returned" );
+              "File is not readable beacause a given chunk can not be returned"
+                  + "by any servers." );
           return null;
         }
-        continue;
       }
-      ++sequence;
+      replication = 0;
     }
     return fileBytes;
   }
 
   /**
-   * Save the file to disk.
+   * Save the file requested for read to disk.
    * 
    * @param filename to write back to disk
-   * @param fileBytes contain the content of the file
+   * @param file contain the content of the file
    * @throws IOException
    */
-  private void writeFile(String filename, byte[] fileBytes) throws IOException {
+  private void writeFileToDisk(String filename, byte[] file)
+      throws IOException {
     Timestamp timestamp = new Timestamp( System.currentTimeMillis() );
     String updatedFilename = filename + "_" + timestamp.toInstant();
     Path path = Paths.get( updatedFilename );
     Files.createDirectories( path.getParent() );
-    Files.write( path, fileBytes );
+    Files.write( path, file );
     LOG.info(
         "Finished writing the file \'" + updatedFilename + "\' to disk." );
   }

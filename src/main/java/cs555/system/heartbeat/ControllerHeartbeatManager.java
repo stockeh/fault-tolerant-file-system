@@ -72,18 +72,27 @@ public class ControllerHeartbeatManager extends TimerTask {
     }
 
     // Only able to redirect information if there is more than one
-    // replica
+    // replica, or enough connections to replicate
     if ( !failedConnections.isEmpty() && Constants.NUMBER_OF_REPLICATIONS > 1
         && metadata.getConnections()
             .size() >= Constants.NUMBER_OF_REPLICATIONS )
     {
-      Set<String> allConnectionDetails = metadata.getConnections().keySet();
       for ( ServerInformation connection : failedConnections )
       {
         Map<String, List<RedirectInformation>> redirectInformation =
-            getRedirectInformation( connection, allConnectionDetails );
+            getRedirectInformation( connection );
         if ( redirectInformation.size() > 0 )
         {
+          for ( Entry<String, List<RedirectInformation>> entry : redirectInformation
+              .entrySet() )
+          {
+            for ( RedirectInformation info : entry.getValue() )
+            {
+              LOG.debug( "source: " + entry.getKey() + ", filename: "
+                  + info.getFilename() + ", sequence: " + info.getSequence()
+                  + ", destination: " + info.getDestinationDetails() );
+            }
+          }
           // RecoverChunkRequest request = new
           // RecoverChunkRequest(redirectInformation);
           // TODO: send redirect info
@@ -93,7 +102,7 @@ public class ControllerHeartbeatManager extends TimerTask {
   }
 
   private Map<String, List<RedirectInformation>> getRedirectInformation(
-      ServerInformation connection, Set<String> allConnectionDetails) {
+      ServerInformation connection) {
 
     Map<String, List<RedirectInformation>> redirectInformation =
         new HashMap<>();
@@ -116,20 +125,19 @@ public class ControllerHeartbeatManager extends TimerTask {
             // This assumes the next replication has not failed either
             String source = chunks[ sequence ][ ( replication + 1 )
                 % Constants.NUMBER_OF_REPLICATIONS ];
-            String destination = getDestination( chunks[ sequence ],
-                allConnectionDetails, filename );
-
+            String destination = getDestination( chunks[ sequence ], filename );
             if ( destination == null )
             {
               LOG.error( "There is no destination to send chunk too." );
-              return null;
+              return redirectInformation;
             }
+            // Set chunk location for chunk to null and wait for heartbeat to
+            // update
+            chunks[ sequence ][ replication ] = null;
             redirectInformation.putIfAbsent( source,
                 new ArrayList<RedirectInformation>() );
-            redirectInformation.get( filename )
-                .add( new RedirectInformation( sequence, destination ) );
-            metadata.getConnections().get( destination )
-                .incrementNumberOfChunks();
+            redirectInformation.get( source ).add(
+                new RedirectInformation( filename, sequence, destination ) );
             break;
           }
         }
@@ -138,28 +146,25 @@ public class ControllerHeartbeatManager extends TimerTask {
     return redirectInformation;
   }
 
-  private String getDestination(String[] chunk,
-      Set<String> allConnectionDetails, String filename) {
+  private String getDestination(String[] chunk, String filename) {
 
-    List<ServerInformation> serversWithoutChunk = new ArrayList<>();
+    List<ServerInformation> list =
+        new ArrayList<>( metadata.getConnections().values() );
 
-    for ( String chunkConnectionDetails : chunk )
+    // see comparator for sort details
+    Collections.sort( list, ControllerMetadata.COMPARATOR );
+
+    Set<String> chunkSet = new HashSet<>( Arrays.asList( chunk ) );
+
+    for ( ServerInformation info : list )
     {
-      if ( !allConnectionDetails.contains( chunkConnectionDetails ) )
+      String connectionDetails = info.getConnectionDetails();
+      if ( !chunkSet.contains( connectionDetails ) )
       {
-        serversWithoutChunk
-            .add( metadata.getConnections().get( chunkConnectionDetails ) );
+        info.addFileOnServer( filename );
+        info.incrementNumberOfChunks();
+        return connectionDetails;
       }
-    }
-    if ( serversWithoutChunk.size() > 0 )
-    {
-      Collections.sort( serversWithoutChunk, ControllerMetadata.COMPARATOR );
-      ServerInformation destinationServer = serversWithoutChunk.get( 0 );
-
-      destinationServer.addFileOnServer( filename );
-      destinationServer.incrementNumberOfChunks();
-
-      return destinationServer.getConnectionDetails();
     }
     return null;
   }
@@ -172,6 +177,8 @@ public class ControllerHeartbeatManager extends TimerTask {
    */
   private static class RedirectInformation {
 
+    private String filename;
+
     private int sequence;
 
     private String destinationDetails;
@@ -179,12 +186,19 @@ public class ControllerHeartbeatManager extends TimerTask {
     /**
      * Default constructor -
      * 
+     * @param filename
      * @param sequence
      * @param destinationDetails
      */
-    private RedirectInformation(int sequence, String destinationDetails) {
+    private RedirectInformation(String filename, int sequence,
+        String destinationDetails) {
+      this.filename = filename;
       this.sequence = sequence;
       this.destinationDetails = destinationDetails;
+    }
+
+    public String getFilename() {
+      return filename;
     }
 
     public int getSequence() {
@@ -194,7 +208,5 @@ public class ControllerHeartbeatManager extends TimerTask {
     public String getDestinationDetails() {
       return destinationDetails;
     }
-
   }
-
 }

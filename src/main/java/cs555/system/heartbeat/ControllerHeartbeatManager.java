@@ -14,11 +14,20 @@ import java.util.TimerTask;
 import cs555.system.metadata.ControllerMetadata;
 import cs555.system.metadata.ControllerMetadata.FileInformation;
 import cs555.system.metadata.ControllerMetadata.ServerInformation;
+import cs555.system.transport.TCPConnection;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.HealthRequest;
+import cs555.system.wireformats.RedirectChunkRequest;
 
 /**
+ * 
+ * A heartbeat is sent from the controller to the chunk servers to
+ * detect server failures.
+ * 
+ * When a server failure is detected, the chunks on those servers will
+ * be dispersed to other servers that do not already have those
+ * replicas.
  * 
  * @author stock
  *
@@ -70,45 +79,76 @@ public class ControllerHeartbeatManager extends TimerTask {
         metadata.removeConnection( entry.getKey() );
       }
     }
-
     // Only able to redirect information if there is more than one
     // replica, or enough connections to replicate
     if ( !failedConnections.isEmpty() && Constants.NUMBER_OF_REPLICATIONS > 1
         && metadata.getConnections()
             .size() >= Constants.NUMBER_OF_REPLICATIONS )
     {
-      for ( ServerInformation connection : failedConnections )
+      processFailedConnections( failedConnections );
+    }
+  }
+
+  /**
+   * Process the failed connections by locating chunks that hold
+   * legitimate copies of the unaffected chunks, and have them send
+   * these chunks to other destinations.
+   * 
+   * @param failedConnections
+   */
+  private void processFailedConnections(
+      List<ServerInformation> failedConnections) {
+    for ( ServerInformation serverInfo : failedConnections )
+    {
+      Map<String, List<RedirectInformation>> redirectInformation =
+          getRedirectInformation( serverInfo );
+      if ( redirectInformation.size() > 0 )
       {
-        Map<String, List<RedirectInformation>> redirectInformation =
-            getRedirectInformation( connection );
-        if ( redirectInformation.size() > 0 )
+        for ( Entry<String, List<RedirectInformation>> entry : redirectInformation
+            .entrySet() )
         {
-          for ( Entry<String, List<RedirectInformation>> entry : redirectInformation
-              .entrySet() )
+          TCPConnection serverConnection =
+              metadata.getConnections().get( entry.getKey() ).getConnection();
+
+          for ( RedirectInformation info : entry.getValue() )
           {
-            for ( RedirectInformation info : entry.getValue() )
+            RedirectChunkRequest redirectRequest = new RedirectChunkRequest(
+                info.getFilename(), info.getSequence(),
+                info.getReplicationPosition(), info.getDestinationDetails() );
+            try
             {
-              LOG.debug( "source: " + entry.getKey() + ", filename: "
-                  + info.getFilename() + ", sequence: " + info.getSequence()
-                  + ", destination: " + info.getDestinationDetails() );
+              serverConnection.getTCPSender()
+                  .sendData( redirectRequest.getBytes() );
+            } catch ( IOException e )
+            {
+              LOG.error( "Unable to send redirect request to chunk server. "
+                  + e.getMessage() );
+              e.printStackTrace();
             }
           }
-          // RecoverChunkRequest request = new
-          // RecoverChunkRequest(redirectInformation);
-          // TODO: send redirect info
         }
+        // TODO: Send request to clients clearing the ClientMetadata of any
+        // known readable files, forcing the client to get a list of files.
       }
     }
   }
 
+  /**
+   * Obtain the redirection information for all the chunks from one
+   * server.
+   * 
+   * @param serverInfo of the failed chunk server
+   * @return a map with
+   *         <tt>k: source, v: List(filename, sequence, destination)</tt>
+   */
   private Map<String, List<RedirectInformation>> getRedirectInformation(
-      ServerInformation connection) {
+      ServerInformation serverInfo) {
 
     Map<String, List<RedirectInformation>> redirectInformation =
         new HashMap<>();
 
-    String failedConnectionDetails = connection.getConnectionDetails();
-    Set<String> filesOnServer = connection.getFilesOnServer();
+    String failedConnectionDetails = serverInfo.getConnectionDetails();
+    Set<String> filesOnServer = serverInfo.getFilesOnServer();
     for ( String filename : filesOnServer )
     {
       FileInformation info = metadata.getFiles().get( filename );
@@ -136,8 +176,8 @@ public class ControllerHeartbeatManager extends TimerTask {
             chunks[ sequence ][ replication ] = null;
             redirectInformation.putIfAbsent( source,
                 new ArrayList<RedirectInformation>() );
-            redirectInformation.get( source ).add(
-                new RedirectInformation( filename, sequence, destination ) );
+            redirectInformation.get( source ).add( new RedirectInformation(
+                filename, sequence, replication, destination ) );
             break;
           }
         }
@@ -146,6 +186,16 @@ public class ControllerHeartbeatManager extends TimerTask {
     return redirectInformation;
   }
 
+  /**
+   * Retrieve a single destination address that would best hold the
+   * replicated file. This finds a server that does not already have the
+   * replicated chunk.
+   * 
+   * @param chunk array containing the replicated locations for the
+   *        chunk
+   * @param filename
+   * @return a single destination host:port location
+   */
   private String getDestination(String[] chunk, String filename) {
 
     List<ServerInformation> list =
@@ -181,6 +231,8 @@ public class ControllerHeartbeatManager extends TimerTask {
 
     private int sequence;
 
+    private int replicationPosition;
+
     private String destinationDetails;
 
     /**
@@ -188,12 +240,14 @@ public class ControllerHeartbeatManager extends TimerTask {
      * 
      * @param filename
      * @param sequence
+     * @param replicationPosition
      * @param destinationDetails
      */
     private RedirectInformation(String filename, int sequence,
-        String destinationDetails) {
+        int replicationPosition, String destinationDetails) {
       this.filename = filename;
       this.sequence = sequence;
+      this.replicationPosition = replicationPosition;
       this.destinationDetails = destinationDetails;
     }
 
@@ -203,6 +257,10 @@ public class ControllerHeartbeatManager extends TimerTask {
 
     public int getSequence() {
       return sequence;
+    }
+
+    public int getReplicationPosition() {
+      return replicationPosition;
     }
 
     public String getDestinationDetails() {

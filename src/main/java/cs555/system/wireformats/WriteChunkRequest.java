@@ -35,7 +35,7 @@ public class WriteChunkRequest implements Event {
   private int replicationPosition;
 
   /**
-   * 
+   * Default constructor -
    * 
    * @param filename
    * @param sequence
@@ -144,8 +144,17 @@ public class WriteChunkRequest implements Event {
     return replicationPosition;
   }
 
+  /**
+   * Update the content of the message
+   * 
+   * @param message
+   */
   public void setMessage(byte[] message) {
     this.message = message;
+  }
+
+  public void setReplicationPosition(int replicationPosition) {
+    this.replicationPosition = replicationPosition;
   }
 
   /**

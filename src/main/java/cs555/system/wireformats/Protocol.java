@@ -39,4 +39,6 @@ public interface Protocol {
 
   final int HEALTH_REQUEST = 14;
 
+  final int REDIRECT_CHUNK_REQUEST = 15;
+
 }

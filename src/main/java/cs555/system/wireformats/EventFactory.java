@@ -86,6 +86,9 @@ public class EventFactory {
       case Protocol.HEALTH_REQUEST :
         return new HealthRequest( marshalledBytes );
 
+      case Protocol.REDIRECT_CHUNK_REQUEST :
+        return new RedirectChunkRequest( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

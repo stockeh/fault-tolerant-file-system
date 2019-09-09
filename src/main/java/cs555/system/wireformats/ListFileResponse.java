@@ -19,7 +19,7 @@ public class ListFileResponse implements Event {
 
   private int type;
 
-  private List<String> fileNames;
+  private List<String> filenames;
 
   /**
    * Default constructor -
@@ -28,7 +28,7 @@ public class ListFileResponse implements Event {
    */
   public ListFileResponse(List<String> fileNames) {
     this.type = Protocol.LIST_FILE_RESPONSE;
-    this.fileNames = fileNames;
+    this.filenames = fileNames;
   }
 
   /**
@@ -47,14 +47,14 @@ public class ListFileResponse implements Event {
     this.type = din.readInt();
 
     int arrayLength = din.readInt();
-    this.fileNames = new ArrayList<>( arrayLength );
+    this.filenames = new ArrayList<>( arrayLength );
 
     for ( int i = 0; i < arrayLength; ++i )
     {
       int len = din.readInt();
       byte[] bytes = new byte[ len ];
       din.readFully( bytes );
-      this.fileNames.add( ( new String( bytes ) ) );
+      this.filenames.add( ( new String( bytes ) ) );
     }
 
     inputStream.close();
@@ -75,7 +75,7 @@ public class ListFileResponse implements Event {
    *         server
    */
   public List<String> getFileNames() {
-    return fileNames;
+    return filenames;
   }
 
   /**
@@ -90,9 +90,9 @@ public class ListFileResponse implements Event {
 
     dout.writeInt( type );
 
-    dout.writeInt( fileNames.size() );
+    dout.writeInt( filenames.size() );
 
-    for ( String item : fileNames )
+    for ( String item : filenames )
     {
       byte[] bytes = item.getBytes();
       dout.writeInt( bytes.length );

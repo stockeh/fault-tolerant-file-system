@@ -232,7 +232,8 @@ public class Controller implements Node {
 
     boolean isOriginalFile = metadata.addFile( request.getFilename(),
         request.getFilelength(), request.getNumberOfChunks() );
-    String[] serversToConnect = metadata.getChunkServers( request.getFilename(), isOriginalFile );
+    String[] serversToConnect =
+        metadata.getChunkServers( request.getFilename(), isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {
@@ -261,31 +262,46 @@ public class Controller implements Node {
     String message =
         registerStatusMessage( connectionDetails, connection.getSocket()
             .getInetAddress().getHostName().split( "\\." )[ 0 ], register );
-    byte status;
+    byte status = 0;
     if ( message.length() == 0 )
     {
-      if ( register && identifier == Constants.CHUNK_ID )
+      if ( register )
       {
-        metadata.addConnection( connectionDetails, connection );
-      } else if ( identifier == Constants.CHUNK_ID )
+        switch ( identifier )
+        {
+          case Constants.CHUNK_ID :
+            metadata.addConnection( connectionDetails, connection );
+            status = Constants.SUCCESS;
+            break;
+          case Constants.CLIENT_ID :
+            metadata.addClientConnection( connection );
+            status = Constants.SUCCESS;
+            break;
+        }
+      } else
       {
-        // TODO: replicate files if needed.
-        metadata.removeConnection( connectionDetails );
-        System.out
-            .println( "Deregistered " + connectionDetails + ". There are now ("
-                + metadata.numberOfConnections() + ") connections.\n" );
+        switch ( identifier )
+        {
+          case Constants.CHUNK_ID :
+            // TODO: replicate files if needed.
+            metadata.removeConnection( connectionDetails );
+            status = Constants.SUCCESS;
+            break;
+          case Constants.CLIENT_ID :
+            metadata.removeClientConnection( connection );
+            status = Constants.SUCCESS;
+            break;
+        }
       }
-      message =
-          "Registration request successful.  The number of chunk servers currently "
-              + "constituting the network are ("
-              + metadata.numberOfConnections() + ").\n";
-      status = Constants.SUCCESS;
-    } else
-    {
-      LOG.error( "Unable to process request. Responding with a failure." );
-      status = Constants.FAILURE;
+      if ( status == Constants.SUCCESS )
+      {
+        message =
+            "Registration request successful.  The number of chunk servers currently "
+                + "constituting the network are ("
+                + metadata.numberOfConnections() + ").\n";
+      }
     }
-    LOG.debug( message );
+    LOG.info( message );
     RegisterResponse response = new RegisterResponse( status, message );
     try
     {

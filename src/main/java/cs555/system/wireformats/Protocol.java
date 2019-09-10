@@ -41,4 +41,6 @@ public interface Protocol {
 
   final int REDIRECT_CHUNK_REQUEST = 15;
 
+  final int FAILURE_CLIENT_NOTIFICATION = 16;
+
 }

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import java.util.TimerTask;
 import cs555.system.metadata.ControllerMetadata;
 import cs555.system.metadata.ControllerMetadata.FileInformation;
 import cs555.system.metadata.ControllerMetadata.ServerInformation;
+import cs555.system.metadata.ControllerMetadata.ServerInformation.SequenceReplicationPair;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
@@ -39,12 +39,18 @@ public class ControllerHeartbeatManager extends TimerTask {
 
   private ControllerMetadata metadata;
 
+  private List<FailedConnection> failedConnections;
+
+  // TODO: does this need to be 1?
+  private final static int NUMBER_OF_TASK_LOOPS = 1;
+
   /**
    * Default constructor -
    * 
    * @param metadata
    */
   public ControllerHeartbeatManager(ControllerMetadata metadata) {
+    this.failedConnections = new ArrayList<>();
     this.metadata = metadata;
   }
 
@@ -52,7 +58,6 @@ public class ControllerHeartbeatManager extends TimerTask {
   public void run() {
 
     Map<String, ServerInformation> connections = metadata.getConnections();
-    List<ServerInformation> failedConnections = new ArrayList<>();
 
     byte[] request;
     try
@@ -73,22 +78,161 @@ public class ControllerHeartbeatManager extends TimerTask {
         LOG.debug( "Health request sent to chunk server." );
       } catch ( IOException e )
       {
-        // TODO: is catching an exception good enough, or should I expect a
-        // response?
-        LOG.error( "Unable to send health request to chunk server." );
-        failedConnections.add( entry.getValue() );
+        LOG.error( "Unable to send health request to chunk server. "
+            + e.getMessage() );
         metadata.removeConnection( entry.getKey() );
+        ServerInformation connection = entry.getValue();
+
+        if ( !connection.getFilesOnServer().isEmpty() )
+        {
+          clearFileLocations( connection );
+          failedConnections.add( new FailedConnection( connection ) );
+        }
       }
     }
     // Only able to redirect information if there is more than one
-    // replica, or enough connections to replicate
+    // replica, or enough connections to replicate. The client won't be
+    // able to read if there is no more servers to replicate files...
     if ( !failedConnections.isEmpty() && Constants.NUMBER_OF_REPLICATIONS > 1
         && metadata.getConnections()
             .size() >= Constants.NUMBER_OF_REPLICATIONS )
     {
+      // TODO: is this needed? The client will fail reading a chunk, and
+      // move to the next...
       notifyClientsOfFailure();
-      processFailedConnections( failedConnections );
+
+      for ( FailedConnection failedConnection : new ArrayList<>(
+          failedConnections ) )
+      {
+        if ( failedConnection.getIteration() >= NUMBER_OF_TASK_LOOPS )
+        {
+          processFailedConnection( failedConnection.getConnection() );
+          failedConnections.remove( failedConnection );
+        } else
+        {
+          failedConnection.incrementIteration();
+        }
+      }
     }
+  }
+
+  /**
+   * Set <b>all</b> the chunk location for the failed connection to
+   * null.
+   * 
+   * @param severInformation that failed
+   */
+  private void clearFileLocations(ServerInformation severInformation) {
+    Map<String, List<SequenceReplicationPair>> files =
+        severInformation.getFilesOnServer();
+    for ( Entry<String, List<SequenceReplicationPair>> file : files.entrySet() )
+    {
+      // TODO: Send message to client to clear the given filename -
+      // file.getKey()
+      FileInformation info = metadata.getFiles().get( file.getKey() );
+      String[][] chunks = info.getChunks();
+
+      for ( SequenceReplicationPair pair : file.getValue() )
+      {
+        String identifier =
+            chunks[ pair.getSequence() ][ pair.getReplication() ];
+        if ( identifier != null )
+        {
+          chunks[ pair.getSequence() ][ pair.getReplication() ] = null;
+        }
+      }
+    }
+  }
+
+  /**
+   * Iterate over all files, and the chunks the failed connection had
+   * for each file and find a free node that a replica can send the
+   * information to.
+   * 
+   * @param severInformation that failed
+   */
+  private void processFailedConnection(ServerInformation serverInformation) {
+    Map<String, List<SequenceReplicationPair>> files =
+        serverInformation.getFilesOnServer();
+    for ( Entry<String, List<SequenceReplicationPair>> file : files.entrySet() )
+    {
+      String filename = file.getKey();
+      FileInformation info = metadata.getFiles().get( filename );
+      String[][] chunks = info.getChunks();
+      for ( SequenceReplicationPair pair : file.getValue() )
+      {
+        String source = null;
+        for ( int replication =
+            0; replication < Constants.NUMBER_OF_REPLICATIONS; ++replication )
+        {
+          String identifier = chunks[ pair.getSequence() ][ replication ];
+          // Get a non-null source identifier. At this point the previous chunk
+          // location was set to null.
+          if ( identifier != null )
+          {
+            source = identifier;
+            break;
+          }
+        }
+        String destination =
+            getDestination( chunks[ pair.getSequence() ], filename, pair );
+
+        if ( source != null && destination != null )
+        {
+          TCPConnection connection =
+              metadata.getConnections().get( source ).getConnection();
+
+          RedirectChunkRequest request = new RedirectChunkRequest( filename,
+              pair.getSequence(), pair.getReplication(), destination );
+          try
+          {
+            connection.getTCPSender().sendData( request.getBytes() );
+          } catch ( IOException e )
+          {
+            LOG.error( "Unable to send redirect request to chunk server. "
+                + e.getMessage() );
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+  }
+
+
+  /**
+   * Retrieve a single destination address that would best hold the
+   * replicated file. This finds a server that does not already have the
+   * replicated chunk.
+   *
+   * @param chunk array containing the replicated locations for the
+   *        chunk
+   * @param filename
+   * @param pair sequence, replication location of the failed item.
+   * @return a single destination host:port location
+   */
+  private String getDestination(String[] chunk, String filename,
+      SequenceReplicationPair pair) {
+
+    List<ServerInformation> availableConnections =
+        new ArrayList<>( metadata.getConnections().values() );
+
+    // see comparator for sort details
+    Collections.sort( availableConnections, ControllerMetadata.COMPARATOR );
+
+    Set<String> chunkSet = new HashSet<>( Arrays.asList( chunk ) );
+
+    for ( ServerInformation info : availableConnections )
+    {
+      String connectionDetails = info.getConnectionDetails();
+      if ( !chunkSet.contains( connectionDetails ) )
+      {
+        info.addFileOnServer( filename, pair.getSequence(),
+            pair.getReplication() );
+        info.incrementNumberOfChunks();
+        return connectionDetails;
+      }
+    }
+    return null;
   }
 
   /**
@@ -123,192 +267,33 @@ public class ControllerHeartbeatManager extends TimerTask {
   }
 
   /**
-   * Process the failed connections by locating chunks that hold
-   * legitimate copies of the unaffected chunks, and have them send
-   * these chunks to other destinations.
-   * 
-   * @param failedConnections
-   */
-  private void processFailedConnections(
-      List<ServerInformation> failedConnections) {
-    for ( ServerInformation serverInfo : failedConnections )
-    {
-      Map<String, List<RedirectInformation>> redirectInformation =
-          getRedirectInformation( serverInfo );
-      if ( redirectInformation.size() > 0 )
-      {
-        for ( Entry<String, List<RedirectInformation>> entry : redirectInformation
-            .entrySet() )
-        {
-          TCPConnection serverConnection =
-              metadata.getConnections().get( entry.getKey() ).getConnection();
-
-          for ( RedirectInformation info : entry.getValue() )
-          {
-            RedirectChunkRequest redirectRequest = new RedirectChunkRequest(
-                info.getFilename(), info.getSequence(),
-                info.getReplicationPosition(), info.getDestinationDetails() );
-            try
-            {
-              serverConnection.getTCPSender()
-                  .sendData( redirectRequest.getBytes() );
-            } catch ( IOException e )
-            {
-              LOG.error( "Unable to send redirect request to chunk server. "
-                  + e.getMessage() );
-              e.printStackTrace();
-            }
-          }
-        }
-      } else
-      {
-        LOG.error( "There are no redirected messages to send." );
-      }
-    }
-  }
-
-  /**
-   * Obtain the redirection information for all the chunks from one
-   * server.
-   * 
-   * @param serverInfo of the failed chunk server
-   * @return a map with
-   *         <tt>k: source, v: List(filename, sequence, destination)</tt>
-   */
-  private Map<String, List<RedirectInformation>> getRedirectInformation(
-      ServerInformation serverInfo) {
-
-    Map<String, List<RedirectInformation>> redirectInformation =
-        new HashMap<>();
-
-    String failedConnectionDetails = serverInfo.getConnectionDetails();
-    Set<String> filesOnServer = serverInfo.getFilesOnServer();
-    for ( String filename : filesOnServer )
-    {
-      FileInformation info = metadata.getFiles().get( filename );
-      String[][] chunks = info.getChunks();
-      for ( int sequence = 0; sequence < chunks.length; ++sequence )
-      {
-        for ( int replication =
-            0; replication < Constants.NUMBER_OF_REPLICATIONS; ++replication )
-        {
-          String connectionDetails = chunks[ sequence ][ replication ];
-          // A given chunk has failed if the (1) the connection is null & not in
-          // the active connections, indicating it has not received a heartbeat
-          // from the server before crashing, or (2) the connection details
-          // equals the failed connection details after the heartbeat has been
-          // received
-          if ( connectionDetails == null )
-          {
-            LOG.error(
-                "A given chunk location has not yet been reported to the controller." );
-            return redirectInformation;
-          }
-          if ( connectionDetails.equals( failedConnectionDetails ) )
-          {
-            // Source is the next replication.
-            // This assumes the next replication has not failed either
-            String source = chunks[ sequence ][ ( replication + 1 )
-                % Constants.NUMBER_OF_REPLICATIONS ];
-            String destination = getDestination( chunks[ sequence ], filename );
-            if ( destination == null )
-            {
-              LOG.error( "There is no destination to send chunk too." );
-              return redirectInformation;
-            }
-            // Set the chunk location of a failed connection to null, and await
-            // for a heartbeat from the new server to update.
-            chunks[ sequence ][ replication ] = null;
-            redirectInformation.putIfAbsent( source,
-                new ArrayList<RedirectInformation>() );
-            redirectInformation.get( source ).add( new RedirectInformation(
-                filename, sequence, replication, destination ) );
-            break;
-          }
-        }
-      }
-    }
-    return redirectInformation;
-  }
-
-  /**
-   * Retrieve a single destination address that would best hold the
-   * replicated file. This finds a server that does not already have the
-   * replicated chunk.
-   * 
-   * @param chunk array containing the replicated locations for the
-   *        chunk
-   * @param filename
-   * @return a single destination host:port location
-   */
-  private String getDestination(String[] chunk, String filename) {
-    List<ServerInformation> availableConnections =
-        new ArrayList<>( metadata.getConnections().values() );
-
-    // see comparator for sort details
-    Collections.sort( availableConnections, ControllerMetadata.COMPARATOR );
-
-    Set<String> chunkSet = new HashSet<>( Arrays.asList( chunk ) );
-
-    for ( ServerInformation info : availableConnections )
-    {
-      String connectionDetails = info.getConnectionDetails();
-      if ( !chunkSet.contains( connectionDetails ) )
-      {
-        info.addFileOnServer( filename );
-        info.incrementNumberOfChunks();
-        return connectionDetails;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Class containing redirection information for a specific chunk.
+   * Internal class to hold information about a failed connection and
+   * the iteration count for the timer task related to this connection.
    * 
    * @author stock
    *
    */
-  private static class RedirectInformation {
+  private static class FailedConnection {
 
-    private String filename;
+    private final ServerInformation connection;
 
-    private int sequence;
+    private int iteration;
 
-    private int replicationPosition;
-
-    private String destinationDetails;
-
-    /**
-     * Default constructor -
-     * 
-     * @param filename
-     * @param sequence
-     * @param replicationPosition
-     * @param destinationDetails
-     */
-    private RedirectInformation(String filename, int sequence,
-        int replicationPosition, String destinationDetails) {
-      this.filename = filename;
-      this.sequence = sequence;
-      this.replicationPosition = replicationPosition;
-      this.destinationDetails = destinationDetails;
+    private FailedConnection(ServerInformation connection) {
+      this.connection = connection;
+      this.iteration = 0;
     }
 
-    public String getFilename() {
-      return filename;
+    private ServerInformation getConnection() {
+      return connection;
     }
 
-    public int getSequence() {
-      return sequence;
+    private int getIteration() {
+      return iteration;
     }
 
-    public int getReplicationPosition() {
-      return replicationPosition;
-    }
-
-    public String getDestinationDetails() {
-      return destinationDetails;
+    private void incrementIteration() {
+      ++iteration;
     }
   }
 }

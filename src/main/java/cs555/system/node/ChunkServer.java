@@ -3,10 +3,8 @@ package cs555.system.node;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
@@ -17,6 +15,7 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.FileUtilities;
+import cs555.system.util.FileUtilities.MessageInformation;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
@@ -188,7 +187,8 @@ public class ChunkServer implements Node, Protocol {
     RedirectChunkRequest redirectRequest = ( RedirectChunkRequest ) event;
     byte[] message = FileUtilities.readChunkSequence( this,
         redirectRequest.getFilename(), redirectRequest.getSequence() );
-    if ( message != null )
+    MessageInformation content = FileUtilities.removeSHA1Integrity( message );
+    if ( content.getMessage() != null )
     {
       try
       {
@@ -197,9 +197,9 @@ public class ChunkServer implements Node, Protocol {
         TCPConnection connection = ConnectionUtilities.establishConnection(
             this, destination[ 0 ], Integer.parseInt( destination[ 1 ] ) );
 
-        WriteChunkRequest writeRequest =
-            new WriteChunkRequest( redirectRequest.getFilename(),
-                redirectRequest.getSequence(), message, new String[] { "" } );
+        WriteChunkRequest writeRequest = new WriteChunkRequest(
+            redirectRequest.getFilename(), redirectRequest.getSequence(),
+            content.getMessage(), new String[] { "" } );
 
         writeRequest
             .setReplicationPosition( redirectRequest.getReplicationPosition() );
@@ -212,6 +212,9 @@ public class ChunkServer implements Node, Protocol {
             + redirectRequest.getFilename() + ", " + e.getMessage() );
         e.printStackTrace();
       }
+    } else
+    {
+
     }
   }
 
@@ -234,9 +237,7 @@ public class ChunkServer implements Node, Protocol {
       // added.
       if ( message.length == Constants.CHUNK_SIZE )
       {
-        byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
-        message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
-            .put( SHA1Integrity ).put( message ).array();
+        message = FileUtilities.addSHA1Integrity( message );
         request.setMessage( message );
       }
       Path path = FileUtilities.getPathLocation( this, request.getFilename(),
@@ -244,10 +245,6 @@ public class ChunkServer implements Node, Protocol {
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
       LOG.info( "Finished writing " + request.getFilename() + " to disk." );
-    } catch ( NoSuchAlgorithmException e )
-    {
-      LOG.error( "Unable to compute hash for message. " + e.getMessage() );
-      e.printStackTrace();
     } catch ( IOException e )
     {
       LOG.error( "Unable to save chunk " + request.getFilename() + " to disk. "
@@ -316,6 +313,7 @@ public class ChunkServer implements Node, Protocol {
     {
       response =
           new ReadChunkResponse( request.getFilename(), Constants.FAILURE );
+      // TODO: Send FailureChunkRead message to controller to fix failure.
     }
     LOG.debug( "The status of the chunk read is: "
         + ( response.getStatus() == Constants.SUCCESS ? "successful."
@@ -330,6 +328,5 @@ public class ChunkServer implements Node, Protocol {
           "Unable to send request message to client. " + e.getMessage() );
       e.printStackTrace();
     }
-    // TODO: Send FailureChunkRead message to controller to fix failure.
   }
 }

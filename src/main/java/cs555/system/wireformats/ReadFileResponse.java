@@ -135,9 +135,12 @@ public class ReadFileResponse implements Event {
     {
       for ( String replication : chunkReplication )
       {
-        bytes = replication.getBytes();
-        dout.writeInt( bytes.length );
-        dout.write( bytes );
+        if ( replication != null )
+        {
+          bytes = replication.getBytes();
+          dout.writeInt( bytes.length );
+          dout.write( bytes );
+        }
       }
     }
 
@@ -147,6 +150,7 @@ public class ReadFileResponse implements Event {
     outputStream.close();
     dout.close();
     return marshalledBytes;
+
   }
 
   @Override

@@ -97,6 +97,9 @@ public class ClientReaderThread implements Runnable {
             + "\' to disk." );
         e.printStackTrace();
       }
+    } else
+    {
+      // TODO: remove file from clients metadata of readable files.
     }
   }
 
@@ -113,10 +116,16 @@ public class ClientReaderThread implements Runnable {
     int replication = 0;
     for ( int sequence = 0; sequence < chunks.length; ++sequence )
     {
-      String[] connectionDetails =
-          chunks[ sequence ][ replication ].split( ":" );
       try
       {
+        if ( chunks[ sequence ][ replication ] == null )
+        {
+          throw new ClientReadException(
+              "The server containing for the ( sequence, replication )"
+                  + "pair is null." );
+        }
+        String[] connectionDetails =
+            chunks[ sequence ][ replication ].split( ":" );
         TCPConnection connection = ConnectionUtilities.establishConnection(
             node, connectionDetails[ 0 ],
             Integer.parseInt( connectionDetails[ 1 ] ) );
@@ -148,7 +157,7 @@ public class ClientReaderThread implements Runnable {
         {
           LOG.error(
               "File is not readable beacause a given chunk can not be returned"
-                  + "by any servers." );
+                  + " by any servers." );
           return null;
         }
         // Attempt to use next replication location for the same chunk.

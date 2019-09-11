@@ -3,10 +3,8 @@ package cs555.system.node;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Timer;
@@ -17,6 +15,7 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.FileUtilities;
+import cs555.system.util.FileUtilities.MessageInformation;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.Protocol;
@@ -182,6 +181,9 @@ public class ChunkServer implements Node, Protocol {
    * with legitimate copies of date and forwarded as a replication to
    * another server.
    * 
+   * The integrity information is not removed when redirecting chunks
+   * from failed server. Instead, the entire chunk is sent.
+   * 
    * @param event
    */
   private void redirectChunkHandler(Event event) {
@@ -212,6 +214,9 @@ public class ChunkServer implements Node, Protocol {
             + redirectRequest.getFilename() + ", " + e.getMessage() );
         e.printStackTrace();
       }
+    } else
+    {
+
     }
   }
 
@@ -234,9 +239,7 @@ public class ChunkServer implements Node, Protocol {
       // added.
       if ( message.length == Constants.CHUNK_SIZE )
       {
-        byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
-        message = ByteBuffer.allocate( SHA1Integrity.length + message.length )
-            .put( SHA1Integrity ).put( message ).array();
+        message = FileUtilities.addSHA1Integrity( message );
         request.setMessage( message );
       }
       Path path = FileUtilities.getPathLocation( this, request.getFilename(),
@@ -244,10 +247,6 @@ public class ChunkServer implements Node, Protocol {
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
       LOG.info( "Finished writing " + request.getFilename() + " to disk." );
-    } catch ( NoSuchAlgorithmException e )
-    {
-      LOG.error( "Unable to compute hash for message. " + e.getMessage() );
-      e.printStackTrace();
     } catch ( IOException e )
     {
       LOG.error( "Unable to save chunk " + request.getFilename() + " to disk. "
@@ -307,15 +306,19 @@ public class ChunkServer implements Node, Protocol {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
     byte[] message = FileUtilities.readChunkSequence( this,
         request.getFilename(), request.getSequence() );
+    MessageInformation content = FileUtilities.removeSHA1Integrity( message );
     ReadChunkResponse response;
-    if ( message != null )
+    if ( content.getMessage() != null )
     {
-      response = new ReadChunkResponse( request.getFilename(), message,
-          Constants.SUCCESS );
+      response = new ReadChunkResponse( request.getFilename(),
+          content.getMessage(), Constants.SUCCESS );
     } else
     {
       response =
           new ReadChunkResponse( request.getFilename(), Constants.FAILURE );
+      LOG.debug(
+          "TODO: Send FailureChunkRead message to controller to fix failure." );
+      // TODO: Send FailureChunkRead message to controller to fix failure.
     }
     LOG.debug( "The status of the chunk read is: "
         + ( response.getStatus() == Constants.SUCCESS ? "successful."
@@ -330,6 +333,5 @@ public class ChunkServer implements Node, Protocol {
           "Unable to send request message to client. " + e.getMessage() );
       e.printStackTrace();
     }
-    // TODO: Send FailureChunkRead message to controller to fix failure.
   }
 }

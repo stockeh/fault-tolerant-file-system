@@ -43,4 +43,6 @@ public interface Protocol {
 
   final int FAILURE_CLIENT_NOTIFICATION = 16;
 
+  final int FAILURE_CHUNK_READ = 17;
+
 }

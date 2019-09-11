@@ -14,11 +14,13 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.FailureChunkRead;
 import cs555.system.wireformats.ListFileResponse;
 import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.ReadFileRequest;
 import cs555.system.wireformats.ReadFileResponse;
+import cs555.system.wireformats.RedirectChunkRequest;
 import cs555.system.wireformats.RegisterRequest;
 import cs555.system.wireformats.RegisterResponse;
 import cs555.system.wireformats.WriteFileRequest;
@@ -99,7 +101,7 @@ public class Controller implements Node {
       ControllerHeartbeatManager controllerHeartbeatManager =
           new ControllerHeartbeatManager( controller.metadata );
       Timer timer = new Timer();
-      final int interval = 10 * 1000; // 15 seconds in milliseconds
+      final int interval = 60 * 1000; // 60 seconds in milliseconds
       timer.schedule( controllerHeartbeatManager, 1000, interval );
 
       controller.interact();
@@ -174,6 +176,63 @@ public class Controller implements Node {
       case Protocol.READ_FILE_REQUEST :
         readFileRequestHandler( event, connection );
         break;
+
+      case Protocol.FAILURE_CHUNK_READ :
+        failureChunkReadHandler( event );
+        break;
+    }
+  }
+
+  /**
+   * This handler is triggered when the chunk server detects a failure
+   * for a given read request. A failure message is sent to the
+   * controller to try and reconcile the server by sending a copy for
+   * some chunk from a source to the destination server.
+   * 
+   * @param event
+   */
+  private void failureChunkReadHandler(Event event) {
+    FailureChunkRead request = ( FailureChunkRead ) event;
+    String destination = request.getConnectionDetails();
+
+    FileInformation info = metadata.getFiles().get( request.getFilename() );
+    String[][] chunks = info.getChunks();
+
+    int sequence = request.getSequence();
+    int replicationPosition = 0;
+    String source = null;
+    for ( int replication =
+        0; replication < Constants.NUMBER_OF_REPLICATIONS; ++replication )
+    {
+      if ( chunks[ sequence ][ replication ].equals( destination ) )
+      {
+        source = chunks[ sequence ][ ( replication + 1 )
+            % Constants.NUMBER_OF_REPLICATIONS ];
+        replicationPosition = replication;
+        break;
+      }
+    }
+    if ( source != null )
+    {
+      RedirectChunkRequest redirectRequest = new RedirectChunkRequest(
+          request.getFilename(), sequence, replicationPosition, destination );
+
+      try
+      {
+        metadata.getConnections().get( source ).getConnection().getTCPSender()
+            .sendData( redirectRequest.getBytes() );
+      } catch ( IOException e )
+      {
+        LOG.error( "Unable to send request to server \'" + source
+            + "\' to update the destination \'" + destination + "\'. "
+            + e.getMessage() );
+        e.printStackTrace();
+      }
+    } else
+    {
+      LOG.error(
+          "A source containing the replication for the chunk could not be"
+              + "identified." );
     }
   }
 

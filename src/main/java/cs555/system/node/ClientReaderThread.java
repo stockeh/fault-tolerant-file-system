@@ -157,7 +157,7 @@ public class ClientReaderThread implements Runnable {
         {
           LOG.error(
               "File is not readable beacause a given chunk can not be returned"
-                  + "by any servers." );
+                  + " by any servers." );
           return null;
         }
         // Attempt to use next replication location for the same chunk.

@@ -98,21 +98,27 @@ public class FileUtilities {
       return null;
     }
     ByteBuffer buffer = ByteBuffer.allocate( Constants.CHUNK_SIZE );
+    byte[] slice = null, integrity = null;
     for ( int index = 0; index < NUMBER_OF_SLICES; ++index )
     {
       int offset = index * SHA1_DIGEST_SIZE;
+      try
+      {
+        slice = Arrays.copyOfRange( message,
+            index * Constants.CHUNK_SLICE_SIZE + offset,
+            ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset );
 
-      byte[] slice = Arrays.copyOfRange( message,
-          index * Constants.CHUNK_SLICE_SIZE + offset,
-          ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset );
+        integrity = Arrays.copyOfRange( message,
+            ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset,
+            ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset + SHA1_DIGEST_SIZE );
 
-      byte[] integrity = Arrays.copyOfRange( message,
-          ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset,
-          ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + SHA1_DIGEST_SIZE );
-
+      } catch ( IndexOutOfBoundsException e )
+      {
+        return new MessageInformation( null, index );
+      }
       digest.update( slice );
-
-      if ( Arrays.equals( integrity, digest.digest() ) )
+      byte[] computedIntegrity = digest.digest();
+      if ( Arrays.equals( integrity, computedIntegrity ) )
       {
         buffer.put( slice );
       } else

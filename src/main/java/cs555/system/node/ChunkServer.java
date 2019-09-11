@@ -181,14 +181,16 @@ public class ChunkServer implements Node, Protocol {
    * with legitimate copies of date and forwarded as a replication to
    * another server.
    * 
+   * The integrity information is not removed when redirecting chunks
+   * from failed server. Instead, the entire chunk is sent.
+   * 
    * @param event
    */
   private void redirectChunkHandler(Event event) {
     RedirectChunkRequest redirectRequest = ( RedirectChunkRequest ) event;
     byte[] message = FileUtilities.readChunkSequence( this,
         redirectRequest.getFilename(), redirectRequest.getSequence() );
-    MessageInformation content = FileUtilities.removeSHA1Integrity( message );
-    if ( content.getMessage() != null )
+    if ( message != null )
     {
       try
       {
@@ -197,9 +199,9 @@ public class ChunkServer implements Node, Protocol {
         TCPConnection connection = ConnectionUtilities.establishConnection(
             this, destination[ 0 ], Integer.parseInt( destination[ 1 ] ) );
 
-        WriteChunkRequest writeRequest = new WriteChunkRequest(
-            redirectRequest.getFilename(), redirectRequest.getSequence(),
-            content.getMessage(), new String[] { "" } );
+        WriteChunkRequest writeRequest =
+            new WriteChunkRequest( redirectRequest.getFilename(),
+                redirectRequest.getSequence(), message, new String[] { "" } );
 
         writeRequest
             .setReplicationPosition( redirectRequest.getReplicationPosition() );
@@ -304,15 +306,18 @@ public class ChunkServer implements Node, Protocol {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
     byte[] message = FileUtilities.readChunkSequence( this,
         request.getFilename(), request.getSequence() );
+    MessageInformation content = FileUtilities.removeSHA1Integrity( message );
     ReadChunkResponse response;
-    if ( message != null )
+    if ( content.getMessage() != null )
     {
-      response = new ReadChunkResponse( request.getFilename(), message,
-          Constants.SUCCESS );
+      response = new ReadChunkResponse( request.getFilename(),
+          content.getMessage(), Constants.SUCCESS );
     } else
     {
       response =
           new ReadChunkResponse( request.getFilename(), Constants.FAILURE );
+      LOG.debug(
+          "TODO: Send FailureChunkRead message to controller to fix failure." );
       // TODO: Send FailureChunkRead message to controller to fix failure.
     }
     LOG.debug( "The status of the chunk read is: "

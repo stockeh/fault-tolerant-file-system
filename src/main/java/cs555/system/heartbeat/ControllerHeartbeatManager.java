@@ -17,6 +17,7 @@ import cs555.system.metadata.ControllerMetadata.ServerInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.wireformats.FailureClientNotification;
 import cs555.system.wireformats.HealthRequest;
 import cs555.system.wireformats.RedirectChunkRequest;
 
@@ -85,7 +86,39 @@ public class ControllerHeartbeatManager extends TimerTask {
         && metadata.getConnections()
             .size() >= Constants.NUMBER_OF_REPLICATIONS )
     {
+      notifyClientsOfFailure();
       processFailedConnections( failedConnections );
+    }
+  }
+
+  /**
+   * Send a message to all the connected clients to flush their metadata
+   * and fetch an update of the available readable files.
+   * 
+   */
+  private void notifyClientsOfFailure() {
+    byte[] request = null;
+    try
+    {
+      request = new FailureClientNotification().getBytes();
+    } catch ( IOException e )
+    {
+      LOG.error( "Unable to create message to notify clients of failure. "
+          + e.getMessage() );
+      e.printStackTrace();
+    }
+    for ( TCPConnection connection : metadata.getClientConnections() )
+    {
+      try
+      {
+        connection.getTCPSender().sendData( request );
+      } catch ( IOException e )
+      {
+        LOG.error( "Unable to contact the client. This makes the assumption it"
+            + "disconnected ungracefully, so the connection will be removed. "
+            + e.getMessage() );
+        metadata.removeClientConnection( connection );
+      }
     }
   }
 
@@ -127,8 +160,9 @@ public class ControllerHeartbeatManager extends TimerTask {
             }
           }
         }
-        // TODO: Send request to clients clearing the ClientMetadata of any
-        // known readable files, forcing the client to get a list of files.
+      } else
+      {
+        LOG.error( "There are no redirected messages to send." );
       }
     }
   }
@@ -158,8 +192,19 @@ public class ControllerHeartbeatManager extends TimerTask {
         for ( int replication =
             0; replication < Constants.NUMBER_OF_REPLICATIONS; ++replication )
         {
-          if ( chunks[ sequence ][ replication ]
-              .equals( failedConnectionDetails ) )
+          String connectionDetails = chunks[ sequence ][ replication ];
+          // A given chunk has failed if the (1) the connection is null & not in
+          // the active connections, indicating it has not received a heartbeat
+          // from the server before crashing, or (2) the connection details
+          // equals the failed connection details after the heartbeat has been
+          // received
+          if ( connectionDetails == null )
+          {
+            LOG.error(
+                "A given chunk location has not yet been reported to the controller." );
+            return redirectInformation;
+          }
+          if ( connectionDetails.equals( failedConnectionDetails ) )
           {
             // Source is the next replication.
             // This assumes the next replication has not failed either
@@ -171,8 +216,8 @@ public class ControllerHeartbeatManager extends TimerTask {
               LOG.error( "There is no destination to send chunk too." );
               return redirectInformation;
             }
-            // Set chunk location for chunk to null and wait for heartbeat to
-            // update
+            // Set the chunk location of a failed connection to null, and await
+            // for a heartbeat from the new server to update.
             chunks[ sequence ][ replication ] = null;
             redirectInformation.putIfAbsent( source,
                 new ArrayList<RedirectInformation>() );
@@ -197,16 +242,15 @@ public class ControllerHeartbeatManager extends TimerTask {
    * @return a single destination host:port location
    */
   private String getDestination(String[] chunk, String filename) {
-
-    List<ServerInformation> list =
+    List<ServerInformation> availableConnections =
         new ArrayList<>( metadata.getConnections().values() );
 
     // see comparator for sort details
-    Collections.sort( list, ControllerMetadata.COMPARATOR );
+    Collections.sort( availableConnections, ControllerMetadata.COMPARATOR );
 
     Set<String> chunkSet = new HashSet<>( Arrays.asList( chunk ) );
 
-    for ( ServerInformation info : list )
+    for ( ServerInformation info : availableConnections )
     {
       String connectionDetails = info.getConnectionDetails();
       if ( !chunkSet.contains( connectionDetails ) )

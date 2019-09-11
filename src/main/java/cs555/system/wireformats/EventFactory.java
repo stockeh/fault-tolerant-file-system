@@ -89,6 +89,12 @@ public class EventFactory {
       case Protocol.REDIRECT_CHUNK_REQUEST :
         return new RedirectChunkRequest( marshalledBytes );
 
+      case Protocol.FAILURE_CLIENT_NOTIFICATION :
+        return new FailureClientNotification( marshalledBytes );
+
+      case Protocol.FAILURE_CHUNK_READ :
+        return new FailureChunkRead( marshalledBytes );
+
       default :
         LOG.error( "Event could not be created. "
             + ByteBuffer.wrap( marshalledBytes ).getInt() );

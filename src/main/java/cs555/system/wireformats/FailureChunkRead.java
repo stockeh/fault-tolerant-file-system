@@ -9,40 +9,34 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Message sent to the controller to retrieve a new chunk to replace a
+ * failure.
  * 
  * @author stock
  *
  */
-public class RedirectChunkRequest implements Event {
+public class FailureChunkRead implements Event {
 
   private int type;
+
+  private String connectionDetails;
 
   private String filename;
 
   private int sequence;
 
   /**
-   * Used to set the previous chunks replication location
-   */
-  private int replicationPosition;
-
-  private String destinationDetails;
-
-  /**
    * Default constructor -
    * 
    * @param filename
    * @param sequence
-   * @param replicationPosition
-   * @param destinationDetails
    */
-  public RedirectChunkRequest(String filename, int sequence,
-      int replicationPosition, String destinationDetails) {
-    this.type = Protocol.REDIRECT_CHUNK_REQUEST;
+  public FailureChunkRead(String connectionDetails, String filename,
+      int sequence) {
+    this.type = Protocol.FAILURE_CHUNK_READ;
+    this.connectionDetails = connectionDetails;
     this.filename = filename;
     this.sequence = sequence;
-    this.replicationPosition = replicationPosition;
-    this.destinationDetails = destinationDetails;
   }
 
   /**
@@ -52,7 +46,7 @@ public class RedirectChunkRequest implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public RedirectChunkRequest(byte[] marshalledBytes) throws IOException {
+  public FailureChunkRead(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -63,16 +57,14 @@ public class RedirectChunkRequest implements Event {
     int len = din.readInt();
     byte[] bytes = new byte[ len ];
     din.readFully( bytes );
-    this.filename = new String( bytes );
-
-    this.sequence = din.readInt();
-
-    this.replicationPosition = din.readInt();
+    this.connectionDetails = new String( bytes );
 
     len = din.readInt();
     bytes = new byte[ len ];
     din.readFully( bytes );
-    this.destinationDetails = new String( bytes );
+    this.filename = new String( bytes );
+
+    this.sequence = din.readInt();
 
     inputStream.close();
     din.close();
@@ -86,20 +78,28 @@ public class RedirectChunkRequest implements Event {
     return type;
   }
 
+  /**
+   * 
+   * @return the host:port connection details for the server
+   */
+  public String getConnectionDetails() {
+    return connectionDetails;
+  }
+
+  /**
+   * 
+   * @return the chunk name from the client
+   */
   public String getFilename() {
     return filename;
   }
 
+  /**
+   * 
+   * @return the sequence ( chunk number ) for a given file
+   */
   public int getSequence() {
     return sequence;
-  }
-
-  public String getDestinationDetails() {
-    return destinationDetails;
-  }
-
-  public int getReplicationPosition() {
-    return replicationPosition;
   }
 
   /**
@@ -114,17 +114,15 @@ public class RedirectChunkRequest implements Event {
 
     dout.writeInt( type );
 
-    byte[] bytes = filename.getBytes();
+    byte[] bytes = connectionDetails.getBytes();
+    dout.writeInt( bytes.length );
+    dout.write( bytes );
+
+    bytes = filename.getBytes();
     dout.writeInt( bytes.length );
     dout.write( bytes );
 
     dout.writeInt( sequence );
-
-    dout.writeInt( replicationPosition );
-
-    bytes = destinationDetails.getBytes();
-    dout.writeInt( bytes.length );
-    dout.write( bytes );
 
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
@@ -136,7 +134,9 @@ public class RedirectChunkRequest implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type );
+    return "\n" + Integer.toString( type ) + ", connection details: "
+        + connectionDetails + ", filename: " + filename + ", sequence: "
+        + Integer.toString( sequence );
   }
 
 }

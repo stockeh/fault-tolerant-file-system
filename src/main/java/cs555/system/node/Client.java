@@ -216,18 +216,28 @@ public class Client implements Node {
       LOG.error( "Unable to send read request. " + e.getMessage() );
       e.printStackTrace();
     }
+    String filename = null;
     try
     {
-      ReadFileRequest request =
-          new ReadFileRequest( metadata.getReadableFiles().get( fileNumber ) );
-      controllerConnection.getTCPSender().sendData( request.getBytes() );
-    } catch ( IOException | IndexOutOfBoundsException e )
+      filename = metadata.getReadableFiles().get( fileNumber );
+    } catch ( IndexOutOfBoundsException e )
     {
-      LOG.error(
-          "Unable to send read request to controller. " + e.getMessage() );
-      e.printStackTrace();
+      displayReadableFiles();
+      return;
     }
-
+    if ( filename != null )
+    {
+      try
+      {
+        controllerConnection.getTCPSender()
+            .sendData( new ReadFileRequest( filename ).getBytes() );
+      } catch ( IOException e )
+      {
+        LOG.error(
+            "Unable to send read request to controller. " + e.getMessage() );
+        e.printStackTrace();
+      }
+    }
   }
 
   /**
@@ -286,7 +296,9 @@ public class Client implements Node {
         break;
 
       case Protocol.LIST_FILE_RESPONSE :
-        displayReadableFiles( event );
+        metadata
+            .setReadableFiles( ( ( ListFileResponse ) event ).getFileNames() );
+        displayReadableFiles();
         break;
 
       case Protocol.READ_FILE_RESPONSE :
@@ -295,6 +307,10 @@ public class Client implements Node {
 
       case Protocol.READ_CHUNK_RESPONSE :
         readChunkResponseHandler( event );
+        break;
+
+      case Protocol.FAILURE_CLIENT_NOTIFICATION :
+        metadata.clearReadableFiles();
         break;
     }
   }
@@ -332,19 +348,17 @@ public class Client implements Node {
   }
 
   /**
-   * Process the response from the controller to list the files in a
-   * readable way.
+   * Display the readable files in a readable way.
    * 
-   * @param event the object containing message details
    */
-  private void displayReadableFiles(Event event) {
-    List<String> readableFiles = ( ( ListFileResponse ) event ).getFileNames();
-    metadata.setReadableFiles( readableFiles );
+  private void displayReadableFiles() {
+    List<String> readableFiles = metadata.getReadableFiles();
     if ( readableFiles.size() == 0 )
     {
-      System.out
-          .println( "\nThere are no readable files known to the controller."
-              + "\nPlease upload files with the \'" + UPLOAD + "\' input.\n" );
+      System.out.println( "\nThere are no readable files known to the client."
+          + "\n\nEither (1) upload files with the \'" + UPLOAD
+          + "\' input, or (2) fetch a list from the controller with the \'"
+          + LIST + "\' input.\n" );
       return;
     }
     System.out.println( "\tThere are " + readableFiles.size()

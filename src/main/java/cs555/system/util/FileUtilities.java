@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import cs555.system.node.Node;
 
 /**
  * Utility class for all file related activities.
@@ -35,7 +36,7 @@ public class FileUtilities {
    * @throws NoSuchAlgorithmException
    */
   public static byte[] SHA1FromBytes(byte[] message)
-      throws NoSuchAlgorithmException {
+      throws NoSuchAlgorithmException, IllegalArgumentException {
     MessageDigest digest = null;
     final String algorithm = "SHA1";
     try
@@ -71,9 +72,9 @@ public class FileUtilities {
     try
     {
       newSHA1 = SHA1FromBytes( writtenMessage );
-    } catch ( NoSuchAlgorithmException e )
+    } catch ( NoSuchAlgorithmException | IllegalArgumentException e )
     {
-      LOG.error( "Unable to compute SHA-1 integrity for the written message."
+      LOG.error( "Unable to compute SHA-1 integrity for the written message. "
           + e.getMessage() );
       return false;
     }
@@ -84,17 +85,19 @@ public class FileUtilities {
    * Read a chunk of a file denoted by the <tt>filename</tt> and
    * <tt>sequence</tt> number into a <tt>byte[]</tt>.
    * 
+   * @param node added to write file name with connection details
    * @param filename
    * @param sequence
    * @return the resulting <tt>byte[]</tt> array, or null if
    *         unsuccessful
    */
-  public static byte[] readChunkSequence(String filename, int sequence) {
-    byte[] message = null;
+  public static byte[] readChunkSequence(Node node, String filename,
+      int sequence) {
+    byte[] message;
     try
     {
-      message = Files
-          .readAllBytes( FileUtilities.getPathLocation( filename, sequence ) );
+      message = Files.readAllBytes(
+          FileUtilities.getPathLocation( node, filename, sequence ) );
     } catch ( IOException e )
     {
       LOG.error( "Unable to read chunk file: \'" + filename + "\', chunk: \'"
@@ -102,27 +105,37 @@ public class FileUtilities {
       e.printStackTrace();
       return null;
     }
-    if ( message != null && FileUtilities.validateSHA1Integrity( message ) )
+    if ( FileUtilities.validateSHA1Integrity( message ) )
     {
-      message = Arrays.copyOfRange( message, FileUtilities.INTEGRITY_SIZE,
+      return Arrays.copyOfRange( message, FileUtilities.INTEGRITY_SIZE,
           message.length );
+    } else
+    {
+      return null;
     }
-    return message;
   }
 
   /**
    * Get the path common location for writing and reading chunks on
    * disk.
    * 
+   * <p>
+   * <tt>/tmp/host_port/filename_chunksequence</tt> </br>
+   * </br>
    * TODO: use StringBuilder instead for performance?
+   * </p>
    * 
+   * @param node
+   * @param chunkServer
    * @param filename
    * @param sequence
    * @return the resulting <tt>Path</tt>
    */
-  public static Path getPathLocation(String filename, int sequence) {
-    return Paths.get( File.separator, "tmp",
-        filename + "_chunk" + Integer.toString( sequence ) );
+  public static Path getPathLocation(Node node, String filename, int sequence) {
+    StringBuilder sb = new StringBuilder().append( filename ).append( "_chunk" )
+        .append( sequence ).append( "_" ).append( node.getHost() ).append( "_" )
+        .append( node.getPort() );
+    return Paths.get( File.separator, "tmp", sb.toString() );
   }
 
 }

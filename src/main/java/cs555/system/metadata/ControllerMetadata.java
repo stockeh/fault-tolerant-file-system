@@ -40,6 +40,12 @@ public class ControllerMetadata {
   private final Map<String, ServerInformation> connections =
       new ConcurrentHashMap<>();
 
+  /**
+   * Connections to all the clients. Does not contain any identifier -
+   * all clients are treated the same.
+   */
+  private final List<TCPConnection> clientConnections = new ArrayList<>();
+
   public static final Comparator<ServerInformation> COMPARATOR = Comparator
       .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
           ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
@@ -59,6 +65,15 @@ public class ControllerMetadata {
    */
   public Map<String, ServerInformation> getConnections() {
     return connections;
+  }
+
+  /**
+   * 
+   * @return a list of all the clients that have registered with the
+   *         controller.
+   */
+  public List<TCPConnection> getClientConnections() {
+    return clientConnections;
   }
 
   /**
@@ -86,12 +101,23 @@ public class ControllerMetadata {
    * Add a new connection ( chunk server ) to the controllers metadata.
    * 
    * @param connectionDetails
-   * @param connection
+   * @param connection with socket information to talk back with a
+   *        server
    */
   public void addConnection(String connectionDetails,
       TCPConnection connection) {
     connections.put( connectionDetails,
         new ServerInformation( connection, connectionDetails ) );
+  }
+
+  /**
+   * Add a new client to the controllers metadata.
+   * 
+   * @param connection with socket information to talk back with a
+   *        client
+   */
+  public void addClientConnection(TCPConnection connection) {
+    clientConnections.add( connection );
   }
 
   /**
@@ -102,6 +128,16 @@ public class ControllerMetadata {
    */
   public ServerInformation removeConnection(String connectionDetails) {
     return connections.remove( connectionDetails );
+  }
+
+  /**
+   * Remove an existing client connection from the controllers metadata.
+   * 
+   * @param connection the actual <tt>TCPConnection</tt> referenced from
+   *        the event.
+   */
+  public void removeClientConnection(TCPConnection connection) {
+    clientConnections.remove( connection );
   }
 
   /**

@@ -186,7 +186,7 @@ public class ChunkServer implements Node, Protocol {
    */
   private void redirectChunkHandler(Event event) {
     RedirectChunkRequest redirectRequest = ( RedirectChunkRequest ) event;
-    byte[] message = FileUtilities.readChunkSequence(
+    byte[] message = FileUtilities.readChunkSequence( this,
         redirectRequest.getFilename(), redirectRequest.getSequence() );
     if ( message != null )
     {
@@ -230,6 +230,8 @@ public class ChunkServer implements Node, Protocol {
     try
     {
       byte[] message = request.getMessage();
+      // Add integrity if CHUNK_SIZE, otherwise assume integrity has been
+      // added.
       if ( message.length == Constants.CHUNK_SIZE )
       {
         byte[] SHA1Integrity = FileUtilities.SHA1FromBytes( message );
@@ -237,7 +239,7 @@ public class ChunkServer implements Node, Protocol {
             .put( SHA1Integrity ).put( message ).array();
         request.setMessage( message );
       }
-      Path path = FileUtilities.getPathLocation( request.getFilename(),
+      Path path = FileUtilities.getPathLocation( this, request.getFilename(),
           request.getSequence() );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
@@ -303,25 +305,31 @@ public class ChunkServer implements Node, Protocol {
    */
   private void readChunkHandler(Event event, TCPConnection connection) {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
-    byte[] message = FileUtilities.readChunkSequence( request.getFilename(),
-        request.getSequence() );
+    byte[] message = FileUtilities.readChunkSequence( this,
+        request.getFilename(), request.getSequence() );
+    ReadChunkResponse response;
     if ( message != null )
     {
-      ReadChunkResponse response =
-          new ReadChunkResponse( request.getFilename(), message );
-      try
-      {
-        connection.getTCPSender().sendData( response.getBytes() );
-        LOG.debug( "Sent ReadChunkRequest() message to client." );
-      } catch ( IOException e )
-      {
-        LOG.error(
-            "Unable to send request message to client. " + e.getMessage() );
-        e.printStackTrace();
-      }
+      response = new ReadChunkResponse( request.getFilename(), message,
+          Constants.SUCCESS );
+    } else
+    {
+      response =
+          new ReadChunkResponse( request.getFilename(), Constants.FAILURE );
     }
-    // TODO: else response with error and send request to controller for
-    // another chunk location to get data from.
+    LOG.debug( "The status of the chunk read is: "
+        + ( response.getStatus() == Constants.SUCCESS ? "successful."
+            : "failed." ) );
+    try
+    {
+      connection.getTCPSender().sendData( response.getBytes() );
+      LOG.debug( "Sent ReadChunkRequest() message to client." );
+    } catch ( IOException e )
+    {
+      LOG.error(
+          "Unable to send request message to client. " + e.getMessage() );
+      e.printStackTrace();
+    }
+    // TODO: Send FailureChunkRead message to controller to fix failure.
   }
-
 }

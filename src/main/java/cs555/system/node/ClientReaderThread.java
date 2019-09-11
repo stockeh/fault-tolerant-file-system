@@ -14,6 +14,7 @@ import cs555.system.util.Logger;
 import cs555.system.wireformats.ReadChunkRequest;
 import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.ReadFileResponse;
+import cs555.system.exception.ClientReadException;
 
 /**
  * Client reader responsible for sending requests to servers to obtain
@@ -128,15 +129,20 @@ public class ClientReaderThread implements Runnable {
         {
           lock.wait();
         }
-        LOG.debug( "sequence: " + sequence );
-        fileBytes[ sequence ] = readChunkResponse.getMessage();
+        LOG.debug( "sequence: " + sequence + ", status: "
+            + readChunkResponse.getStatus() );
         connection.close();
-      } catch ( IOException | InterruptedException e )
+        if ( readChunkResponse.getStatus() == Constants.FAILURE )
+        {
+          throw new ClientReadException( "The chunk sequence \'" + sequence
+              + "\' was returned as invalid." );
+        }
+        fileBytes[ sequence ] = readChunkResponse.getMessage();
+      } catch ( IOException | InterruptedException | ClientReadException e )
       {
-        LOG.error(
-            "Unable to send ReadChunkRequest() message to chunk server \'"
-                + chunks[ sequence ][ replication ]
-                + "\' trying next replication if possible. " + e.getMessage() );
+        LOG.error( "Unable to retrieve message on chunk server \'"
+            + chunks[ sequence ][ replication ]
+            + "\' trying next replication if possible. " + e.getMessage() );
 
         if ( ++replication >= chunks[ 0 ].length )
         {
@@ -145,6 +151,9 @@ public class ClientReaderThread implements Runnable {
                   + "by any servers." );
           return null;
         }
+        // Attempt to use next replication location for the same chunk.
+        --sequence;
+        continue;
       }
       replication = 0;
     }

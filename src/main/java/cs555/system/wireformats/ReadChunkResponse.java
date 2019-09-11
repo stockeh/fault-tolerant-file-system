@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import cs555.system.util.Constants;
 
 /**
  * 
@@ -22,17 +23,35 @@ public class ReadChunkResponse implements Event {
 
   private byte[] message;
 
+  private byte status;
+
   /**
-   * Default constructor -
+   * Constructor - for successful message
    * 
    * @param name
    * @param message
+   * @param status
    */
-  public ReadChunkResponse(String filename, byte[] message) {
+  public ReadChunkResponse(String filename, byte[] message, byte status) {
     this.type = Protocol.READ_CHUNK_RESPONSE;
     this.filename = filename;
     this.message = message;
+    this.status = status;
   }
+
+  /**
+   * Constructor - when a message contains tampered data.
+   * 
+   * @param filename
+   * 
+   * @param status
+   */
+  public ReadChunkResponse(String filename, byte status) {
+    this.type = Protocol.READ_CHUNK_RESPONSE;
+    this.filename = filename;
+    this.status = status;
+  }
+
 
   /**
    * Constructor - Unmarshall the <code>byte[]</code> to the respective
@@ -49,15 +68,19 @@ public class ReadChunkResponse implements Event {
 
     this.type = din.readInt();
 
+    this.status = din.readByte();
+
     int len = din.readInt();
     byte[] nameBytes = new byte[ len ];
     din.readFully( nameBytes );
     this.filename = new String( nameBytes );
 
-    int messageLength = din.readInt();
-    this.message = new byte[ messageLength ];
-    din.readFully( this.message );
-
+    if ( status == Constants.SUCCESS )
+    {
+      int messageLength = din.readInt();
+      this.message = new byte[ messageLength ];
+      din.readFully( this.message );
+    }
     inputStream.close();
     din.close();
   }
@@ -87,6 +110,14 @@ public class ReadChunkResponse implements Event {
   }
 
   /**
+   * 
+   * @return the status of the read chunk response
+   */
+  public byte getStatus() {
+    return status;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -98,19 +129,24 @@ public class ReadChunkResponse implements Event {
 
     dout.writeInt( type );
 
+    dout.writeByte( status );
+
     byte[] nameBytes = filename.getBytes();
     dout.writeInt( nameBytes.length );
     dout.write( nameBytes );
 
-    dout.writeInt( message.length );
-    dout.write( message );
-
+    if ( status == Constants.SUCCESS )
+    {
+      dout.writeInt( message.length );
+      dout.write( message );
+    }
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
     outputStream.close();
     dout.close();
     return marshalledBytes;
+
   }
 
   /**
@@ -118,8 +154,7 @@ public class ReadChunkResponse implements Event {
    */
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", msg len: "
-        + Integer.toString( message.length );
+    return "\n" + Integer.toString( type ) + ", status: " + status;
   }
 
 }

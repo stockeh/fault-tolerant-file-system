@@ -91,7 +91,7 @@ public class ClientSenderThread implements Runnable {
   public void run() {
     running = true;
 
-    final int numberOfFiles = files.size();
+    int numberOfFiles = files.size();
 
     synchronized ( lock )
     {
@@ -107,16 +107,20 @@ public class ClientSenderThread implements Runnable {
           processIndividualFile( file, request, is );
         } catch ( IOException e )
         {
-          LOG.error( "Unable to process the file " + file.getName() + ", "
+          LOG.error( "Unable to process the file " + file.getName() + ". "
               + e.getMessage() );
+          --numberOfFiles;
         } catch ( InterruptedException e )
         {
           Thread.currentThread().interrupt();
         }
       }
     }
-    LOG.info( "Finished sending " + Integer.toString( numberOfFiles )
-        + " file(s) to the controller.\n" );
+    if ( numberOfFiles > 0 )
+    {
+      LOG.info( "Finished sending " + Integer.toString( numberOfFiles )
+          + " file(s) to the controller.\n" );
+    }
     running = false;
     return;
   }

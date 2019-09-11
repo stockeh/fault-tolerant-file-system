@@ -11,6 +11,9 @@ import java.util.List;
  */
 public class ClientMetadata {
 
+  /**
+   * List of filenames
+   */
   private List<String> readableFiles;
 
   public ClientMetadata() {
@@ -33,6 +36,14 @@ public class ClientMetadata {
    */
   public void setReadableFiles(List<String> readableFiles) {
     this.readableFiles = readableFiles;
+  }
+
+  /**
+   * Clear all the readable files stored since the last fetch to the
+   * controller.
+   */
+  public void clearReadableFiles() {
+    readableFiles.clear();
   }
 
 }

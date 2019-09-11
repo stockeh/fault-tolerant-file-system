@@ -101,7 +101,7 @@ public class Controller implements Node {
       ControllerHeartbeatManager controllerHeartbeatManager =
           new ControllerHeartbeatManager( controller.metadata );
       Timer timer = new Timer();
-      final int interval = 60 * 1000; // 60 seconds in milliseconds
+      final int interval = 20 * 1000; // 20 seconds in milliseconds
       timer.schedule( controllerHeartbeatManager, 1000, interval );
 
       controller.interact();
@@ -292,7 +292,7 @@ public class Controller implements Node {
     boolean isOriginalFile = metadata.addFile( request.getFilename(),
         request.getFilelength(), request.getNumberOfChunks() );
     String[] serversToConnect =
-        metadata.getChunkServers( request.getFilename(), isOriginalFile );
+        metadata.getChunkServers( request.getFilename(), request.getSequence(), isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {

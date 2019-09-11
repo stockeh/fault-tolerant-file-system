@@ -99,12 +99,7 @@ public class ClientSenderThread implements Runnable {
       {
         try ( InputStream is = new FileInputStream( file ) )
         {
-          int filelength = ( int ) file.length();
-          int numberOfChunks =
-              ( int ) Math.ceil( ( double ) filelength / Constants.CHUNK_SIZE );
-          byte[] request = ( new WriteFileRequest( file.getAbsolutePath(),
-              filelength, numberOfChunks ) ).getBytes();
-          processIndividualFile( file, request, is );
+          processIndividualFile( file, is );
         } catch ( IOException e )
         {
           LOG.error( "Unable to process the file " + file.getName() + ". "
@@ -139,23 +134,30 @@ public class ClientSenderThread implements Runnable {
    * </ol>
    * 
    * @param file to be processed
-   * @param request to the controller for where to write the chunks
    * @param is input file stream
    * @throws IOException
    * @throws InterruptedException
    */
-  private void processIndividualFile(File file, byte[] request, InputStream is)
+  private void processIndividualFile(File file, InputStream is)
       throws IOException, InterruptedException {
 
     String name = file.getAbsolutePath();
-
-    int chunkNumber = 0;
+    
+    int filelength = ( int ) file.length();
+    int numberOfChunks =
+        ( int ) Math.ceil( ( double ) filelength / Constants.CHUNK_SIZE );
+    
+    int sequence = 0;
 
     int length = 0;
     byte[] chunk = new byte[ Constants.CHUNK_SIZE ];
     while ( ( length = is.read( chunk ) ) != -1 )
     {
+      byte[] request = ( new WriteFileRequest( file.getAbsolutePath(), sequence,
+          filelength, numberOfChunks ) ).getBytes();
+      
       this.node.getControllerConnection().getTCPSender().sendData( request );
+      // wait for response from controller containing routing information.
       lock.wait();
       if ( routes == null || routes.length == 0 )
       {
@@ -171,7 +173,7 @@ public class ClientSenderThread implements Runnable {
       Arrays.fill( chunk, length, Constants.CHUNK_SIZE, ( byte ) 0 );
 
       WriteChunkRequest writeToChunkServer =
-          new WriteChunkRequest( name, chunkNumber++, chunk, routes );
+          new WriteChunkRequest( name, sequence++, chunk, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
       connection.close();

@@ -3,11 +3,10 @@ package cs555.system.metadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
@@ -243,13 +242,15 @@ public class ControllerMetadata {
    * 
    * @param filename is the name of the file that will be added to the
    *        server information for each chunk.
+   * @param sequence
    * @param isOriginalFile computes the list of new chunk servers to
    *        write too, otherwise will retrieve the existing server
    *        locations
    * 
    * @return a list of chunk servers for the client to send data too
    */
-  public String[] getChunkServers(String filename, boolean isOriginalFile) {
+  public String[] getChunkServers(String filename, int sequence,
+      boolean isOriginalFile) {
 
     List<ServerInformation> list = new ArrayList<>( connections.values() );
 
@@ -263,12 +264,15 @@ public class ControllerMetadata {
 
     String[] output = new String[ numberOfConnections ];
 
-    for ( int i = 0; i < numberOfConnections; ++i )
+    for ( int replication =
+        0; replication < numberOfConnections; ++replication )
     {
-      String connectionDetails = list.get( i ).getConnectionDetails();
-      output[ i ] = connectionDetails;
-      connections.get( connectionDetails ).addFileOnServer( filename );
-      connections.get( connectionDetails ).incrementNumberOfChunks();
+      String connectionDetails = list.get( replication ).getConnectionDetails();
+      output[ replication ] = connectionDetails;
+      ServerInformation connection = connections.get( connectionDetails );
+
+      connection.addFileOnServer( filename, sequence, replication );
+      connection.incrementNumberOfChunks();
     }
 
     return output;
@@ -367,8 +371,10 @@ public class ControllerMetadata {
 
     private String connectionDetails;
 
-    // Set to maintain uniqueness of filenames
-    private Set<String> filesOnServer;
+    /**
+     * Map < k: filename, v: list(sequence) >
+     */
+    private Map<String, List<SequenceReplicationPair>> filesOnServer;
 
     private long freeDiskSpace;
 
@@ -384,7 +390,7 @@ public class ControllerMetadata {
         String connectionDetails) {
       this.connection = connection;
       this.connectionDetails = connectionDetails;
-      this.filesOnServer = new HashSet<>();
+      this.filesOnServer = new HashMap<>();
       this.freeDiskSpace = 0;
       this.numberOfChunks = 0;
     }
@@ -405,7 +411,7 @@ public class ControllerMetadata {
       return connectionDetails;
     }
 
-    public Set<String> getFilesOnServer() {
+    public Map<String, List<SequenceReplicationPair>> getFilesOnServer() {
       return filesOnServer;
     }
 
@@ -430,11 +436,15 @@ public class ControllerMetadata {
      * Add a given filename to the server information.
      * 
      * @param filename
-     * @return true if the server file set did not already contain the
-     *         specified element
+     * @param sequence
+     * @param replication
      */
-    public boolean addFileOnServer(String filename) {
-      return filesOnServer.add( filename );
+    public void addFileOnServer(String filename, int sequence,
+        int replication) {
+      filesOnServer.putIfAbsent( filename,
+          new ArrayList<SequenceReplicationPair>() );
+      filesOnServer.get( filename )
+          .add( new SequenceReplicationPair( sequence, replication ) );
     }
 
     /**
@@ -462,5 +472,32 @@ public class ControllerMetadata {
     public void incrementNumberOfChunks() {
       ++numberOfChunks;
     }
+
+    /**
+     * 
+     * @author stock
+     *
+     */
+    public static class SequenceReplicationPair {
+
+      private int sequence;
+
+      private int replication;
+
+      private SequenceReplicationPair(int sequence, int replication) {
+        this.sequence = sequence;
+        this.replication = replication;
+      }
+
+      public int getSequence() {
+        return sequence;
+      }
+
+      public int getReplication() {
+        return replication;
+      }
+
+    }
+
   }
 }

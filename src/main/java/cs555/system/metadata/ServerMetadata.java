@@ -2,6 +2,7 @@ package cs555.system.metadata;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +24,7 @@ public class ServerMetadata {
   /**
    * map <k: filename, v: List<(sequence, replication)>>
    */
-  private final Map<String, List<ChunkInformation>> files;
+  private final Map<String, List<ChunkInformation>> newlyAddedFiles;
 
   private final String connectionDetails;
 
@@ -35,7 +36,7 @@ public class ServerMetadata {
   public ServerMetadata(String connectionDetails) {
     this.connectionDetails = connectionDetails;
     this.numberOfChunks = new AtomicInteger( 0 );
-    this.files = new HashMap<>();
+    this.newlyAddedFiles = new HashMap<>();
   }
 
   /**
@@ -77,11 +78,13 @@ public class ServerMetadata {
    * @param filename
    * @param sequence
    * @param replication
+   * @param fileTime 
    */
   public synchronized void update(String filename, int sequence,
-      int replication) {
-    files.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
-    files.get( filename ).add( new ChunkInformation( sequence, replication ) );
+      int replication, long timestamp) {
+    newlyAddedFiles.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
+    newlyAddedFiles.get( filename )
+        .add( new ChunkInformation( sequence, replication ) );
     incrementNumberOfChunks();
   }
 
@@ -94,10 +97,10 @@ public class ServerMetadata {
    */
   public synchronized byte[] getMinorHeartbeatBytes() throws IOException {
     MinorHeartbeat message = new MinorHeartbeat( getConnectionDetails(),
-        getNumberOfChunks(), getFreeDiskSpace(), files );
+        getNumberOfChunks(), getFreeDiskSpace(), newlyAddedFiles );
 
     byte[] bytes = message.getBytes();
-    files.clear();
+    newlyAddedFiles.clear();
 
     return bytes;
   }
@@ -119,6 +122,10 @@ public class ServerMetadata {
      * Replication position
      */
     private int replication;
+
+    private int version;
+
+    private long timestamp;
 
     /**
      * Default constructor -
@@ -149,6 +156,13 @@ public class ServerMetadata {
      */
     public int getReplication() {
       return replication;
+    }
+
+    /**
+     * Increment the version number for the file
+     */
+    public void incrementVersion() {
+      ++version;
     }
 
   }

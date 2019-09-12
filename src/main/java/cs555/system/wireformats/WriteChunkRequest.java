@@ -30,24 +30,29 @@ public class WriteChunkRequest implements Event {
 
   private byte[] message;
 
+  private long lastModifiedDate;
+
   private String[] routes;
 
   private int replicationPosition;
+
 
   /**
    * Default constructor -
    * 
    * @param filename
-   * @param sequence
+   * @param sequence chunk number associated with the write
    * @param message
-   * @param routes
+   * @param lastModifiedDate time the <b>file</b> was last modified
+   * @param routes where to send the message to
    */
   public WriteChunkRequest(String filename, int sequence, byte[] message,
-      String[] routes) {
+      long lastModifiedDate, String[] routes) {
     this.type = Protocol.WRITE_CHUNK_REQUEST;
     this.filename = filename;
     this.sequence = sequence;
     this.message = message;
+    this.lastModifiedDate = lastModifiedDate;
     this.routes = routes;
     this.replicationPosition = 0;
   }
@@ -77,6 +82,8 @@ public class WriteChunkRequest implements Event {
     int messageLength = din.readInt();
     this.message = new byte[ messageLength ];
     din.readFully( this.message );
+
+    this.lastModifiedDate = din.readLong();
 
     int arrayLength = din.readInt();
     this.routes = new String[ arrayLength ];
@@ -128,6 +135,14 @@ public class WriteChunkRequest implements Event {
     return message;
   }
 
+  /**
+   * 
+   * @return the time in milliseconds the <b>file</b> was last modified
+   */
+  public long getLastModifiedDate() {
+    return lastModifiedDate;
+  }
+  
   /**
    * 
    * @return the routing path decided from the controller
@@ -185,6 +200,8 @@ public class WriteChunkRequest implements Event {
     dout.writeInt( message.length );
     dout.write( message );
 
+    dout.writeLong( lastModifiedDate );
+
     dout.writeInt( routes.length );
 
     for ( String item : routes )
@@ -209,9 +226,9 @@ public class WriteChunkRequest implements Event {
    */
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", chunk name: " + filename
-        + ", sequence: " + sequence + ", routes: " + Arrays.toString( routes )
-        + ", msg len: " + Integer.toString( message.length );
+    return "\n" + type + ", chunk name: " + filename + ", sequence: " + sequence
+        + ", routes: " + Arrays.toString( routes ) + ", msg len: "
+        + message.length + ", last modified: " + lastModifiedDate;
   }
 
 }

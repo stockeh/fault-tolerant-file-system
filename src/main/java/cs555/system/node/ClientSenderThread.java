@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 import cs555.system.transport.TCPConnection;
@@ -141,12 +142,17 @@ public class ClientSenderThread implements Runnable {
   private void processIndividualFile(File file, InputStream is)
       throws IOException, InterruptedException {
 
-    String name = file.getAbsolutePath();
+    String filename = file.getAbsolutePath();
+    long lastModifiedDate = file.lastModified();
     
+    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
+    LOG.debug( "The file: " + filename + " was last modified at "
+        + sdf.format( file.lastModified() ) );
+
     int filelength = ( int ) file.length();
     int numberOfChunks =
         ( int ) Math.ceil( ( double ) filelength / Constants.CHUNK_SIZE );
-    
+
     int sequence = 0;
 
     int length = 0;
@@ -155,7 +161,7 @@ public class ClientSenderThread implements Runnable {
     {
       byte[] request = ( new WriteFileRequest( file.getAbsolutePath(), sequence,
           filelength, numberOfChunks ) ).getBytes();
-      
+
       this.node.getControllerConnection().getTCPSender().sendData( request );
       // wait for response from controller containing routing information.
       lock.wait();
@@ -173,7 +179,7 @@ public class ClientSenderThread implements Runnable {
       Arrays.fill( chunk, length, Constants.CHUNK_SIZE, ( byte ) 0 );
 
       WriteChunkRequest writeToChunkServer =
-          new WriteChunkRequest( name, sequence++, chunk, routes );
+          new WriteChunkRequest( filename, sequence++, chunk, lastModifiedDate, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
       connection.close();

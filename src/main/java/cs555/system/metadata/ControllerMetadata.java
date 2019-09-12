@@ -226,18 +226,18 @@ public class ControllerMetadata {
     for ( Entry<String, List<ChunkInformation>> entry : filesFromServer
         .entrySet() )
     {
-      FileInformation information = files.get( entry.getKey() );
-      if ( information == null )
+      FileInformation fileInformation = files.get( entry.getKey() );
+      if ( fileInformation == null )
       {
         throw new NullPointerException( "Unable to update because the file: "
             + entry.getKey() + ", does not exist on controller." );
       }
-      String[][] chunks = information.getChunks();
+      String[][] chunks = fileInformation.getChunks();
 
-      for ( ChunkInformation chunk : entry.getValue() )
+      for ( ChunkInformation chunkInformation : entry.getValue() )
       {
-        chunks[ chunk.getSequence() ][ chunk.getReplication() ] =
-            connectionDetails;
+        chunks[ chunkInformation.getSequence() ][ chunkInformation
+            .getReplication() ] = connectionDetails;
       }
     }
   }

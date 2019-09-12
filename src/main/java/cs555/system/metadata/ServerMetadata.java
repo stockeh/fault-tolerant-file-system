@@ -2,7 +2,6 @@ package cs555.system.metadata;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +25,12 @@ public class ServerMetadata {
    */
   private final Map<String, List<ChunkInformation>> newlyAddedFiles;
 
+  /**
+   * map <k: filename, v: List<(sequence, replication)>>
+   */
+  private final Map<String, List<ChunkInformation>> files;
+
+
   private final String connectionDetails;
 
   /**
@@ -37,6 +42,7 @@ public class ServerMetadata {
     this.connectionDetails = connectionDetails;
     this.numberOfChunks = new AtomicInteger( 0 );
     this.newlyAddedFiles = new HashMap<>();
+    this.files = new HashMap<>();
   }
 
   /**
@@ -76,15 +82,24 @@ public class ServerMetadata {
    * Update metadata associated with a file
    * 
    * @param filename
-   * @param sequence
-   * @param replication
-   * @param fileTime 
+   * @param sequence of chunk in the file - this is the same as the
+   *        chunk number
+   * @param replication of the chunk returned to the client form the
+   *        controller
+   * @param timestamp the initial modified time of the chunk in
+   *        milliseconds
    */
   public synchronized void update(String filename, int sequence,
       int replication, long timestamp) {
+    
     newlyAddedFiles.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
     newlyAddedFiles.get( filename )
-        .add( new ChunkInformation( sequence, replication ) );
+        .add( new ChunkInformation( sequence, replication, timestamp ) );
+
+    files.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
+    files.get( filename )
+        .add( new ChunkInformation( sequence, replication, timestamp ) );
+
     incrementNumberOfChunks();
   }
 
@@ -103,6 +118,26 @@ public class ServerMetadata {
     newlyAddedFiles.clear();
 
     return bytes;
+  }
+
+  /**
+   * Check if the server has knowledge about a given chunk for a some
+   * file.
+   * 
+   * @param filename to search for
+   * @param sequence number associated with the chunk
+   * @return true if the chunk has been previously received, false
+   *         otherwise
+   */
+  public synchronized ChunkInformation getChunkInformation(String filename,
+      int sequence) {
+    List<ChunkInformation> info = files.get( filename );
+    if ( info == null )
+    {
+      return null;
+    }
+    return info.stream().filter( o -> o.getSequence() == sequence ).findFirst()
+        .orElse( null );
   }
 
   /**
@@ -125,10 +160,28 @@ public class ServerMetadata {
 
     private int version;
 
-    private long timestamp;
+    private long lastModifiedDate;
 
     /**
-     * Default constructor -
+     * Major constructor -
+     * 
+     * @param sequence of chunk in the file - this is the same as the
+     *        chunk number
+     * @param replication of the chunk returned to the client form the
+     *        controller
+     * @param lastModifiedDate the initial modified time of the chunk in
+     *        milliseconds
+     */
+    public ChunkInformation(int sequence, int replication,
+        long lastModifiedDate) {
+      this.sequence = sequence;
+      this.replication = replication;
+      this.lastModifiedDate = lastModifiedDate;
+      this.version = 1;
+    }
+
+    /**
+     * Minor constructor -
      * 
      * @param sequence of chunk in the file - this is the same as the
      *        chunk number
@@ -159,6 +212,32 @@ public class ServerMetadata {
     }
 
     /**
+     * 
+     * @return the version of the chunk
+     */
+    public int getVersion() {
+      return version;
+    }
+
+    /**
+     * 
+     * @return the last modified time of the chunk in milliseconds
+     */
+    public long getTimestamp() {
+      return lastModifiedDate;
+    }
+
+    /**
+     * Update the lastModifiedDate associated with the chunk based on the
+     * last modified time.
+     * 
+     * @param lastModifiedDate
+     */
+    public void setLastModifiedDate(long lastModifiedDate) {
+      this.lastModifiedDate = lastModifiedDate;
+    }
+
+    /**
      * Increment the version number for the file
      */
     public void incrementVersion() {
@@ -166,5 +245,4 @@ public class ServerMetadata {
     }
 
   }
-
 }

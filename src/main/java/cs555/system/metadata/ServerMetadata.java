@@ -7,7 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import cs555.system.wireformats.MinorHeartbeat;
+import cs555.system.wireformats.Heartbeat;
+import cs555.system.wireformats.Protocol;
 
 /**
  * Maintains information about the chunk server and the newly added
@@ -113,13 +114,30 @@ public class ServerMetadata {
    * @throws IOException
    */
   public synchronized byte[] getMinorHeartbeatBytes() throws IOException {
-    MinorHeartbeat message = new MinorHeartbeat( getConnectionDetails(),
-        getNumberOfChunks(), getFreeDiskSpace(), newlyAddedFiles );
+    Heartbeat message =
+        new Heartbeat( Protocol.MINOR_HEARTBEAT, getConnectionDetails(),
+            getNumberOfChunks(), getFreeDiskSpace(), newlyAddedFiles );
 
     byte[] bytes = message.getBytes();
     newlyAddedFiles.clear();
 
     return bytes;
+  }
+
+  /**
+   * Covert all chunk data to a heartbeat message. Clear the newly added
+   * files because major update takes care of this.
+   * 
+   * @return a wireformat representation of the newly added metadata.
+   * @throws IOException
+   */
+  public synchronized byte[] getMajorHeartbeatBytes() throws IOException {
+    Heartbeat message =
+        new Heartbeat( Protocol.MAJOR_HEARTBEAT, getConnectionDetails(),
+            getNumberOfChunks(), getFreeDiskSpace(), files );
+    newlyAddedFiles.clear();
+
+    return message.getBytes();
   }
 
   /**
@@ -216,18 +234,18 @@ public class ServerMetadata {
 
     /**
      * 
-     * @return the version of the chunk
+     * @return the last modified time of the chunk in milliseconds
      */
-    public int getVersion() {
-      return version;
+    public long getLastModifiedTime() {
+      return lastModifiedDate;
     }
 
     /**
      * 
-     * @return the last modified time of the chunk in milliseconds
+     * @return the version of the chunk
      */
-    public long getTimestamp() {
-      return lastModifiedDate;
+    public int getVersion() {
+      return version;
     }
 
     /**
@@ -248,4 +266,5 @@ public class ServerMetadata {
     }
 
   }
+
 }

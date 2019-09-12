@@ -20,7 +20,7 @@ public class Logger {
   /**
    * Configure DEBUG by setting to true, INFO otherwise
    */
-  private final boolean DEBUG = true;
+  private final boolean DEBUG = false;
 
   /**
    * Retrieve the details for the log.

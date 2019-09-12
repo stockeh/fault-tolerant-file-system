@@ -103,8 +103,12 @@ public class ClientSenderThread implements Runnable {
   public void run() {
     running = true;
 
-    int numberOfFiles = files.size();
+    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
 
+    int numberOfFiles = files.size();
+    LOG.info( "Started uploading " + numberOfFiles + " file(s) at "
+        + sdf.format( System.currentTimeMillis() ) );
+    LOG.info( "Uploading..." );
     synchronized ( lock )
     {
       for ( File file : files )
@@ -125,9 +129,10 @@ public class ClientSenderThread implements Runnable {
     }
     if ( numberOfFiles > 0 )
     {
-      LOG.info( "Finished sending " + Integer.toString( numberOfFiles )
-          + " file(s) to the controller.\n" );
+      LOG.info( "Finished uploading " + numberOfFiles + " file(s) at "
+          + sdf.format( System.currentTimeMillis() ) + "\n" );
     }
+
     running = false;
   }
 

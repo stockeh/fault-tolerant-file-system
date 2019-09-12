@@ -271,7 +271,6 @@ public class ControllerMetadata {
     FileInformation information = files.get( filename );
     if ( information != null )
     {
-
       String[] chunkLocations = information.getChunks()[ sequence ];
 
       boolean nonNullLocation =
@@ -281,7 +280,7 @@ public class ControllerMetadata {
       {
         LOG.debug( "Forwarding existing chunk information." );
         return chunkLocations;
-      } else if ( !isOriginalFile )
+      } else if ( !isOriginalFile && sequence == 0 )
       { // the case where the file is not original, but the chunk locations
         // have null entries since no heartbeats were received yet.
         return null;

@@ -21,7 +21,7 @@ import cs555.system.metadata.ServerMetadata.ChunkInformation;
  * @author stock
  *
  */
-public class MinorHeartbeat implements Event {
+public class Heartbeat implements Event {
 
   private int type;
 
@@ -39,14 +39,15 @@ public class MinorHeartbeat implements Event {
   /**
    * Default constructor - create a new task initiation
    * 
+   * @param type either minor or major heartbeat
    * @param connectionDetails
    * @param totalChunks
    * @param freeSpace
    * @param files
    */
-  public MinorHeartbeat(String connectionDetails, int totalChunks,
+  public Heartbeat(int type, String connectionDetails, int totalChunks,
       long freeSpace, Map<String, List<ChunkInformation>> files) {
-    this.type = Protocol.MINOR_HEARTBEAT;
+    this.type = type;
     this.connectionDetails = connectionDetails;
     this.totalChunks = totalChunks;
     this.freeSpace = freeSpace;
@@ -61,7 +62,7 @@ public class MinorHeartbeat implements Event {
    * @param marshalledBytes is the byte array of the class.
    * @throws IOException
    */
-  public MinorHeartbeat(byte[] marshalledBytes) throws IOException {
+  public Heartbeat(byte[] marshalledBytes) throws IOException {
     ByteArrayInputStream inputStream =
         new ByteArrayInputStream( marshalledBytes );
     DataInputStream din =
@@ -103,7 +104,10 @@ public class MinorHeartbeat implements Event {
         {
           int sequence = din.readInt();
           int position = din.readInt();
-          value.add( new ChunkInformation( sequence, position ) );
+          long lastModifiedDate = din.readLong();
+          int version = din.readInt();
+          value.add( new ChunkInformation( sequence, position, lastModifiedDate,
+              version ) );
         }
         this.files.put( key, value );
       }
@@ -204,6 +208,8 @@ public class MinorHeartbeat implements Event {
         {
           dout.writeInt( info.getSequence() );
           dout.writeInt( info.getReplication() );
+          dout.writeLong( info.getLastModifiedTime() );
+          dout.writeInt( info.getVersion() );
         }
       }
     }
@@ -218,8 +224,7 @@ public class MinorHeartbeat implements Event {
   @Override
   public String toString() {
 
-    String extra = this.isEmpty ? ""
-        : ", num files: " + Integer.toString( this.files.size() );
+    String extra = this.isEmpty ? "" : ", num files: " + this.files.size();
 
     return Integer.toString( this.type ) + ", connection details: "
         + this.connectionDetails + ", total chunks: "

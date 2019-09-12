@@ -207,9 +207,9 @@ public class ChunkServer implements Node, Protocol {
         ChunkInformation info =
             metadata.getChunkInformation( filename, sequence );
 
-        WriteChunkRequest writeRequest =
-            new WriteChunkRequest( filename, sequence, message,
-                info.getTimestamp(), info.getVersion(), new String[] { "" } );
+        WriteChunkRequest writeRequest = new WriteChunkRequest( filename,
+            sequence, message, info.getLastModifiedTime(), info.getVersion(),
+            new String[] { "" } );
 
         writeRequest
             .setReplicationPosition( redirectRequest.getReplicationPosition() );
@@ -282,7 +282,8 @@ public class ChunkServer implements Node, Protocol {
         LOG.info( "Finished writing " + request.getFilename() + " to disk." );
 
         metadata.update( request.getFilename(), request.getSequence(),
-            request.getReplicationPosition(), lastModifiedDate, request.getVersion() );
+            request.getReplicationPosition(), lastModifiedDate,
+            request.getVersion() );
       }
     } catch ( IOException e )
     {

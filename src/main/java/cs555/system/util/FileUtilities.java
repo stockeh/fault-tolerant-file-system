@@ -33,100 +33,84 @@ public class FileUtilities {
 
 
   /**
-   * Adds integrity to the end of each slice. Increasing the size of the
-   * message.
-   * <p>
-   * <tt>( slice_0 | integrity_0 | slice_1 | integrity_1 | ... )</tt>
-   * </p>
+   * Adds integrity to the front of the chunk. Increasing the size of
+   * the message.
    * 
    * @param message to add integrity information to
    * @return a message with the integrity information added
    */
   public static byte[] addSHA1Integrity(byte[] message) {
-    MessageDigest digest = null;
+    byte[] SHA1Integrity = null;
     try
     {
-      digest = MessageDigest.getInstance( ALGORITHM );
-    } catch ( NoSuchAlgorithmException e )
+      SHA1Integrity = FileUtilities.SHA1FromBytes( message );
+    } catch ( NoSuchAlgorithmException | IllegalArgumentException e )
     {
       LOG.error( "Unable to compute SHA-1 integrity for the written message. "
           + e.getMessage() );
       return null;
     }
     ByteBuffer buffer =
-        ByteBuffer.allocate( INTEGRITY_SIZE + Constants.CHUNK_SIZE );
+        ByteBuffer.allocate( SHA1Integrity.length + message.length )
+            .put( SHA1Integrity ).put( message );
+    return buffer.array();
+  }
 
+  /**
+   * Computes the SHA-1 hash of a byte array as a 160 bit ( 20 byte )
+   * digest.
+   * 
+   * @param data as an array of bytes
+   * @return the hash digest from the data
+   * @throws NoSuchAlgorithmException
+   */
+  public static byte[] SHA1FromBytes(byte[] message)
+      throws NoSuchAlgorithmException, IllegalArgumentException {
+    MessageDigest digest = null;
+    final String algorithm = ALGORITHM;
+    try
+    {
+      digest = MessageDigest.getInstance( algorithm );
+    } catch ( NoSuchAlgorithmException e )
+    {
+      throw e;
+    }
+    ByteBuffer buffer = ByteBuffer.allocate( INTEGRITY_SIZE );
     for ( int i = 0; i < NUMBER_OF_SLICES; ++i )
     {
-      byte[] slice =
-          Arrays.copyOfRange( message, i * Constants.CHUNK_SLICE_SIZE,
-              ( i + 1 ) * Constants.CHUNK_SLICE_SIZE );
-      digest.update( slice );
-      buffer.put( slice ).put( digest.digest() );
+      digest.update( message, i * Constants.CHUNK_SLICE_SIZE,
+          Constants.CHUNK_SLICE_SIZE );
+      buffer.put( digest.digest() );
     }
     return buffer.array();
   }
 
   /**
-   * Retrieves the original message if the integrity has not been
-   * tampered with. Otherwise, returns a <tt>null</tt> message with the
-   * malformed slice index.
+   * Validate the integrity of a chunk file written to disk.
    * 
-   * <p>
-   * <tt>( slice_0 | slice_1  | ... )</tt>
-   * </p>
-   * 
-   * @param message to remove integrity from.
-   * @return If the integrity is unchanged, then returns:
-   *         <p>
-   *         <tt>MessageInformation( original_message, -1 )</tt>
-   *         </p>
-   *         otherwise, a certain slice is invalid, returning:
-   *         <p>
-   *         <tt>MessageInformation( null, invalid_slice_index )</tt>
-   *         </p>
+   * @param message of with integrity information
+   * @return a tuple with the ( message, validity ); where the validity
+   *         is true when the original SHA1 matches the computed SHA1
+   *         hash.
    */
-  public static MessageInformation removeSHA1Integrity(byte[] message) {
-    MessageDigest digest = null;
+  public static ChunkIntegrityInformation validateSHA1Integrity(
+      byte[] message) {
+    byte[] originalSHA1 = Arrays.copyOfRange( message, 0, INTEGRITY_SIZE );
+    byte[] writtenMessage =
+        Arrays.copyOfRange( message, INTEGRITY_SIZE, message.length );
+
+    byte[] newSHA1;
     try
     {
-      digest = MessageDigest.getInstance( ALGORITHM );
-    } catch ( NoSuchAlgorithmException e )
+      newSHA1 = SHA1FromBytes( writtenMessage );
+    } catch ( NoSuchAlgorithmException | IllegalArgumentException e )
     {
       LOG.error( "Unable to compute SHA-1 integrity for the written message. "
           + e.getMessage() );
-      return null;
+      return new ChunkIntegrityInformation( null, false );
     }
-    ByteBuffer buffer = ByteBuffer.allocate( Constants.CHUNK_SIZE );
-    byte[] slice = null, integrity = null;
-    for ( int index = 0; index < NUMBER_OF_SLICES; ++index )
-    {
-      int offset = index * SHA1_DIGEST_SIZE;
-      try
-      {
-        slice = Arrays.copyOfRange( message,
-            index * Constants.CHUNK_SLICE_SIZE + offset,
-            ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset );
-
-        integrity = Arrays.copyOfRange( message,
-            ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset,
-            ( index + 1 ) * Constants.CHUNK_SLICE_SIZE + offset + SHA1_DIGEST_SIZE );
-
-      } catch ( IndexOutOfBoundsException e )
-      {
-        return new MessageInformation( null, index );
-      }
-      digest.update( slice );
-      byte[] computedIntegrity = digest.digest();
-      if ( Arrays.equals( integrity, computedIntegrity ) )
-      {
-        buffer.put( slice );
-      } else
-      {
-        return new MessageInformation( null, index );
-      }
-    }
-    return new MessageInformation( buffer.array(), -1 );
+    return new ChunkIntegrityInformation( writtenMessage,
+        Arrays.equals( originalSHA1, newSHA1 ) );
   }
 
   /**
@@ -179,23 +163,28 @@ public class FileUtilities {
     return Paths.get( File.separator, "tmp", sb.toString() );
   }
 
-  public static class MessageInformation {
+  /**
+   * 
+   * @author stock
+   *
+   */
+  public static class ChunkIntegrityInformation {
 
     private byte[] message;
 
-    private int invalidSliceIndex;
+    private boolean isValidChunk;
 
-    private MessageInformation(byte[] message, int invalidSliceIndex) {
+    private ChunkIntegrityInformation(byte[] message, boolean isValidChunk) {
       this.message = message;
-      this.invalidSliceIndex = invalidSliceIndex;
+      this.isValidChunk = isValidChunk;
     }
 
     public byte[] getMessage() {
       return message;
     }
 
-    public int getInvalidSliceIndex() {
-      return invalidSliceIndex;
+    public boolean isValidChunk() {
+      return isValidChunk;
     }
 
   }

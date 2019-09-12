@@ -9,6 +9,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Message request to chunk server to take an existing chunk and
+ * forward it to a defined destination.
+ * 
+ * This is typically used when either (1) a server crashes and its
+ * chunks need to be re-replicated, or (2) when a read request detects
+ * invalid integrity information.
  * 
  * @author stock
  *
@@ -32,8 +38,9 @@ public class RedirectChunkRequest implements Event {
    * Default constructor -
    * 
    * @param filename
-   * @param sequence
-   * @param replicationPosition
+   * @param sequence chunk number that is being updated
+   * @param replicationPosition position of the replication for the
+   *        failed chunk at the destination as seen by the controller.
    * @param destinationDetails
    */
   public RedirectChunkRequest(String filename, int sequence,

@@ -79,26 +79,28 @@ public class ServerMetadata {
   }
 
   /**
-   * Update metadata associated with a file
+   * Update metadata associated with a file <b>only</b> when an
+   * <b>original</b> chunk is written.
    * 
    * @param filename
    * @param sequence of chunk in the file - this is the same as the
    *        chunk number
    * @param replication of the chunk returned to the client form the
    *        controller
-   * @param timestamp the initial modified time of the chunk in
+   * @param lastModifiedDate the initial modified time of the chunk in
    *        milliseconds
+   * @param version of the chunk as detected by the server
    */
   public synchronized void update(String filename, int sequence,
-      int replication, long timestamp) {
-    
+      int replication, long lastModifiedDate, int version) {
+
     newlyAddedFiles.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
-    newlyAddedFiles.get( filename )
-        .add( new ChunkInformation( sequence, replication, timestamp ) );
+    newlyAddedFiles.get( filename ).add( new ChunkInformation( sequence,
+        replication, lastModifiedDate, version ) );
 
     files.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
-    files.get( filename )
-        .add( new ChunkInformation( sequence, replication, timestamp ) );
+    files.get( filename ).add( new ChunkInformation( sequence, replication,
+        lastModifiedDate, version ) );
 
     incrementNumberOfChunks();
   }
@@ -171,13 +173,14 @@ public class ServerMetadata {
      *        controller
      * @param lastModifiedDate the initial modified time of the chunk in
      *        milliseconds
+     * @param version of the chunk as detected by the server
      */
     public ChunkInformation(int sequence, int replication,
-        long lastModifiedDate) {
+        long lastModifiedDate, int verion) {
       this.sequence = sequence;
       this.replication = replication;
       this.lastModifiedDate = lastModifiedDate;
-      this.version = 1;
+      this.version = verion;
     }
 
     /**

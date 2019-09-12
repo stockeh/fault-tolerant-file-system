@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
+import cs555.system.exception.ClientWriteException;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
@@ -30,6 +31,8 @@ public class ClientSenderThread implements Runnable {
   private Client node;
 
   private String[] routes;
+
+  private boolean ableToWrite = true;
 
   private boolean running = false;
 
@@ -82,6 +85,14 @@ public class ClientSenderThread implements Runnable {
   }
 
   /**
+   * 
+   * @param ableToUpdate
+   */
+  protected void setAbleToWrite(boolean ableToWrite) {
+    this.ableToWrite = ableToWrite;
+  }
+
+  /**
    * Iterate through the files and send them to the chunk servers a
    * chunk at a time. A request to the controller will provide details
    * of which servers to communicate with.
@@ -101,7 +112,7 @@ public class ClientSenderThread implements Runnable {
         try ( InputStream is = new FileInputStream( file ) )
         {
           processIndividualFile( file, is );
-        } catch ( IOException e )
+        } catch ( IOException | ClientWriteException e )
         {
           LOG.error( "Unable to process the file " + file.getName() + ". "
               + e.getMessage() );
@@ -118,7 +129,6 @@ public class ClientSenderThread implements Runnable {
           + " file(s) to the controller.\n" );
     }
     running = false;
-    return;
   }
 
   /**
@@ -140,11 +150,14 @@ public class ClientSenderThread implements Runnable {
    * @throws InterruptedException
    */
   private void processIndividualFile(File file, InputStream is)
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, ClientWriteException {
 
-    String filename = file.getAbsolutePath();
-    long lastModifiedDate = file.lastModified();
-    
+    // Metadata with temporary version number ( the server will detect the
+    // difference and update if necessary )
+    final String filename = file.getAbsolutePath();
+    final long lastModifiedDate = file.lastModified();
+    final int version = 1;
+
     SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
     LOG.debug( "The file: " + filename + " was last modified at "
         + sdf.format( file.lastModified() ) );
@@ -165,12 +178,11 @@ public class ClientSenderThread implements Runnable {
       this.node.getControllerConnection().getTCPSender().sendData( request );
       // wait for response from controller containing routing information.
       lock.wait();
-      if ( routes == null || routes.length == 0 )
+      if ( !ableToWrite )
       {
-        throw new IOException( "There are no routes to send chunk too." );
+        throw new ClientWriteException( "The controller has not"
+            + " received file chunk locations for the original file." );
       }
-      LOG.debug( "routes: " + Arrays.toString( routes ) );
-
       String[] initialConnection = routes[ 0 ].split( ":" );
       TCPConnection connection = ConnectionUtilities.establishConnection( node,
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
@@ -178,8 +190,8 @@ public class ClientSenderThread implements Runnable {
       // Pad elements b[k] through b[b.length-1] with zeros
       Arrays.fill( chunk, length, Constants.CHUNK_SIZE, ( byte ) 0 );
 
-      WriteChunkRequest writeToChunkServer =
-          new WriteChunkRequest( filename, sequence++, chunk, lastModifiedDate, routes );
+      WriteChunkRequest writeToChunkServer = new WriteChunkRequest( filename,
+          sequence++, chunk, lastModifiedDate, version, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
       connection.close();

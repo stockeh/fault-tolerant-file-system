@@ -341,7 +341,8 @@ public class Client implements Node {
    */
   private void readFileResponseHandler(Event event) {
     ReadFileResponse response = ( ( ReadFileResponse ) event );
-    ClientReaderThread reader = new ClientReaderThread( this, metadata, response );
+    ClientReaderThread reader =
+        new ClientReaderThread( this, metadata, response );
     readers.put( response.getFilename(), reader );
     LOG.debug( "Starting client reader thread." );
     ( new Thread( reader, "Client Reader" ) ).start();
@@ -379,8 +380,9 @@ public class Client implements Node {
    * @param event the object containing message details
    */
   private void senderHandler(Event event) {
-    String[] routes = ( ( WriteFileResponse ) event ).getRoutingPath();
-    sender.setRoutes( routes );
+    WriteFileResponse response = ( WriteFileResponse ) event;
+    sender.setAbleToWrite( response.isAbleToWrite() );
+    sender.setRoutes( response.getRoutingPath() );
     sender.unlock();
   }
 

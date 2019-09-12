@@ -190,8 +190,10 @@ public class ChunkServer implements Node, Protocol {
    */
   private void redirectChunkHandler(Event event) {
     RedirectChunkRequest redirectRequest = ( RedirectChunkRequest ) event;
-    Path path = FileUtilities.getPathLocation( this,
-        redirectRequest.getFilename(), redirectRequest.getSequence() );
+    String filename = redirectRequest.getFilename();
+    int sequence = redirectRequest.getSequence();
+
+    Path path = FileUtilities.getPathLocation( this, filename, sequence );
     byte[] message = FileUtilities.readChunkSequence( path );
     if ( message != null )
     {
@@ -202,10 +204,12 @@ public class ChunkServer implements Node, Protocol {
         TCPConnection connection = ConnectionUtilities.establishConnection(
             this, destination[ 0 ], Integer.parseInt( destination[ 1 ] ) );
 
-        WriteChunkRequest writeRequest = new WriteChunkRequest(
-            redirectRequest.getFilename(), redirectRequest.getSequence(),
-            message, Files.getLastModifiedTime( path ).toMillis(),
-            new String[] { "" } );
+        ChunkInformation info =
+            metadata.getChunkInformation( filename, sequence );
+
+        WriteChunkRequest writeRequest =
+            new WriteChunkRequest( filename, sequence, message,
+                info.getTimestamp(), info.getVersion(), new String[] { "" } );
 
         writeRequest
             .setReplicationPosition( redirectRequest.getReplicationPosition() );
@@ -214,13 +218,15 @@ public class ChunkServer implements Node, Protocol {
         connection.close();
       } catch ( NumberFormatException | IOException | InterruptedException e )
       {
-        LOG.error( "Unable to forward the request for "
-            + redirectRequest.getFilename() + ", " + e.getMessage() );
+        LOG.error( "Unable to forward the request for " + filename + ", "
+            + e.getMessage() );
         e.printStackTrace();
       }
     } else
     {
-
+      LOG.error(
+          "Chunk was not found on source node, and can not be forwarded to"
+              + " the destination." );
     }
   }
 
@@ -276,7 +282,7 @@ public class ChunkServer implements Node, Protocol {
         LOG.info( "Finished writing " + request.getFilename() + " to disk." );
 
         metadata.update( request.getFilename(), request.getSequence(),
-            request.getReplicationPosition(), lastModifiedDate );
+            request.getReplicationPosition(), lastModifiedDate, request.getVersion() );
       }
     } catch ( IOException e )
     {

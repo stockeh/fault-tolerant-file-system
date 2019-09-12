@@ -274,13 +274,17 @@ public class ControllerMetadata {
 
       String[] chunkLocations = information.getChunks()[ sequence ];
 
-      boolean nullsOnly =
-          Arrays.stream( chunkLocations ).noneMatch( Objects::nonNull );
+      boolean nonNullLocation =
+          Arrays.stream( chunkLocations ).allMatch( Objects::nonNull );
 
-      if ( !isOriginalFile && !nullsOnly )
+      if ( !isOriginalFile && nonNullLocation )
       {
         LOG.debug( "Forwarding existing chunk information." );
         return chunkLocations;
+      } else if ( !isOriginalFile )
+      { // the case where the file is not original, but the chunk locations
+        // have null entries since no heartbeats were received yet.
+        return null;
       }
     }
     List<ServerInformation> list = new ArrayList<>( connections.values() );

@@ -274,7 +274,7 @@ public class Controller implements Node {
     {
       connection.getTCPSender().sendData( response.getBytes() );
     } catch ( IOException e )
-    {
+    { 
       LOG.error(
           "Unable to send response message to client. " + e.getMessage() );
       e.printStackTrace();
@@ -295,7 +295,9 @@ public class Controller implements Node {
         request.getFilelength(), request.getNumberOfChunks() );
     String[] serversToConnect = metadata.getChunkServers( request.getFilename(),
         request.getSequence(), isOriginalFile );
-    WriteFileResponse response = new WriteFileResponse( serversToConnect );
+    // All heartbeats been received for sequence 0.
+    WriteFileResponse response =
+        new WriteFileResponse( serversToConnect );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );

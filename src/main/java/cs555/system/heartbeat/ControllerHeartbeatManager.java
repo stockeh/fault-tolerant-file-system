@@ -163,7 +163,7 @@ public class ControllerHeartbeatManager extends TimerTask {
       {
         String source = null;
         for ( int replication =
-            0; replication < Constants.NUMBER_OF_REPLICATIONS; ++replication )
+            0; replication < chunks[ 0 ].length; ++replication )
         {
           String identifier = chunks[ pair.getSequence() ][ replication ];
           // Get a non-null source identifier. At this point the previous chunk

@@ -31,7 +31,7 @@ public final class Configurations {
           .getResourceAsStream( Constants.CONF_NAME ) );
     } catch ( Exception e )
     {
-      LOG.error( "Unable to load application properties. " + e.getMessage());
+      LOG.error( "Unable to load application properties. " + e.getMessage() );
       e.printStackTrace();
     }
   }
@@ -65,6 +65,7 @@ public final class Configurations {
 
   /**
    * 
+   * @param key to search properties for
    * @return a property of the property file denoted by the key
    */
   public String getProperty(String key) {
@@ -72,6 +73,21 @@ public final class Configurations {
     if ( key != null && !key.trim().isEmpty() )
     {
       result = this.properties.getProperty( key );
+    }
+    return result;
+  }
+
+  /**
+   * 
+   * @param key to search properties for
+   * @param default value
+   * @return a property of the property file denoted by the key
+   */
+  public String getProperty(String key, String defaultValue) {
+    String result = null;
+    if ( key != null && !key.trim().isEmpty() )
+    {
+      result = this.properties.getProperty( key, defaultValue );
     }
     return result;
   }

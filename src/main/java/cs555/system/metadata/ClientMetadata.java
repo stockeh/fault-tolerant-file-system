@@ -39,6 +39,17 @@ public class ClientMetadata {
   }
 
   /**
+   * Remove a readable file, forcing the client to ask the controller to
+   * list all files again.
+   * 
+   * @param filename
+   * @return
+   */
+  public boolean removeReadableFile(String filename) {
+    return readableFiles.remove( filename );
+  }
+
+  /**
    * Clear all the readable files stored since the last fetch to the
    * controller.
    */

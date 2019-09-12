@@ -1,12 +1,14 @@
 package cs555.system.metadata;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
@@ -91,8 +93,22 @@ public class ControllerMetadata {
     if ( isOriginalFile )
     {
       files.put( filename, new FileInformation( filelength, numberOfChunks ) );
-    }
+    } else
+    {
+      FileInformation oldFileInformation = files.remove( filename );
+      String[][] oldChunkLocations = oldFileInformation.getChunks();
 
+      files.put( filename, new FileInformation( filelength, numberOfChunks ) );
+      String[][] newFileLocations = files.get( filename ).getChunks();
+
+      for ( int i = 0; i < oldChunkLocations.length; i++ )
+      {
+        for ( int j = 0; j < oldChunkLocations[ i ].length; j++ )
+        {
+          newFileLocations[ i ][ j ] = oldChunkLocations[ i ][ j ];
+        }
+      }
+    }
     return isOriginalFile;
   }
 
@@ -252,6 +268,21 @@ public class ControllerMetadata {
   public String[] getChunkServers(String filename, int sequence,
       boolean isOriginalFile) {
 
+    FileInformation information = files.get( filename );
+    if ( information != null )
+    {
+
+      String[] chunkLocations = information.getChunks()[ sequence ];
+
+      boolean nullsOnly =
+          Arrays.stream( chunkLocations ).noneMatch( Objects::nonNull );
+
+      if ( !isOriginalFile && !nullsOnly )
+      {
+        LOG.debug( "Forwarding existing chunk information." );
+        return chunkLocations;
+      }
+    }
     List<ServerInformation> list = new ArrayList<>( connections.values() );
 
     // see comparator for sort details

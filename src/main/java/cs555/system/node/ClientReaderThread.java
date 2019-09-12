@@ -15,6 +15,7 @@ import cs555.system.wireformats.ReadChunkRequest;
 import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.ReadFileResponse;
 import cs555.system.exception.ClientReadException;
+import cs555.system.metadata.ClientMetadata;
 
 /**
  * Client reader responsible for sending requests to servers to obtain
@@ -33,16 +34,22 @@ public class ClientReaderThread implements Runnable {
 
   private ReadFileResponse readFileResponse;
 
+  private ClientMetadata metadata;
+
   private Client node;
+
 
   /**
    * Default constructor -
    * 
    * @param node
+   * @param metadata
    * @param readFileResponse
    */
-  protected ClientReaderThread(Client node, ReadFileResponse readFileResponse) {
+  protected ClientReaderThread(Client node, ClientMetadata metadata,
+      ReadFileResponse readFileResponse) {
     this.node = node;
+    this.metadata = metadata;
     this.readFileResponse = readFileResponse;
   }
 
@@ -99,7 +106,7 @@ public class ClientReaderThread implements Runnable {
       }
     } else
     {
-      // TODO: remove file from clients metadata of readable files.
+      metadata.removeReadableFile( readFileResponse.getFilename() );
     }
   }
 

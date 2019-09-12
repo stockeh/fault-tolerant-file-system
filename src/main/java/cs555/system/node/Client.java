@@ -341,7 +341,7 @@ public class Client implements Node {
    */
   private void readFileResponseHandler(Event event) {
     ReadFileResponse response = ( ( ReadFileResponse ) event );
-    ClientReaderThread reader = new ClientReaderThread( this, response );
+    ClientReaderThread reader = new ClientReaderThread( this, metadata, response );
     readers.put( response.getFilename(), reader );
     LOG.debug( "Starting client reader thread." );
     ( new Thread( reader, "Client Reader" ) ).start();

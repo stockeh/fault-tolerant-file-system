@@ -247,6 +247,9 @@ public class ChunkServer implements Node, Protocol {
           request.getSequence() );
       Files.createDirectories( path.getParent() );
       Files.write( path, message );
+      metadata.update( request.getFilename(), request.getSequence(),
+          request.getReplicationPosition(),
+          Files.getLastModifiedTime( path ).toMillis() );
       LOG.info( "Finished writing " + request.getFilename() + " to disk." );
     } catch ( IOException e )
     {
@@ -254,8 +257,6 @@ public class ChunkServer implements Node, Protocol {
           + e.getMessage() );
       e.printStackTrace();
     }
-    metadata.update( request.getFilename(), request.getSequence(),
-        request.getReplicationPosition() );
     forwardIncomingChunk( request );
   }
 

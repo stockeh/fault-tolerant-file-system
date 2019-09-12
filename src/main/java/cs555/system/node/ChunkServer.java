@@ -15,9 +15,10 @@ import cs555.system.transport.TCPServerThread;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.FileUtilities;
-import cs555.system.util.FileUtilities.MessageInformation;
+import cs555.system.util.FileUtilities.ChunkIntegrityInformation;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
+import cs555.system.wireformats.FailureChunkRead;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.ReadChunkRequest;
 import cs555.system.wireformats.ReadChunkResponse;
@@ -306,9 +307,11 @@ public class ChunkServer implements Node, Protocol {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
     byte[] message = FileUtilities.readChunkSequence( this,
         request.getFilename(), request.getSequence() );
-    MessageInformation content = FileUtilities.removeSHA1Integrity( message );
+
+    ChunkIntegrityInformation content =
+        FileUtilities.validateSHA1Integrity( message );
     ReadChunkResponse response;
-    if ( content.getMessage() != null )
+    if ( content.isValidChunk() )
     {
       response = new ReadChunkResponse( request.getFilename(),
           content.getMessage(), Constants.SUCCESS );
@@ -317,8 +320,20 @@ public class ChunkServer implements Node, Protocol {
       response =
           new ReadChunkResponse( request.getFilename(), Constants.FAILURE );
       LOG.debug(
-          "TODO: Send FailureChunkRead message to controller to fix failure." );
-      // TODO: Send FailureChunkRead message to controller to fix failure.
+          "Sent FailureSliceRead message to controller to fix failure." );
+      FailureChunkRead failureRequest =
+          new FailureChunkRead( this.getHost() + ":" + this.getPort(),
+              request.getFilename(), request.getSequence() );
+      try
+      {
+        controllerConnection.getTCPSender()
+            .sendData( failureRequest.getBytes() );
+      } catch ( IOException e )
+      {
+        LOG.error(
+            "Unable to send request message to controller. " + e.getMessage() );
+        e.printStackTrace();
+      }
     }
     LOG.debug( "The status of the chunk read is: "
         + ( response.getStatus() == Constants.SUCCESS ? "successful."
@@ -330,7 +345,7 @@ public class ChunkServer implements Node, Protocol {
     } catch ( IOException e )
     {
       LOG.error(
-          "Unable to send request message to client. " + e.getMessage() );
+          "Unable to send response message to client. " + e.getMessage() );
       e.printStackTrace();
     }
   }

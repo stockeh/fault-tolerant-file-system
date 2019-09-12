@@ -9,8 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Message sent to the controller to retrieve a new chunk to replace a
- * failure.
+ * Message sent to the controller to retrieve a new slice from some
+ * chunk to replace a corrupted one.
  * 
  * @author stock
  *
@@ -28,8 +28,10 @@ public class FailureChunkRead implements Event {
   /**
    * Default constructor -
    * 
+   * @param connectionDetails destination that contains the failed
+   *        chunk.
    * @param filename
-   * @param sequence
+   * @param sequence chunk number that failed
    */
   public FailureChunkRead(String connectionDetails, String filename,
       int sequence) {
@@ -134,9 +136,8 @@ public class FailureChunkRead implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", connection details: "
-        + connectionDetails + ", filename: " + filename + ", sequence: "
-        + Integer.toString( sequence );
+    return "\n" + type + ", connection details: " + connectionDetails
+        + ", filename: " + filename + ", sequence: " + sequence;
   }
 
 }

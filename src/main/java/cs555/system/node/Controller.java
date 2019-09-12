@@ -201,22 +201,23 @@ public class Controller implements Node {
     int sequence = request.getSequence();
     int replicationPosition = 0;
     String source = null;
-    for ( int replication =
-        0; replication < Constants.NUMBER_OF_REPLICATIONS; ++replication )
+    for ( int replication = 0; replication < chunks[ 0 ].length; ++replication )
     {
-      if ( chunks[ sequence ][ replication ].equals( destination ) )
+      String identifier = chunks[ sequence ][ replication ];
+      if ( identifier != null && !identifier.equals( destination ) )
       {
-        source = chunks[ sequence ][ ( replication + 1 )
-            % Constants.NUMBER_OF_REPLICATIONS ];
+        source = identifier;
+      }
+      if ( identifier != null && identifier.equals( destination ) )
+      {
+        chunks[ sequence ][ replication ] = null;
         replicationPosition = replication;
-        break;
       }
     }
     if ( source != null )
     {
       RedirectChunkRequest redirectRequest = new RedirectChunkRequest(
           request.getFilename(), sequence, replicationPosition, destination );
-
       try
       {
         metadata.getConnections().get( source ).getConnection().getTCPSender()
@@ -233,6 +234,7 @@ public class Controller implements Node {
       LOG.error(
           "A source containing the replication for the chunk could not be"
               + "identified." );
+      return;
     }
   }
 
@@ -291,8 +293,8 @@ public class Controller implements Node {
 
     boolean isOriginalFile = metadata.addFile( request.getFilename(),
         request.getFilelength(), request.getNumberOfChunks() );
-    String[] serversToConnect =
-        metadata.getChunkServers( request.getFilename(), request.getSequence(), isOriginalFile );
+    String[] serversToConnect = metadata.getChunkServers( request.getFilename(),
+        request.getSequence(), isOriginalFile );
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {

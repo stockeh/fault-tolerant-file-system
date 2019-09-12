@@ -2,13 +2,13 @@ package cs555.system.metadata;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import cs555.system.wireformats.MinorHeartbeat;
+import cs555.system.wireformats.Heartbeat;
+import cs555.system.wireformats.Protocol;
 
 /**
  * Maintains information about the chunk server and the newly added
@@ -26,6 +26,12 @@ public class ServerMetadata {
    */
   private final Map<String, List<ChunkInformation>> newlyAddedFiles;
 
+  /**
+   * map <k: filename, v: List<(sequence, replication)>>
+   */
+  private final Map<String, List<ChunkInformation>> files;
+
+
   private final String connectionDetails;
 
   /**
@@ -37,6 +43,7 @@ public class ServerMetadata {
     this.connectionDetails = connectionDetails;
     this.numberOfChunks = new AtomicInteger( 0 );
     this.newlyAddedFiles = new HashMap<>();
+    this.files = new HashMap<>();
   }
 
   /**
@@ -73,18 +80,29 @@ public class ServerMetadata {
   }
 
   /**
-   * Update metadata associated with a file
+   * Update metadata associated with a file <b>only</b> when an
+   * <b>original</b> chunk is written.
    * 
    * @param filename
-   * @param sequence
-   * @param replication
-   * @param fileTime 
+   * @param sequence of chunk in the file - this is the same as the
+   *        chunk number
+   * @param replication of the chunk returned to the client form the
+   *        controller
+   * @param lastModifiedDate the initial modified time of the chunk in
+   *        milliseconds
+   * @param version of the chunk as detected by the server
    */
   public synchronized void update(String filename, int sequence,
-      int replication, long timestamp) {
+      int replication, long lastModifiedDate, int version) {
+
     newlyAddedFiles.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
-    newlyAddedFiles.get( filename )
-        .add( new ChunkInformation( sequence, replication ) );
+    newlyAddedFiles.get( filename ).add( new ChunkInformation( sequence,
+        replication, lastModifiedDate, version ) );
+
+    files.putIfAbsent( filename, new ArrayList<ChunkInformation>() );
+    files.get( filename ).add( new ChunkInformation( sequence, replication,
+        lastModifiedDate, version ) );
+
     incrementNumberOfChunks();
   }
 
@@ -96,13 +114,50 @@ public class ServerMetadata {
    * @throws IOException
    */
   public synchronized byte[] getMinorHeartbeatBytes() throws IOException {
-    MinorHeartbeat message = new MinorHeartbeat( getConnectionDetails(),
-        getNumberOfChunks(), getFreeDiskSpace(), newlyAddedFiles );
+    Heartbeat message =
+        new Heartbeat( Protocol.MINOR_HEARTBEAT, getConnectionDetails(),
+            getNumberOfChunks(), getFreeDiskSpace(), newlyAddedFiles );
 
     byte[] bytes = message.getBytes();
     newlyAddedFiles.clear();
 
     return bytes;
+  }
+
+  /**
+   * Covert all chunk data to a heartbeat message. Clear the newly added
+   * files because major update takes care of this.
+   * 
+   * @return a wireformat representation of the newly added metadata.
+   * @throws IOException
+   */
+  public synchronized byte[] getMajorHeartbeatBytes() throws IOException {
+    Heartbeat message =
+        new Heartbeat( Protocol.MAJOR_HEARTBEAT, getConnectionDetails(),
+            getNumberOfChunks(), getFreeDiskSpace(), files );
+    newlyAddedFiles.clear();
+
+    return message.getBytes();
+  }
+
+  /**
+   * Check if the server has knowledge about a given chunk for a some
+   * file.
+   * 
+   * @param filename to search for
+   * @param sequence number associated with the chunk
+   * @return true if the chunk has been previously received, false
+   *         otherwise
+   */
+  public synchronized ChunkInformation getChunkInformation(String filename,
+      int sequence) {
+    List<ChunkInformation> info = files.get( filename );
+    if ( info == null )
+    {
+      return null;
+    }
+    return info.stream().filter( o -> o.getSequence() == sequence ).findFirst()
+        .orElse( null );
   }
 
   /**
@@ -125,10 +180,29 @@ public class ServerMetadata {
 
     private int version;
 
-    private long timestamp;
+    private long lastModifiedDate;
 
     /**
-     * Default constructor -
+     * Major constructor -
+     * 
+     * @param sequence of chunk in the file - this is the same as the
+     *        chunk number
+     * @param replication of the chunk returned to the client form the
+     *        controller
+     * @param lastModifiedDate the initial modified time of the chunk in
+     *        milliseconds
+     * @param version of the chunk as detected by the server
+     */
+    public ChunkInformation(int sequence, int replication,
+        long lastModifiedDate, int verion) {
+      this.sequence = sequence;
+      this.replication = replication;
+      this.lastModifiedDate = lastModifiedDate;
+      this.version = verion;
+    }
+
+    /**
+     * Minor constructor -
      * 
      * @param sequence of chunk in the file - this is the same as the
      *        chunk number
@@ -156,6 +230,32 @@ public class ServerMetadata {
      */
     public int getReplication() {
       return replication;
+    }
+
+    /**
+     * 
+     * @return the last modified time of the chunk in milliseconds
+     */
+    public long getLastModifiedTime() {
+      return lastModifiedDate;
+    }
+
+    /**
+     * 
+     * @return the version of the chunk
+     */
+    public int getVersion() {
+      return version;
+    }
+
+    /**
+     * Update the lastModifiedDate associated with the chunk based on the
+     * last modified time.
+     * 
+     * @param lastModifiedDate
+     */
+    public void setLastModifiedDate(long lastModifiedDate) {
+      this.lastModifiedDate = lastModifiedDate;
     }
 
     /**

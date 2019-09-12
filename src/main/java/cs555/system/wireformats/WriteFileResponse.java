@@ -22,9 +22,12 @@ public class WriteFileResponse implements Event {
 
   private String[] routes;
 
+  private boolean ableToWrite;
+
   public WriteFileResponse(String[] routes) {
     this.type = Protocol.WRITE_FILE_RESPONSE;
     this.routes = routes;
+    this.ableToWrite = routes == null ? false : true;
   }
 
   /**
@@ -42,18 +45,22 @@ public class WriteFileResponse implements Event {
 
     this.type = din.readInt();
 
-    int arrayLength = din.readInt();
+    this.ableToWrite = din.readBoolean();
 
-    this.routes = new String[ arrayLength ];
-
-    for ( int i = 0; i < arrayLength; ++i )
+    if ( this.ableToWrite )
     {
-      int len = din.readInt();
-      byte[] bytes = new byte[ len ];
-      din.readFully( bytes );
-      this.routes[ i ] = ( new String( bytes ) );
-    }
+      int arrayLength = din.readInt();
 
+      this.routes = new String[ arrayLength ];
+
+      for ( int i = 0; i < arrayLength; ++i )
+      {
+        int len = din.readInt();
+        byte[] bytes = new byte[ len ];
+        din.readFully( bytes );
+        this.routes[ i ] = ( new String( bytes ) );
+      }
+    }
     inputStream.close();
     din.close();
   }
@@ -71,6 +78,14 @@ public class WriteFileResponse implements Event {
   }
 
   /**
+   * 
+   * @return true when able to write, false otherwise.
+   */
+  public boolean isAbleToWrite() {
+    return ableToWrite;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -82,15 +97,19 @@ public class WriteFileResponse implements Event {
 
     dout.writeInt( type );
 
-    dout.writeInt( routes.length );
+    dout.writeBoolean( ableToWrite );
 
-    for ( String item : routes )
+    if ( ableToWrite )
     {
-      byte[] bytes = item.getBytes();
-      dout.writeInt( bytes.length );
-      dout.write( bytes );
-    }
+      dout.writeInt( routes.length );
 
+      for ( String item : routes )
+      {
+        byte[] bytes = item.getBytes();
+        dout.writeInt( bytes.length );
+        dout.write( bytes );
+      }
+    }
     dout.flush();
     marshalledBytes = outputStream.toByteArray();
 
@@ -101,7 +120,8 @@ public class WriteFileResponse implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + " " + Arrays.toString( routes );
+    return "\n" + type + ", routes: "
+        + ( ableToWrite ? Arrays.toString( routes ) : "no routes." );
   }
 
 }

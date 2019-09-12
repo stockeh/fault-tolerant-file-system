@@ -54,8 +54,11 @@ public class EventFactory {
         return new RegisterRequest( marshalledBytes );
 
       case Protocol.MINOR_HEARTBEAT :
-        return new MinorHeartbeat( marshalledBytes );
+        return new Heartbeat( marshalledBytes );
 
+      case Protocol.MAJOR_HEARTBEAT :
+        return new Heartbeat( marshalledBytes );
+        
       case Protocol.WRITE_FILE_REQUEST :
         return new WriteFileRequest( marshalledBytes );
 

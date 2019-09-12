@@ -1,22 +1,28 @@
 package cs555.system.node;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Timer;
 import cs555.system.heartbeat.ControllerHeartbeatManager;
 import cs555.system.metadata.ControllerMetadata;
 import cs555.system.metadata.ControllerMetadata.FileInformation;
+import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.FailureChunkRead;
+import cs555.system.wireformats.Heartbeat;
 import cs555.system.wireformats.ListFileResponse;
-import cs555.system.wireformats.MinorHeartbeat;
 import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.ReadFileRequest;
 import cs555.system.wireformats.ReadFileResponse;
@@ -162,7 +168,12 @@ public class Controller implements Node {
         break;
 
       case Protocol.MINOR_HEARTBEAT :
-        heartbeatHandler( event, connection );
+        minorHeartbeatHandler( event );
+        break;
+
+      case Protocol.MAJOR_HEARTBEAT :
+        minorHeartbeatHandler( event );
+        majorHeartbeatHandler( event );
         break;
 
       case Protocol.WRITE_FILE_REQUEST :
@@ -295,6 +306,7 @@ public class Controller implements Node {
         request.getFilelength(), request.getNumberOfChunks() );
     String[] serversToConnect = metadata.getChunkServers( request.getFilename(),
         request.getSequence(), isOriginalFile );
+    // All heartbeats been received for sequence 0.
     WriteFileResponse response = new WriteFileResponse( serversToConnect );
     try
     {
@@ -414,14 +426,13 @@ public class Controller implements Node {
   }
 
   /**
-   * Manage the incoming heartbeats by updating the controller metadata
+   * Manage the incoming <b>MINOR</b> heartbeats by updating the
+   * controller metadata
    * 
    * @param event
-   * @param connection
    */
-  private synchronized void heartbeatHandler(Event event,
-      TCPConnection connection) {
-    MinorHeartbeat request = ( ( MinorHeartbeat ) event );
+  private synchronized void minorHeartbeatHandler(Event event) {
+    Heartbeat request = ( ( Heartbeat ) event );
     try
     {
       // TODO: Should the total chunks be written here from the server, or
@@ -436,7 +447,54 @@ public class Controller implements Node {
     } catch ( NullPointerException e )
     {
       LOG.error( e.getMessage() );
+    }
+  }
+
+  /**
+   * Manage the incoming <b>MAJOR</b> heartbeats by updating the
+   * controller metadata
+   * 
+   * @param event
+   */
+  private synchronized void majorHeartbeatHandler(Event event) {
+    Heartbeat request = ( ( Heartbeat ) event );
+
+    String serversize = new DecimalFormat( "0.00000000" ).format(
+        ( ( ( request.getFreeSpace() / 1024.0 ) / 1024.0 ) / 1024.0 ) );
+    String lineSeparator = new String( new char[ 90 ] ).replace( "\0", "-" );
+
+    System.out.println( "\n" + lineSeparator );
+
+    System.out.format( "%30s%20s%15s\n",
+        new Object[] { request.getConnectionDetails(), serversize + " (GB)",
+            request.getTotalChunks() + " chunk(s)" } );
+
+    if ( request.isEmpty() )
+    {
+      System.out.println( "\nThere is no additional information to display." );
+      System.out.println( "\n" + lineSeparator );
       return;
     }
+
+    System.out.format( "%30s%20s%15s%25s\n", new Object[] { "Filename",
+        "Sequence", "Version", "Modification Date" } );
+
+    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
+
+    for ( Entry<String, List<ChunkInformation>> entry : request.getFiles()
+        .entrySet() )
+    {
+      String title = entry.getKey();
+      title = title.substring( title.lastIndexOf( File.separator ) );
+      int i = 0;
+      for ( ChunkInformation info : entry.getValue() )
+      {
+        title = i++ == 0 ? title : "";
+        System.out.format( "%30s%20s%15s%25s\n",
+            new Object[] { title, info.getSequence(), info.getVersion(),
+                sdf.format( info.getLastModifiedTime() ) } );
+      }
+    }
+    System.out.println( lineSeparator );
   }
 }

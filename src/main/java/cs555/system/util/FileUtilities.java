@@ -114,26 +114,42 @@ public class FileUtilities {
   }
 
   /**
+   * Compare the integrity information from a chunk on disk to that from
+   * the incoming message.
+   * 
+   * @param path of the original chunk segment
+   * @param newMessage that is to be compared
+   * @return true if the two chunks have the same content, false
+   *         otherwise.
+   */
+  public static boolean messageIntegrityMatchesDisk(Path path,
+      byte[] newMessage) {
+    byte[] originalMessage = FileUtilities.readChunkSequence( path );
+    if ( originalMessage != null )
+    {
+      byte[] originalSHA1 =
+          Arrays.copyOfRange( originalMessage, 0, INTEGRITY_SIZE );
+      byte[] newSHA1 = Arrays.copyOfRange( newMessage, 0, INTEGRITY_SIZE );
+      return Arrays.equals( originalSHA1, newSHA1 );
+    }
+    return false;
+  }
+
+  /**
    * Read a chunk of a file denoted by the <tt>filename</tt> and
    * <tt>sequence</tt> number into a <tt>byte[]</tt>.
    * 
-   * @param node added to write file name with connection details
-   * @param filename
-   * @param sequence
    * @return a <tt>byte[]</tt> of the original bytes written to disk.
    *         This includes the message and the integrity information.
    */
-  public static byte[] readChunkSequence(Node node, String filename,
-      int sequence) {
+  public static byte[] readChunkSequence(Path path) {
     byte[] message;
     try
     {
-      message = Files.readAllBytes(
-          FileUtilities.getPathLocation( node, filename, sequence ) );
+      message = Files.readAllBytes( path );
     } catch ( IOException e )
     {
-      LOG.error( "Unable to read chunk file: \'" + filename + "\', chunk: \'"
-          + sequence + "\' from disk." );
+      LOG.error( "Unable to read chunk file: \'" + path.getFileName() );
       e.printStackTrace();
       return null;
     }
@@ -150,8 +166,7 @@ public class FileUtilities {
    * TODO: use StringBuilder instead for performance?
    * </p>
    * 
-   * @param node
-   * @param chunkServer
+   * @param node added to write file name with connection details
    * @param filename
    * @param sequence
    * @return the resulting <tt>Path</tt>

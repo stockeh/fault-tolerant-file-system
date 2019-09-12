@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
@@ -81,6 +82,10 @@ public class ClientReaderThread implements Runnable {
    */
   @Override
   public void run() {
+    SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
+    LOG.info(
+        "Started reading file at " + sdf.format( System.currentTimeMillis() ) );
+    LOG.info( "Uploading..." );
     String[][] chunks = readFileResponse.getChunks();
     byte[][] bytes = processIncomingChunks( chunks );
     if ( bytes != null )
@@ -108,6 +113,8 @@ public class ClientReaderThread implements Runnable {
     {
       metadata.removeReadableFile( readFileResponse.getFilename() );
     }
+    LOG.info( "Finished reading file at "
+        + sdf.format( System.currentTimeMillis() ) + "\n" );
   }
 
   /**
@@ -190,7 +197,5 @@ public class ClientReaderThread implements Runnable {
     Path path = Paths.get( updatedFilename );
     Files.createDirectories( path.getParent() );
     Files.write( path, file );
-    LOG.info(
-        "Finished writing the file \'" + updatedFilename + "\' to disk." );
   }
 }

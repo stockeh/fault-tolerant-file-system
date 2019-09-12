@@ -19,6 +19,8 @@ public class ServerHeartbeatManager extends TimerTask {
 
   private final ServerMetadata metadata;
 
+  private int counter;
+
   /**
    * Default constructor -
    * 
@@ -29,6 +31,7 @@ public class ServerHeartbeatManager extends TimerTask {
       ServerMetadata metadata) {
     this.controllerConnection = controllerConnection;
     this.metadata = metadata;
+    this.counter = 0;
   }
 
   /**
@@ -42,7 +45,16 @@ public class ServerHeartbeatManager extends TimerTask {
   public void run() {
     try
     {
-      byte[] message = metadata.getMinorHeartbeatBytes();
+      byte[] message;
+
+      if ( ++counter % 2 == 0 )
+      {
+        counter = 0;
+        message = metadata.getMajorHeartbeatBytes();
+      } else
+      {
+        message = metadata.getMinorHeartbeatBytes();
+      }
       controllerConnection.getTCPSender().sendData( message );
     } catch ( IOException e )
     {

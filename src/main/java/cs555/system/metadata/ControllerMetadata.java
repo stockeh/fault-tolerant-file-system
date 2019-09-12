@@ -226,18 +226,18 @@ public class ControllerMetadata {
     for ( Entry<String, List<ChunkInformation>> entry : filesFromServer
         .entrySet() )
     {
-      FileInformation information = files.get( entry.getKey() );
-      if ( information == null )
+      FileInformation fileInformation = files.get( entry.getKey() );
+      if ( fileInformation == null )
       {
         throw new NullPointerException( "Unable to update because the file: "
             + entry.getKey() + ", does not exist on controller." );
       }
-      String[][] chunks = information.getChunks();
+      String[][] chunks = fileInformation.getChunks();
 
-      for ( ChunkInformation chunk : entry.getValue() )
+      for ( ChunkInformation chunkInformation : entry.getValue() )
       {
-        chunks[ chunk.getSequence() ][ chunk.getReplication() ] =
-            connectionDetails;
+        chunks[ chunkInformation.getSequence() ][ chunkInformation
+            .getReplication() ] = connectionDetails;
       }
     }
   }
@@ -271,16 +271,19 @@ public class ControllerMetadata {
     FileInformation information = files.get( filename );
     if ( information != null )
     {
-
       String[] chunkLocations = information.getChunks()[ sequence ];
 
-      boolean nullsOnly =
-          Arrays.stream( chunkLocations ).noneMatch( Objects::nonNull );
+      boolean nonNullLocation =
+          Arrays.stream( chunkLocations ).allMatch( Objects::nonNull );
 
-      if ( !isOriginalFile && !nullsOnly )
+      if ( !isOriginalFile && nonNullLocation )
       {
         LOG.debug( "Forwarding existing chunk information." );
         return chunkLocations;
+      } else if ( !isOriginalFile && sequence == 0 )
+      { // the case where the file is not original, but the chunk locations
+        // have null entries since no heartbeats were received yet.
+        return null;
       }
     }
     List<ServerInformation> list = new ArrayList<>( connections.values() );

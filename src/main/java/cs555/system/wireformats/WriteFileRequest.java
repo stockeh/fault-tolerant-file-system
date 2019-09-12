@@ -30,15 +30,15 @@ public class WriteFileRequest implements Event {
   /**
    * Default Constructor -
    * 
-   * @param name
-   * @param sequence
-   * @param filelength
-   * @param numberOfChunks
+   * @param filename
+   * @param sequence chunk number associated with the write
+   * @param filelength length of the original file
+   * @param numberOfChunks of total chunks that make up the file
    */
-  public WriteFileRequest(String name, int sequence, int filelength,
+  public WriteFileRequest(String filename, int sequence, int filelength,
       int numberOfChunks) {
     this.type = Protocol.WRITE_FILE_REQUEST;
-    this.filename = name;
+    this.filename = filename;
     this.sequence = sequence;
     this.filelength = filelength;
     this.numberOfChunks = numberOfChunks;
@@ -146,9 +146,9 @@ public class WriteFileRequest implements Event {
 
   @Override
   public String toString() {
-    return "\n" + Integer.toString( type ) + ", file name: " + filename
-        + ", sequence: " + sequence + ", number of chunks: " + numberOfChunks
-        + ", file length: " + filelength;
+    return "\n" + type + ", file name: " + filename + ", sequence: " + sequence
+        + ", number of chunks: " + numberOfChunks + ", file length: "
+        + filelength;
   }
 
 }

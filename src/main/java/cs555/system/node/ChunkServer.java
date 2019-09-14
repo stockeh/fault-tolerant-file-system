@@ -345,40 +345,47 @@ public class ChunkServer implements Node, Protocol {
    */
   private void readChunkHandler(Event event, TCPConnection connection) {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
-    byte[] message =
-        FileUtilities.readChunkSequence( FileUtilities.getPathLocation( this,
-            request.getFilename(), request.getSequence() ) );
+    String filename = request.getFilename();
+    int sequence = request.getSequence();
+    
+    byte[] message = FileUtilities.readChunkSequence(
+        FileUtilities.getPathLocation( this, filename, sequence ) );
 
-    ChunkIntegrityInformation content =
-        FileUtilities.validateSHA1Integrity( message );
     ReadChunkResponse response;
-    if ( content.isValidChunk() )
+    if ( Constants.SYSTEM_DESIGN_SCHEMA
+        .equals( Constants.SYSTEM_TYPE_ERASURE ) )
     {
-      response = new ReadChunkResponse( request.getFilename(),
-          content.getMessage(), Constants.SUCCESS );
+      response = new ReadChunkResponse( filename, message, Constants.SUCCESS );
     } else
     {
-      response =
-          new ReadChunkResponse( request.getFilename(), Constants.FAILURE );
-      LOG.debug(
-          "Sent FailureSliceRead message to controller to fix failure." );
-      FailureChunkRead failureRequest =
-          new FailureChunkRead( this.getHost() + ":" + this.getPort(),
-              request.getFilename(), request.getSequence() );
-      try
+      ChunkIntegrityInformation content =
+          FileUtilities.validateSHA1Integrity( message );
+      if ( content.isValidChunk() )
       {
-        controllerConnection.getTCPSender()
-            .sendData( failureRequest.getBytes() );
-      } catch ( IOException e )
+        response = new ReadChunkResponse( filename, content.getMessage(),
+            Constants.SUCCESS );
+      } else
       {
-        LOG.error(
-            "Unable to send request message to controller. " + e.getMessage() );
-        e.printStackTrace();
+        response = new ReadChunkResponse( filename, Constants.FAILURE );
+        LOG.debug(
+            "Sent FailureSliceRead message to controller to fix failure." );
+        FailureChunkRead failureRequest = new FailureChunkRead(
+            this.getHost() + ":" + this.getPort(), filename, sequence );
+        try
+        {
+          controllerConnection.getTCPSender()
+              .sendData( failureRequest.getBytes() );
+        } catch ( IOException e )
+        {
+          LOG.error( "Unable to send request message to controller. "
+              + e.getMessage() );
+          e.printStackTrace();
+        }
       }
+      LOG.debug( "The status of the chunk read is: "
+          + ( response.getStatus() == Constants.SUCCESS ? "successful."
+              : "failed." ) );
     }
-    LOG.debug( "The status of the chunk read is: "
-        + ( response.getStatus() == Constants.SUCCESS ? "successful."
-            : "failed." ) );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );

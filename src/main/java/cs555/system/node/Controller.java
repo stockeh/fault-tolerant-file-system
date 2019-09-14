@@ -104,12 +104,15 @@ public class Controller implements Node {
       ( new Thread( new TCPServerThread( controller, serverSocket ),
           "Server Thread" ) ).start();
 
-      ControllerHeartbeatManager controllerHeartbeatManager =
-          new ControllerHeartbeatManager( controller.metadata );
-      Timer timer = new Timer();
-      final int interval = 20 * 1000; // 20 seconds in milliseconds
-      timer.schedule( controllerHeartbeatManager, 1000, interval );
-
+      if ( Constants.SYSTEM_DESIGN_SCHEMA
+          .equals( Constants.SYSTEM_TYPE_REPLICATION ) )
+      {
+        ControllerHeartbeatManager controllerHeartbeatManager =
+            new ControllerHeartbeatManager( controller.metadata );
+        Timer timer = new Timer();
+        final int interval = 20 * 1000; // 20 seconds in milliseconds
+        timer.schedule( controllerHeartbeatManager, 1000, interval );
+      }
       controller.interact();
     } catch ( IOException e )
     {

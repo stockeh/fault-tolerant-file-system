@@ -173,8 +173,10 @@ public class ClientReaderThread implements Runnable {
         --sequence;
         continue;
       }
+      System.out.print( sequence + ", " );
       replication = 0;
     }
+    System.out.println();
     return fileBytes;
   }
 
@@ -198,7 +200,10 @@ public class ClientReaderThread implements Runnable {
         sendReadChunkRequest( chunkServers, sequence, shard );
         shards[ shard ] = readChunkResponse.getMessage();
         shardPresent[ shard ] = true;
-        ++shardCount;
+        if ( ++shardCount >= Constants.ERASURE_DATA_SHARDS )
+        {
+          break;
+        }
       } catch ( ClientReadException | IOException | InterruptedException e )
       {
         LOG.debug( "Unable to retrieve message on chunk server \'"
@@ -219,6 +224,7 @@ public class ClientReaderThread implements Runnable {
   }
 
   /**
+   * Send a request to the chunk server for a given sequence
    * 
    * @param chunkServers
    * @param sequence

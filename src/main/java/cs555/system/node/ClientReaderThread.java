@@ -115,6 +115,8 @@ public class ClientReaderThread implements Runnable {
       }
     } else
     {
+      LOG.error(
+          "Unable to read file due to missing / invalid chunks." );
       metadata.removeReadableFile( readFileResponse.getFilename() );
     }
     LOG.info( "Finished reading file at "

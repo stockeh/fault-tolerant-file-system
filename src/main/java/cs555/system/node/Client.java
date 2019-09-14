@@ -110,7 +110,8 @@ public class Client implements Node {
    */
   public static void main(String[] args) {
     LOG.info( "Client node starting up at: " + new Date() );
-
+    LOG.info( "The System is using " + Constants.SYSTEM_DESIGN_SCHEMA
+        + " to achieve fault tolerance." );
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
       Client node = new Client( InetAddress.getLocalHost().getHostName(),

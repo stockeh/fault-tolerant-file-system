@@ -140,7 +140,7 @@ public class ChunkServer implements Node, Protocol {
 
         case HELP :
           System.out.println(
-              "\n\t" + EXIT + "\t: leave the overlay prior to starting.\n" );
+              "\n\t" + EXIT + "\t: leave the system prior to starting.\n" );
           break;
 
         default :
@@ -242,6 +242,10 @@ public class ChunkServer implements Node, Protocol {
    */
   private void writeChunkHandler(Event event) {
     WriteChunkRequest request = ( WriteChunkRequest ) event;
+    String fileStringInfo = ( new StringBuilder() ).append( request.getFilename() )
+        .append( ", sequence: " ).append( request.getSequence() )
+        .append( ", replication: " ).append( request.getReplicationPosition() )
+        .append( " to disk. " ).toString();
     try
     {
       int messageIndex =
@@ -272,8 +276,7 @@ public class ChunkServer implements Node, Protocol {
 
           Files.createDirectories( path.getParent() );
           Files.write( path, message );
-          LOG.info( "Finished writing an updated version of "
-              + request.getFilename() + " to disk." );
+          LOG.info( "Finished writing an updated version of " + fileStringInfo );
         } else
         {
           LOG.debug(
@@ -283,7 +286,7 @@ public class ChunkServer implements Node, Protocol {
       {
         Files.createDirectories( path.getParent() );
         Files.write( path, message );
-        LOG.info( "Finished writing " + request.getFilename() + " to disk." );
+        LOG.info( "Finished writing " + fileStringInfo );
 
         metadata.update( request.getFilename(), request.getSequence(),
             request.getReplicationPosition(), lastModifiedDate,
@@ -291,8 +294,7 @@ public class ChunkServer implements Node, Protocol {
       }
     } catch ( IOException e )
     {
-      LOG.error( "Unable to save chunk " + request.getFilename() + " to disk. "
-          + e.getMessage() );
+      LOG.error( "Unable to save " + fileStringInfo + e.getMessage() );
       e.printStackTrace();
     }
 
@@ -347,7 +349,7 @@ public class ChunkServer implements Node, Protocol {
     ReadChunkRequest request = ( ReadChunkRequest ) event;
     String filename = request.getFilename();
     int sequence = request.getSequence();
-    
+
     byte[] message = FileUtilities.readChunkSequence(
         FileUtilities.getPathLocation( this, filename, sequence ) );
 

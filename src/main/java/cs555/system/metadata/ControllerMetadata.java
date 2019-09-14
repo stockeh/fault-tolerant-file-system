@@ -334,9 +334,9 @@ public class ControllerMetadata {
       boolean readable = true;
 
       String[][] chunks = entry.getValue().getChunks();
-      for ( int i = 0; i < chunks.length; i++ )
+      for ( int i = 0; i < chunks.length; ++i )
       {
-        if ( chunks[ i ][ 0 ] == null )
+        if ( !Arrays.stream( chunks[ i ] ).anyMatch( Objects::nonNull ) )
         {
           LOG.debug( "File \'" + entry.getKey() + "\' is not readable." );
           readable = false;

@@ -110,22 +110,21 @@ public class ClientSenderThread implements Runnable {
     LOG.info( "Started uploading " + numberOfFiles + " file(s) at "
         + sdf.format( System.currentTimeMillis() ) );
     LOG.info( "Uploading..." );
-    synchronized ( lock )
+    ConnectionUtilities connections = new ConnectionUtilities();
+
+    for ( File file : files )
     {
-      for ( File file : files )
+      try ( InputStream is = new FileInputStream( file ) )
       {
-        try ( InputStream is = new FileInputStream( file ) )
-        {
-          processIndividualFile( file, is );
-        } catch ( IOException | ClientWriteException e )
-        {
-          LOG.error( "Unable to process the file " + file.getName() + ". "
-              + e.getMessage() );
-          --numberOfFiles;
-        } catch ( InterruptedException e )
-        {
-          Thread.currentThread().interrupt();
-        }
+        processIndividualFile( file, is, connections );
+      } catch ( IOException | ClientWriteException e )
+      {
+        LOG.error( "Unable to process the file " + file.getName() + ". "
+            + e.getMessage() );
+        --numberOfFiles;
+      } catch ( InterruptedException e )
+      {
+        Thread.currentThread().interrupt();
       }
     }
     if ( numberOfFiles > 0 )
@@ -133,7 +132,7 @@ public class ClientSenderThread implements Runnable {
       LOG.info( "Finished uploading " + numberOfFiles + " file(s) at "
           + sdf.format( System.currentTimeMillis() ) + "\n" );
     }
-
+    connections.closeCachedConnections();
     running = false;
   }
 
@@ -152,10 +151,12 @@ public class ClientSenderThread implements Runnable {
    * 
    * @param file to be processed
    * @param is input file stream
+   * @param connections utilities to cache connections
    * @throws IOException
    * @throws InterruptedException
    */
-  private void processIndividualFile(File file, InputStream is)
+  private void processIndividualFile(File file, InputStream is,
+      ConnectionUtilities connections)
       throws IOException, InterruptedException, ClientWriteException {
 
     // Metadata with temporary version number ( the server will detect the
@@ -183,16 +184,19 @@ public class ClientSenderThread implements Runnable {
 
       this.node.getControllerConnection().getTCPSender().sendData( request );
       // wait for response from controller containing routing information.
-      lock.wait();
+      synchronized ( lock )
+      {
+        lock.wait();
+      }
       if ( !ableToWrite )
       {
         throw new ClientWriteException( "The controller has not"
             + " received file chunk locations for the original file." );
       }
       String[] initialConnection = routes[ 0 ].split( ":" );
-      TCPConnection connection = ConnectionUtilities.establishConnection( node,
-          initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
+      TCPConnection connection =
+          connections.cacheConnection( node, initialConnection, false);
       // Pad elements b[k] through b[b.length-1] with zeros
       Arrays.fill( message, length, Constants.CHUNK_SIZE, ( byte ) 0 );
       byte[][] messageToSend = new byte[][] { message };
@@ -206,8 +210,8 @@ public class ClientSenderThread implements Runnable {
           sequence++, messageToSend, lastModifiedDate, version, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
-      connection.close();
     }
   }
+
 
 }

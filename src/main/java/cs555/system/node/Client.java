@@ -110,7 +110,8 @@ public class Client implements Node {
    */
   public static void main(String[] args) {
     LOG.info( "Client node starting up at: " + new Date() );
-
+    LOG.info( "The System is using " + Constants.SYSTEM_DESIGN_SCHEMA
+        + " to achieve fault tolerance." );
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
       Client node = new Client( InetAddress.getLocalHost().getHostName(),
@@ -208,13 +209,13 @@ public class Client implements Node {
       if ( input.length != 2 )
       {
         throw new IllegalArgumentException(
-            "Invalid argument for \'" + READ + " #\' input." );
+            "Invalid argument for \'" + READ + " #\' input.\n" );
       }
       fileNumber = Integer.parseInt( input[ 1 ] );
     } catch ( IllegalArgumentException e )
     {
       LOG.error( "Unable to send read request. " + e.getMessage() );
-      e.printStackTrace();
+      return;
     }
     String filename = null;
     try

@@ -69,6 +69,7 @@ public class Logger {
    * 
    * @param message The message to display
    */
+  @SuppressWarnings( "unused" )
   public void debug(String message) {
     if ( MASTER && DEBUG )
     {

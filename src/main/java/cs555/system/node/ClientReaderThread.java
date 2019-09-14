@@ -89,7 +89,9 @@ public class ClientReaderThread implements Runnable {
         "Started reading file at " + sdf.format( System.currentTimeMillis() ) );
     LOG.info( "Reading..." );
     String[][] chunkServers = readFileResponse.getChunks();
-    byte[][] bytes = processIncomingChunks( chunkServers );
+    ConnectionUtilities connections = new ConnectionUtilities();
+
+    byte[][] bytes = processIncomingChunks( chunkServers, connections );
     if ( bytes != null )
     {
       int numberOfChunks = bytes.length;
@@ -113,10 +115,13 @@ public class ClientReaderThread implements Runnable {
       }
     } else
     {
+      LOG.error(
+          "Unable to read file due to missing / invalid chunks." );
       metadata.removeReadableFile( readFileResponse.getFilename() );
     }
     LOG.info( "Finished reading file at "
         + sdf.format( System.currentTimeMillis() ) + "\n" );
+    connections.closeCachedConnections();
   }
 
   /**
@@ -125,9 +130,11 @@ public class ClientReaderThread implements Runnable {
    * 
    * @param chunkServers containing the chunk server connection details
    *        for each chunk in the file
+   * @param connections
    * @return a 2-dimensional array of chunk bytes for the given server
    */
-  private byte[][] processIncomingChunks(String[][] chunkServers) {
+  private byte[][] processIncomingChunks(String[][] chunkServers,
+      ConnectionUtilities connections) {
     byte[][] fileBytes =
         new byte[ chunkServers.length ][ Constants.CHUNK_SIZE ];
     int replication = 0;
@@ -138,7 +145,8 @@ public class ClientReaderThread implements Runnable {
         if ( Constants.SYSTEM_DESIGN_SCHEMA
             .equals( Constants.SYSTEM_TYPE_ERASURE ) )
         {
-          fileBytes[ sequence ] = decodeErasureCodes( chunkServers, sequence );
+          fileBytes[ sequence ] =
+              decodeErasureCodes( chunkServers, sequence, connections );
           if ( fileBytes[ sequence ] == null )
           {
             LOG.error(
@@ -148,7 +156,8 @@ public class ClientReaderThread implements Runnable {
           }
         } else
         {
-          sendReadChunkRequest( chunkServers, sequence, replication );
+          sendReadChunkRequest( chunkServers, sequence, replication,
+              connections );
           if ( readChunkResponse.getStatus() == Constants.FAILURE )
           {
             throw new ClientReadException( "The chunk sequence \'" + sequence
@@ -173,19 +182,21 @@ public class ClientReaderThread implements Runnable {
         --sequence;
         continue;
       }
-      System.out.print( sequence + ", " );
       replication = 0;
     }
-    System.out.println();
     return fileBytes;
   }
 
   /**
    * Convert all the shards into the original chunk content
    * 
-   * @return
+   * @param chunkServers
+   * @param sequence
+   * @param connections
+   * @return the bytes of the original chunk
    */
-  private byte[] decodeErasureCodes(String[][] chunkServers, int sequence) {
+  private byte[] decodeErasureCodes(String[][] chunkServers, int sequence,
+      ConnectionUtilities connections) {
     byte[][] shards =
         new byte[ Constants.ERASURE_TOTAL_SHARDS ][ Constants.ERASURE_SHARD_SIZE ];
     boolean[] shardPresent = new boolean[ Constants.ERASURE_TOTAL_SHARDS ];
@@ -197,7 +208,7 @@ public class ClientReaderThread implements Runnable {
       // send request to chunk server if successful
       try
       {
-        sendReadChunkRequest( chunkServers, sequence, shard );
+        sendReadChunkRequest( chunkServers, sequence, shard, connections );
         shards[ shard ] = readChunkResponse.getMessage();
         shardPresent[ shard ] = true;
         if ( ++shardCount >= Constants.ERASURE_DATA_SHARDS )
@@ -226,15 +237,16 @@ public class ClientReaderThread implements Runnable {
   /**
    * Send a request to the chunk server for a given sequence
    * 
-   * @param chunkServers
-   * @param sequence
-   * @param replication
+   * @param chunkServers to establish new connections
+   * @param sequence to index into the chunkServers
+   * @param replication to index into the chunkServers
+   * @param connections that maintain cached connections
    * @throws IOException
    * @throws ClientReadException
    * @throws InterruptedException
    */
   private void sendReadChunkRequest(String[][] chunkServers, int sequence,
-      int replication)
+      int replication, ConnectionUtilities connections)
       throws IOException, ClientReadException, InterruptedException {
     if ( chunkServers[ sequence ][ replication ] == null )
     {
@@ -242,11 +254,12 @@ public class ClientReaderThread implements Runnable {
           "The server containing for the ( sequence, replication )"
               + "pair is null." );
     }
-    String[] connectionDetails =
+    String[] initialConnection =
         chunkServers[ sequence ][ replication ].split( ":" );
-    TCPConnection connection = ConnectionUtilities.establishConnection( node,
-        connectionDetails[ 0 ], Integer.parseInt( connectionDetails[ 1 ] ) );
-    connection.start();
+
+    TCPConnection connection =
+        connections.cacheConnection( node, initialConnection, true );
+
     byte[] request =
         new ReadChunkRequest( readFileResponse.getFilename(), sequence )
             .getBytes();
@@ -257,7 +270,6 @@ public class ClientReaderThread implements Runnable {
     }
     LOG.debug( "sequence: " + sequence + ", status: "
         + readChunkResponse.getStatus() );
-    connection.close();
   }
 
   /**

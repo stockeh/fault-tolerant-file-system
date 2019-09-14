@@ -12,6 +12,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.util.ReedSolomonUtilities;
 import cs555.system.wireformats.WriteChunkRequest;
 import cs555.system.wireformats.WriteFileRequest;
 
@@ -174,8 +175,8 @@ public class ClientSenderThread implements Runnable {
     int sequence = 0;
 
     int length = 0;
-    byte[] chunk = new byte[ Constants.CHUNK_SIZE ];
-    while ( ( length = is.read( chunk ) ) != -1 )
+    byte[] message = new byte[ Constants.CHUNK_SIZE ];
+    while ( ( length = is.read( message ) ) != -1 )
     {
       byte[] request = ( new WriteFileRequest( file.getAbsolutePath(), sequence,
           filelength, numberOfChunks ) ).getBytes();
@@ -193,10 +194,16 @@ public class ClientSenderThread implements Runnable {
           initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
 
       // Pad elements b[k] through b[b.length-1] with zeros
-      Arrays.fill( chunk, length, Constants.CHUNK_SIZE, ( byte ) 0 );
+      Arrays.fill( message, length, Constants.CHUNK_SIZE, ( byte ) 0 );
+      byte[][] messageToSend = new byte[][] { message };
+      if ( Constants.SYSTEM_DESIGN_SCHEMA
+          .equals( Constants.SYSTEM_TYPE_ERASURE ) )
+      {
+        messageToSend = ReedSolomonUtilities.encode( message );
+      }
 
       WriteChunkRequest writeToChunkServer = new WriteChunkRequest( filename,
-          sequence++, chunk, lastModifiedDate, version, routes );
+          sequence++, messageToSend, lastModifiedDate, version, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
       connection.close();

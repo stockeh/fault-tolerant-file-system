@@ -208,8 +208,8 @@ public class ChunkServer implements Node, Protocol {
             metadata.getChunkInformation( filename, sequence );
 
         WriteChunkRequest writeRequest = new WriteChunkRequest( filename,
-            sequence, message, info.getLastModifiedTime(), info.getVersion(),
-            new String[] { "" } );
+            sequence, new byte[][] { message }, info.getLastModifiedTime(),
+            info.getVersion(), new String[] { "" } );
 
         writeRequest
             .setReplicationPosition( redirectRequest.getReplicationPosition() );
@@ -244,11 +244,15 @@ public class ChunkServer implements Node, Protocol {
     WriteChunkRequest request = ( WriteChunkRequest ) event;
     try
     {
-      byte[] message = request.getMessage();
+      int messageIndex =
+          Constants.SYSTEM_DESIGN_SCHEMA.equals( Constants.SYSTEM_TYPE_ERASURE )
+              ? request.getReplicationPosition()
+              : 0;
+      byte[] message = request.getMessage( messageIndex );
       if ( message.length == Constants.CHUNK_SIZE )
       {
         message = FileUtilities.addSHA1Integrity( message );
-        request.setMessage( message );
+        request.setMessage( new byte[][] { message } );
       }
 
       Path path = FileUtilities.getPathLocation( this, request.getFilename(),

@@ -11,9 +11,9 @@ public interface Constants {
 
   // Application properties
 
-  final String REPLICATION = "replication";
+  final String SYSTEM_TYPE_REPLICATION = "replication";
 
-  final String ERASURE = "erasure";
+  final String SYSTEM_TYPE_ERASURE = "erasure";
 
   final String CONF_NAME = "application.properties";
 
@@ -27,7 +27,7 @@ public interface Constants {
       Configurations.getInstance().getProperty( "client.outbound.directory" );
 
   final String SYSTEM_DESIGN_SCHEMA = Configurations.getInstance()
-      .getProperty( "system.design.schema", REPLICATION );
+      .getProperty( "system.design.schema", SYSTEM_TYPE_REPLICATION );
 
   // Application constants
 
@@ -52,5 +52,5 @@ public interface Constants {
   final int ERASURE_SHARD_SIZE = CHUNK_SIZE / ERASURE_DATA_SHARDS + 1;
 
   final int NUMBER_OF_REPLICATIONS =
-      SYSTEM_DESIGN_SCHEMA.equals( REPLICATION ) ? 3 : ERASURE_TOTAL_SHARDS;
+      SYSTEM_DESIGN_SCHEMA.equals( SYSTEM_TYPE_REPLICATION ) ? 3 : ERASURE_TOTAL_SHARDS;
 }

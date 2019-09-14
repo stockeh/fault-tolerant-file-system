@@ -291,17 +291,26 @@ public class ControllerMetadata {
     // see comparator for sort details
     Collections.sort( list, ControllerMetadata.COMPARATOR );
 
-    int numberOfConnections =
-        connections.size() < Constants.NUMBER_OF_REPLICATIONS
-            ? connections.size()
-            : Constants.NUMBER_OF_REPLICATIONS;
+    int numberOfConnections = list.size();
 
-    String[] output = new String[ numberOfConnections ];
+    int numberOfReplications = Constants.NUMBER_OF_REPLICATIONS;
+
+    if ( Constants.SYSTEM_DESIGN_SCHEMA
+        .equals( Constants.SYSTEM_TYPE_ERASURE ) )
+    {
+      numberOfReplications = Constants.ERASURE_TOTAL_SHARDS;
+    } else if ( Constants.NUMBER_OF_REPLICATIONS > numberOfConnections )
+    {
+      numberOfReplications = numberOfConnections;
+    }
+
+    String[] output = new String[ numberOfReplications ];
 
     for ( int replication =
-        0; replication < numberOfConnections; ++replication )
+        0; replication < numberOfReplications; ++replication )
     {
-      String connectionDetails = list.get( replication ).getConnectionDetails();
+      String connectionDetails =
+          list.get( replication % numberOfConnections ).getConnectionDetails();
       output[ replication ] = connectionDetails;
       ServerInformation connection = connections.get( connectionDetails );
 

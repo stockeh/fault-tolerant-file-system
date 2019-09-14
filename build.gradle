@@ -5,7 +5,18 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    libs
+}
+
 dependencies {
     testImplementation 'junit:junit:4.12'
-    implementation files('libs/reed-solomon-erasure-coding.jar')
+    extraLibs files('libs/reed-solomon-erasure-coding.jar')
+    configurations.compile.extendsFrom(configurations.libs)
+}
+
+jar {
+    from {
+            configurations.libs.collect { it.isDirectory() ? it : zipTree(it) }
+        }
 }

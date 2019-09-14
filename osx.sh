@@ -5,7 +5,7 @@
 # This new window will spawn MULTI + 1 Chunk Servers.
 #
 
-MULTI="1 2 3 4"
+MULTI="1 2 3 4 5 6 7 8 9"
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 JAR_PATH="$DIR/conf/:$DIR/build/libs/fault-tolerant-file-system.jar"

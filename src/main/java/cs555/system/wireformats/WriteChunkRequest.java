@@ -28,7 +28,7 @@ public class WriteChunkRequest implements Event {
 
   private int sequence;
 
-  private byte[] message;
+  private byte[][] message;
 
   private long lastModifiedDate;
 
@@ -50,7 +50,7 @@ public class WriteChunkRequest implements Event {
    *        server
    * @param routes where to send the message to
    */
-  public WriteChunkRequest(String filename, int sequence, byte[] message,
+  public WriteChunkRequest(String filename, int sequence, byte[][] message,
       long lastModifiedDate, int version, String[] routes) {
     this.type = Protocol.WRITE_CHUNK_REQUEST;
     this.filename = filename;
@@ -84,9 +84,14 @@ public class WriteChunkRequest implements Event {
 
     this.sequence = din.readInt();
 
-    int messageLength = din.readInt();
-    this.message = new byte[ messageLength ];
-    din.readFully( this.message );
+    int numberOfShards = din.readInt();
+    this.message = new byte[ numberOfShards ][];
+    for ( int i = 0; i < numberOfShards; ++i )
+    {
+      int messageLength = din.readInt();
+      this.message[ i ] = new byte[ messageLength ];
+      din.readFully( this.message[ i ] );
+    }
 
     this.lastModifiedDate = din.readLong();
 
@@ -138,10 +143,10 @@ public class WriteChunkRequest implements Event {
    * 
    * @return the chunk content from the client
    */
-  public byte[] getMessage() {
-    return message;
+  public byte[] getMessage(int index) {
+    return message[ index ];
   }
-
+  
   /**
    * 
    * @return the time in milliseconds the <b>file</b> was last modified
@@ -180,7 +185,7 @@ public class WriteChunkRequest implements Event {
    * 
    * @param message
    */
-  public void setMessage(byte[] message) {
+  public void setMessage(byte[][] message) {
     this.message = message;
   }
 
@@ -214,7 +219,11 @@ public class WriteChunkRequest implements Event {
     dout.writeInt( sequence );
 
     dout.writeInt( message.length );
-    dout.write( message );
+    for ( byte[] bytes : message )
+    {
+      dout.writeInt( bytes.length );
+      dout.write( bytes );
+    }
 
     dout.writeLong( lastModifiedDate );
 

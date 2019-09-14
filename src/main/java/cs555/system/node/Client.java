@@ -208,13 +208,13 @@ public class Client implements Node {
       if ( input.length != 2 )
       {
         throw new IllegalArgumentException(
-            "Invalid argument for \'" + READ + " #\' input." );
+            "Invalid argument for \'" + READ + " #\' input.\n" );
       }
       fileNumber = Integer.parseInt( input[ 1 ] );
     } catch ( IllegalArgumentException e )
     {
       LOG.error( "Unable to send read request. " + e.getMessage() );
-      e.printStackTrace();
+      return;
     }
     String filename = null;
     try

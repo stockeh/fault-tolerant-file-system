@@ -41,7 +41,6 @@ public class ControllerHeartbeatManager extends TimerTask {
 
   private List<FailedConnection> failedConnections;
 
-  // TODO: does this need to be 1?
   private final static int NUMBER_OF_TASK_LOOPS = 1;
 
   /**
@@ -99,7 +98,7 @@ public class ControllerHeartbeatManager extends TimerTask {
     {
       // TODO: is this needed? The client will fail reading a chunk, and
       // move to the next...
-      notifyClientsOfFailure();
+      // notifyClientsOfFailure();
 
       for ( FailedConnection failedConnection : new ArrayList<>(
           failedConnections ) )
@@ -240,6 +239,7 @@ public class ControllerHeartbeatManager extends TimerTask {
    * and fetch an update of the available readable files.
    * 
    */
+  @SuppressWarnings( "unused" )
   private void notifyClientsOfFailure() {
     byte[] request = null;
     try

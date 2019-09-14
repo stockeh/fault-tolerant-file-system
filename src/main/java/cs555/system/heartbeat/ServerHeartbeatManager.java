@@ -47,7 +47,7 @@ public class ServerHeartbeatManager extends TimerTask {
     {
       byte[] message;
 
-      if ( ++counter % 2 == 0 )
+      if ( ++counter % 10 == 0 )
       {
         counter = 0;
         message = metadata.getMajorHeartbeatBytes();

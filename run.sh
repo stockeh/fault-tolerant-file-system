@@ -25,7 +25,7 @@ LINES=`find . -name "*.java" -print | xargs wc -l | grep "total" | awk '{$1=$1};
 echo Project has "$LINES" lines
 
 gradle clean; gradle build
-gnome-terminal --geometry=132x60 -e "ssh -t $(prop 'controller.host') 'java -cp $JAR_PATH cs555.system.node.Controller; bash;'"
+gnome-terminal --geometry=170x60 -e "ssh -t $(prop 'controller.host') 'java -cp $JAR_PATH cs555.system.node.Controller; bash;'"
 
 sleep 1
 

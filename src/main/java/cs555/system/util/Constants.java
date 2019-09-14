@@ -9,7 +9,7 @@ package cs555.system.util;
  */
 public interface Constants {
 
-  // Application properties specific constants.
+  // Application properties
 
   final String REPLICATION = "replication";
 
@@ -33,7 +33,7 @@ public interface Constants {
 
   final int CLIENT_ID = 0;
 
-  final int CHUNK_ID = 1;
+  final int SERVER_ID = 1;
 
   final byte SUCCESS = ( byte ) 200;
 
@@ -41,9 +41,16 @@ public interface Constants {
 
   final int CHUNK_SIZE = 64000;
 
-  final int CHUNK_SLICE_SIZE = 8000;
+  final int REPLICATION_CHUNK_SLICE_SIZE = 8000;
+
+  final int ERASURE_TOTAL_SHARDS = 9;
+
+  final int ERASURE_PARITY_SHARDS = 3;
+
+  final int ERASURE_DATA_SHARDS = ERASURE_TOTAL_SHARDS - ERASURE_PARITY_SHARDS;
+
+  final int ERASURE_SHARD_SIZE = CHUNK_SIZE / ERASURE_DATA_SHARDS + 1;
 
   final int NUMBER_OF_REPLICATIONS =
-      SYSTEM_DESIGN_SCHEMA.equals( REPLICATION ) ? 3 : 1;
-
+      SYSTEM_DESIGN_SCHEMA.equals( REPLICATION ) ? 3 : ERASURE_TOTAL_SHARDS;
 }

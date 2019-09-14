@@ -342,7 +342,7 @@ public class Controller implements Node {
       {
         switch ( identifier )
         {
-          case Constants.CHUNK_ID :
+          case Constants.SERVER_ID :
             metadata.addConnection( connectionDetails, connection );
             status = Constants.SUCCESS;
             break;
@@ -355,7 +355,7 @@ public class Controller implements Node {
       {
         switch ( identifier )
         {
-          case Constants.CHUNK_ID :
+          case Constants.SERVER_ID :
             // TODO: replicate files if needed.
             metadata.removeConnection( connectionDetails );
             status = Constants.SUCCESS;

@@ -22,7 +22,7 @@ public class FileUtilities {
   private static Logger LOG = new Logger();
 
   private final static int NUMBER_OF_SLICES =
-      ( int ) Constants.CHUNK_SIZE / Constants.CHUNK_SLICE_SIZE;
+      ( int ) Constants.CHUNK_SIZE / Constants.REPLICATION_CHUNK_SLICE_SIZE;
 
   // 160 bit ( 20 byte ) hash length of digest returned
   private final static int SHA1_DIGEST_SIZE = 20;
@@ -78,8 +78,8 @@ public class FileUtilities {
     ByteBuffer buffer = ByteBuffer.allocate( INTEGRITY_SIZE );
     for ( int i = 0; i < NUMBER_OF_SLICES; ++i )
     {
-      digest.update( message, i * Constants.CHUNK_SLICE_SIZE,
-          Constants.CHUNK_SLICE_SIZE );
+      digest.update( message, i * Constants.REPLICATION_CHUNK_SLICE_SIZE,
+          Constants.REPLICATION_CHUNK_SLICE_SIZE );
       buffer.put( digest.digest() );
     }
     return buffer.array();

@@ -98,7 +98,7 @@ public class ChunkServer implements Node, Protocol {
           "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Constants.CHUNK_ID, Constants.CONTROLLER_HOST,
+          Constants.SERVER_ID, Constants.CONTROLLER_HOST,
           Integer.valueOf( Constants.CONTROLLER_PORT ) );
 
       ServerHeartbeatManager serverHeartbeatManager =
@@ -133,7 +133,7 @@ public class ChunkServer implements Node, Protocol {
       {
 
         case EXIT :
-          ConnectionUtilities.unregisterNode( this, Constants.CHUNK_ID,
+          ConnectionUtilities.unregisterNode( this, Constants.SERVER_ID,
               controllerConnection );
           running = false;
           break;

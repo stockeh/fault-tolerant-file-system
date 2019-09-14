@@ -86,8 +86,8 @@ public class ClientReaderThread implements Runnable {
     LOG.info(
         "Started reading file at " + sdf.format( System.currentTimeMillis() ) );
     LOG.info( "Uploading..." );
-    String[][] chunks = readFileResponse.getChunks();
-    byte[][] bytes = processIncomingChunks( chunks );
+    String[][] chunkServers = readFileResponse.getChunks();
+    byte[][] bytes = processIncomingChunks( chunkServers );
     if ( bytes != null )
     {
       int numberOfChunks = bytes.length;
@@ -121,25 +121,25 @@ public class ClientReaderThread implements Runnable {
    * Iterate over the connection details from the controller, requesting
    * chunk data from each chunk server.
    * 
-   * @param chunks containing the chunk server connection details for
+   * @param chunkServers containing the chunk server connection details for
    *        each chunk in the file
    * @return a 2-dimensional array of chunk bytes for the given server
    */
-  private byte[][] processIncomingChunks(String[][] chunks) {
-    byte[][] fileBytes = new byte[ chunks.length ][ Constants.CHUNK_SIZE ];
+  private byte[][] processIncomingChunks(String[][] chunkServers) {
+    byte[][] fileBytes = new byte[ chunkServers.length ][ Constants.CHUNK_SIZE ];
     int replication = 0;
-    for ( int sequence = 0; sequence < chunks.length; ++sequence )
+    for ( int sequence = 0; sequence < chunkServers.length; ++sequence )
     {
       try
       {
-        if ( chunks[ sequence ][ replication ] == null )
+        if ( chunkServers[ sequence ][ replication ] == null )
         {
           throw new ClientReadException(
               "The server containing for the ( sequence, replication )"
                   + "pair is null." );
         }
         String[] connectionDetails =
-            chunks[ sequence ][ replication ].split( ":" );
+            chunkServers[ sequence ][ replication ].split( ":" );
         TCPConnection connection = ConnectionUtilities.establishConnection(
             node, connectionDetails[ 0 ],
             Integer.parseInt( connectionDetails[ 1 ] ) );
@@ -164,10 +164,10 @@ public class ClientReaderThread implements Runnable {
       } catch ( IOException | InterruptedException | ClientReadException e )
       {
         LOG.error( "Unable to retrieve message on chunk server \'"
-            + chunks[ sequence ][ replication ]
+            + chunkServers[ sequence ][ replication ]
             + "\' trying next replication if possible. " + e.getMessage() );
 
-        if ( ++replication >= chunks[ 0 ].length )
+        if ( ++replication >= chunkServers[ 0 ].length )
         {
           LOG.error(
               "File is not readable beacause a given chunk can not be returned"

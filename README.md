@@ -16,7 +16,7 @@ Every file that will be stored in this file system will be split into 64KB chunk
 
 To cope with disk drive failures and tampered files, the chunk servers will perform a validity check to detect corruption. This occurs when a client requests to read a file. If it is detected that a slice of a chunk is corrupted, the other valid replicas of this chunk are contacted and error correction is performed.  
 
-#### Heatbeat
+### Heatbeat
 Each chunk server will regularly send heartbeats to the controller node. These heartbeats will be split into two:
 1. A major heartbeat every 5 minutes
 2. A Minor heartbeat every 30 seconds
@@ -25,12 +25,10 @@ Major heartbeats will include metadata information about all the chunks maintain
 
 The controller will send regular health checks to each of the chunk servers to detect server failures. In response, the controller contacts chunk servers that hold legitimate copies of the affected chunks and have them send these chunks to designated chunk servers.  
 
-#### Erasure Coding
+### Erasure Coding
 The storage requirements in a replication-based setting increase proportional to the number of replicas. Erasure coding offers an alternative to achieve the same degree of redundancy without the corresponding increase in storage costs.  
 
 In this scheme of erasure coding, individual chunks are broken it into **k** *primary shards*, erasure coded and expanded into **n** *parity shards* using Reed-Solomon algorithm. Thereafter, the fragments are stored across the available chunk servers. Note that **n** must be greater than **k**; furthermore, **m=n-k** is the *degree of redundancy* since any of the **k** fragments can be used to reconstitute the chunk. For the purposes of this assignment, we will work with **k=6** and **m=3**.  
-
-## Execution
 
 ### Configuration
 The `conf/` directory holds the application properties and machine lists for starting up all of the chunk servers. These properties include:
@@ -58,7 +56,7 @@ When running on a distributed environment, add or remove desired client machines
 vim conf/machine_list
 ```
 
-### Startup
+### Execution
 Gradle is used for build automation, and can be executing manually with `gradle clean; gralde build`. The application is constructed within a multi-layer package under `cs555.system`, and can be ran by invoking the JAR as follows:
 
 * `java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.Controller`

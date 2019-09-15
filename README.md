@@ -1,5 +1,5 @@
 # Distributed Computing
----
+
 ### A Distributed, Replicated, and Fault Tolerant File System: Contrasting Replication and Erasure Coding
 
 This project introduces a distributed, failure-resilient file system. The fault tolerance for files is achieved using two techniques: replication and erasure coding.

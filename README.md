@@ -59,9 +59,13 @@ vim conf/machine_list
 ### Execution
 Gradle is used for build automation, and can be executing manually with `gradle clean; gralde build`. The application is constructed within a multi-layer package under `cs555.system`, and can be ran by invoking the JAR as follows:
 
-* `java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.Controller`
-* `java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.ChunkServer`
-* `java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.Client`
+```console
+$ java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.Controller
+
+$ java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.ChunkServer
+
+$ java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.Client
+```
 
 #### MacOS
 Execute the run script to start the controller.

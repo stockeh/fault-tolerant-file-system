@@ -5,7 +5,7 @@
 This project introduces a distributed, failure-resilient file system. The fault tolerance for files is achieved using two techniques: replication and erasure coding.
 
 There are three fundimental components within this application, including:
-* *Chunk server* responsible for managing file chunks. There will be one instance of the chunk server running on each machine.
+* *Chunk server* responsible for managing file chunks and fragments. There will be one instance of the chunk server running on each machine.
 * A *controller* node for managing information about chunk servers and chunks within the system. There will be only one instance of the controller node.
 * *Client* which is responsible for storing, retrieving, and updating files in the system. The client is responsible for splitting a file into chunks and assembling the file back using chunks during retrieval.
 

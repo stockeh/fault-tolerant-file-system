@@ -4,8 +4,8 @@
 
 This project introduces a distributed, failure-resilient file system. The fault tolerance for files is achieved using two techniques: replication and erasure coding.
 
-There are three components that this entails:
-* *Chunk Server* responsible for managing file chunks. There will be one instance of the chunk server running on each machine.
+There are three fundimental components within this application, including:
+* *Chunk server* responsible for managing file chunks. There will be one instance of the chunk server running on each machine.
 * A *controller* node for managing information about chunk servers and chunks within the system. There will be only one instance of the controller node.
 * *Client* which is responsible for storing, retrieving, and updating files in the system. The client is responsible for splitting a file into chunks and assembling the file back using chunks during retrieval.
 
@@ -19,7 +19,7 @@ To cope with disk drive failures and tampered files, the chunk servers will perf
 ### Heatbeat
 Each chunk server will regularly send heartbeats to the controller node. These heartbeats will be split into two:
 1. A major heartbeat every 5 minutes
-2. A Minor heartbeat every 30 seconds
+2. A minor heartbeat every 30 seconds
 
 Major heartbeats will include metadata information about all the chunks maintained at the chunk server. The minor heartbeat will include information about any newly added chunks. Both include information about the total number of chunks and free-space available at the chunk server.
 

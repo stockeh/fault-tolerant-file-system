@@ -234,6 +234,9 @@ public class Controller implements Node {
           request.getFilename(), sequence, replicationPosition, destination );
       try
       {
+        LOG.debug( "Sending RedirectChunkRequest from: " + source + " to "
+            + destination + " for sequence " + sequence + " & replication "
+            + replicationPosition );
         metadata.getConnections().get( source ).getConnection().getTCPSender()
             .sendData( redirectRequest.getBytes() );
       } catch ( IOException e )

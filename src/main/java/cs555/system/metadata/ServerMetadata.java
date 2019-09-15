@@ -145,8 +145,8 @@ public class ServerMetadata {
    * 
    * @param filename to search for
    * @param sequence number associated with the chunk
-   * @return true if the chunk has been previously received, false
-   *         otherwise
+   * @return the chunk information if the chunk has been previously
+   *         received, null otherwise
    */
   public synchronized ChunkInformation getChunkInformation(String filename,
       int sequence) {
@@ -157,6 +157,25 @@ public class ServerMetadata {
     }
     return info.stream().filter( o -> o.getSequence() == sequence ).findFirst()
         .orElse( null );
+  }
+  
+  /**
+   * Remove the sequence metadata from the known files on the server.
+   * 
+   * This occurs when a read failure has invalid or corrupted data.
+   * 
+   * @param filename to search for
+   * @param sequence number associated with the chunk to remove
+   * @return true if removed, false otherwise
+   */
+  public synchronized boolean removeChunkInformation(String filename,
+      int sequence) {
+    List<ChunkInformation> info = files.get( filename );
+    if ( info == null )
+    {
+      return false;
+    }
+    return info.removeIf(o -> o.getSequence() == sequence);
   }
 
   /**

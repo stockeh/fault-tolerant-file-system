@@ -270,7 +270,6 @@ public class ChunkServer implements Node, Protocol {
 
       ChunkInformation info = metadata
           .getChunkInformation( request.getFilename(), request.getSequence() );
-
       if ( info != null )
       {
         if ( !FileUtilities.messageIntegrityMatchesDisk( path, message ) )
@@ -284,7 +283,7 @@ public class ChunkServer implements Node, Protocol {
               "Finished writing an updated version of " + fileStringInfo );
         } else
         {
-          LOG.debug(
+          LOG.error(
               "The chunk was not updated because the content is the same." );
         }
       } else
@@ -373,9 +372,10 @@ public class ChunkServer implements Node, Protocol {
             Constants.SUCCESS );
       } else
       {
+        metadata.removeChunkInformation( filename, sequence );
         response = new ReadChunkResponse( filename, Constants.FAILURE );
         LOG.debug(
-            "Sent FailureSliceRead message to controller to fix failure." );
+            "Sending FailureChunkRead message to controller to fix failure." );
         FailureChunkRead failureRequest = new FailureChunkRead(
             this.getHost() + ":" + this.getPort(), filename, sequence );
         try

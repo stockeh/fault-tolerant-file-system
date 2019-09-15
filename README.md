@@ -52,7 +52,7 @@ system.design.schema=replication
 
 When running on a distributed environment, add or remove desired client machines to the application. Each machine should be on a new line and can all be unique or the same.
 
-```
+```console
 vim conf/machine_list
 ```
 
@@ -65,22 +65,22 @@ Gradle is used for build automation, and can be executing manually with `gradle 
 
 #### MacOS
 Execute the run script to start the controller.
-```
+```console
 Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh
 ```
 
 This will spawn a new terminal, where the `osx.sh` script can be run again to spawn n number of tabs where each chunk server is instantiated.
-```
+```console
 Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh
 ```
 
 Thereafter, the client can be started up with the `c` flag, otherwise more chunk servers will be started.
-```
+```console
 Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh c
 ```
 
 #### Linux
 Execute the run script to start the controller and chunk servers and a single client.  
-```
+```console
 mars:fault-tolerant-file-system$ ./run.sh
 ```

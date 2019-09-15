@@ -16,7 +16,9 @@ import cs555.system.metadata.ServerMetadata.ChunkInformation;
 
 /**
  * Message from the chunk server to the controller containing
- * information about the newly added chunks.
+ * information about the added chunks.
+ * 
+ * This message is used for both the minor and major heartbeats.
  * 
  * @author stock
  *

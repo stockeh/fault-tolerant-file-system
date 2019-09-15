@@ -9,6 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Basic heartbeat message from the controller to the chunk server to
+ * check for life.
  * 
  * @author stock
  *
@@ -17,6 +19,10 @@ public class HealthRequest implements Event {
 
   private int type;
 
+  /**
+   * Default constructor - 
+   * 
+   */
   public HealthRequest() {
     this.type = Protocol.HEALTH_REQUEST;
   }

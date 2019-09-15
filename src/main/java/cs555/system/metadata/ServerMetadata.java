@@ -31,7 +31,6 @@ public class ServerMetadata {
    */
   private final Map<String, List<ChunkInformation>> files;
 
-
   private final String connectionDetails;
 
   /**
@@ -161,21 +160,16 @@ public class ServerMetadata {
   }
 
   /**
-   * 
+   * Chunk information that is maintained for every chunk on the chunk
+   * server.
    * 
    * @author stock
    *
    */
   public static class ChunkInformation {
 
-    /**
-     * Chunk number
-     */
     private int sequence;
 
-    /**
-     * Replication position
-     */
     private int replication;
 
     private int version;

@@ -9,9 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * 
- * Request from the client to the controller requesting a list of
- * chunk servers to read chunk data from for a given file.
+ * Message from the client to the chunk server requesting a specific
+ * segment of a file.
  * 
  * @author stock
  *

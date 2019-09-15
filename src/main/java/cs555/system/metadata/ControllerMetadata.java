@@ -27,29 +27,42 @@ public class ControllerMetadata {
   private static Logger LOG = new Logger();
 
   /**
+   * Comparator for how the servers should sorted when choosing places
+   * for a new chunk file.
+   * 
+   */
+  public static final Comparator<ServerInformation> COMPARATOR = Comparator
+      .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
+          ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
+
+  /**
    * Files stored on the chunk servers <k: filename , v: file
    * information>
    */
-  private final Map<String, FileInformation> files = new ConcurrentHashMap<>();
+  private final Map<String, FileInformation> files;
 
   /**
    * Connections to all the chunk servers. <k: host:port , v: chunk
    * server connection>
    * 
-   * TODO: check if needs to be concurrent. Speed implications?
    */
-  private final Map<String, ServerInformation> connections =
-      new ConcurrentHashMap<>();
+  private final Map<String, ServerInformation> connections;
 
   /**
    * Connections to all the clients. Does not contain any identifier -
    * all clients are treated the same.
    */
-  private final List<TCPConnection> clientConnections = new ArrayList<>();
+  private final List<TCPConnection> clientConnections;
 
-  public static final Comparator<ServerInformation> COMPARATOR = Comparator
-      .comparing( ServerInformation::getNumberOfChunks ).thenComparing(
-          ServerInformation::getFreeDiskSpace, Collections.reverseOrder() );
+  /**
+   * Default constructor -
+   * 
+   */
+  public ControllerMetadata() {
+    this.files = new ConcurrentHashMap<>();
+    this.connections = new ConcurrentHashMap<>();
+    this.clientConnections = new ArrayList<>();
+  }
 
   /**
    * 
@@ -253,9 +266,6 @@ public class ControllerMetadata {
    * TODO: Check if there are any chunk servers, if not respond with
    * error.
    * 
-   * TODO: Check if the file already exists and there is a version
-   * increase. Get existing locations if exists
-   * 
    * @param filename is the name of the file that will be added to the
    *        server information for each chunk.
    * @param sequence
@@ -371,6 +381,7 @@ public class ControllerMetadata {
     private int filelenth;
 
     /**
+     * Default constructor -
      * 
      * @param filelength
      * @param numberOfChunks
@@ -517,6 +528,8 @@ public class ControllerMetadata {
     }
 
     /**
+     * Naive object containing the pair of sequence and replication
+     * numbers for some file.
      * 
      * @author stock
      *
@@ -527,15 +540,29 @@ public class ControllerMetadata {
 
       private int replication;
 
+      /**
+       * Default constructor -
+       * 
+       * @param sequence
+       * @param replication
+       */
       private SequenceReplicationPair(int sequence, int replication) {
         this.sequence = sequence;
         this.replication = replication;
       }
 
+      /**
+       * 
+       * @return the sequence number
+       */
       public int getSequence() {
         return sequence;
       }
 
+      /**
+       * 
+       * @return the replication position
+       */
       public int getReplication() {
         return replication;
       }

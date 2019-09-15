@@ -10,7 +10,8 @@ import java.io.IOException;
 import cs555.system.util.Constants;
 
 /**
- * 
+ * Message from the chunk server to the client responding with the
+ * status and message of the file sequence from disk.
  * 
  * @author stock
  *

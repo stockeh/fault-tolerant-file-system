@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Maintains information about files stored on the server
+ * Maintains information about what files can be accessed on the
+ * server.
  * 
  * @author stock
  *
@@ -16,6 +17,10 @@ public class ClientMetadata {
    */
   private List<String> readableFiles;
 
+  /**
+   * Default constructor -
+   * 
+   */
   public ClientMetadata() {
     this.setReadableFiles( new ArrayList<>() );
   }
@@ -52,6 +57,7 @@ public class ClientMetadata {
   /**
    * Clear all the readable files stored since the last fetch to the
    * controller.
+   * 
    */
   public void clearReadableFiles() {
     readableFiles.clear();

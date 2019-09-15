@@ -24,6 +24,10 @@ public class ConnectionUtilities {
 
   private final StringBuilder connectionStringBuilder;
 
+  /** 
+   * Default constructor -
+   * 
+   */
   public ConnectionUtilities() {
     this.temporaryConnections = new HashMap<>();
     this.connectionStringBuilder = new StringBuilder();

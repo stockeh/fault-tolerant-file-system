@@ -7,6 +7,10 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.util.Logger;
 
 /**
+ * A heartbeat message from the chunk server to the controller.
+ * 
+ * The server heartbeat messages are setup on timed intervals, to send
+ * a both minor and major heartbeats.
  * 
  * @author stock
  *
@@ -34,13 +38,6 @@ public class ServerHeartbeatManager extends TimerTask {
     this.counter = 0;
   }
 
-  /**
-   * 
-   * Scheduled in a parent class similar with:
-   * 
-   * Timer timer = new Timer(); timer.schedule(this, 0, N);
-   * 
-   */
   @Override
   public void run() {
     try

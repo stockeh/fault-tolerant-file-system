@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Response from the controller to the client containing a list of all
+ * the readable files.
  * 
  * @author stock
  *

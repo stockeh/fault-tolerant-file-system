@@ -9,6 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Message from the controller to the client with a list of chunk
+ * server locations for a request file.
  * 
  * @author stock
  *

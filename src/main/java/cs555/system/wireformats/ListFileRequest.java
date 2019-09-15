@@ -9,6 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Request from the client to the controller to get a list of all
+ * readable files.
  * 
  * @author stock
  *
@@ -17,6 +19,10 @@ public class ListFileRequest implements Event {
 
   private int type;
 
+  /**
+   * Default constructor -
+   * 
+   */
   public ListFileRequest() {
     this.type = Protocol.LIST_FILE_REQUEST;
   }

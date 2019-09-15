@@ -29,6 +29,9 @@ public interface Constants {
   final String SYSTEM_DESIGN_SCHEMA = Configurations.getInstance()
       .getProperty( "system.design.schema", SYSTEM_TYPE_REPLICATION );
 
+  final boolean SYSTEM_DEBUG_MODE = Boolean.parseBoolean( Configurations
+      .getInstance().getProperty( "system.debug.mode", "false" ) );
+
   // Application constants
 
   final int CLIENT_ID = 0;
@@ -52,5 +55,6 @@ public interface Constants {
   final int ERASURE_SHARD_SIZE = CHUNK_SIZE / ERASURE_DATA_SHARDS + 1;
 
   final int NUMBER_OF_REPLICATIONS =
-      SYSTEM_DESIGN_SCHEMA.equals( SYSTEM_TYPE_REPLICATION ) ? 3 : ERASURE_TOTAL_SHARDS;
+      SYSTEM_DESIGN_SCHEMA.equals( SYSTEM_TYPE_REPLICATION ) ? 3
+          : ERASURE_TOTAL_SHARDS;
 }

@@ -198,6 +198,7 @@ public class ClientSenderThread implements Runnable {
         throw new ClientWriteException( "The controller has not"
             + " received file chunk locations for the original file." );
       }
+      // Only send to the first connection, whom will forward the rest
       String[] initialConnection = routes[ 0 ].split( ":" );
 
       TCPConnection connection =

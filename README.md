@@ -48,6 +48,9 @@ client.outbound.directory=/s/bach/j/under/stock/cs555/fault-tolerant-file-system
 
 # Fault tolerance schema ( replication / erasure )
 system.design.schema=replication
+
+# Enable debug logging ( true / false )
+system.debug.mode=false
 ```
 
 When running on a distributed environment, add or remove desired client machines to the application. Each machine should be on a new line and can all be unique or the same.

@@ -251,8 +251,7 @@ public class ClientReaderThread implements Runnable {
     if ( chunkServers[ sequence ][ replication ] == null )
     {
       throw new ClientReadException(
-          "The server containing for the ( sequence, replication )"
-              + "pair is null." );
+          "The server for the ( sequence, replication ) pair is null." );
     }
     String[] initialConnection =
         chunkServers[ sequence ][ replication ].split( ":" );

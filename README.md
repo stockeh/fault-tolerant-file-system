@@ -43,8 +43,8 @@ controller.port=8189
 # Host the client is living on ( localhost )
 client.host=lincoln
 
-# Outbound directory for the client read files from ( data/ )
-client.outbound.directory=data/
+# Absolute path of outbound directory for the client read files from ( /path-to/data/ )
+client.outbound.directory=/s/bach/j/under/stock/cs555/fault-tolerant-file-system/data
 
 # Fault tolerance schema ( replication / erasure )
 system.design.schema=replication
@@ -67,24 +67,28 @@ $ java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node
 $ java -cp ./conf/:./build/libs/fault-tolerant-file-system.jar cs555.system.node.Client
 ```
 
-#### MacOS
-Execute the run script to start the controller.
-```console
-Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh
-```
-
-This will spawn a new terminal, where the `osx.sh` script can be run again to spawn n number of tabs where each chunk server is instantiated.
-```console
-Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh
-```
-
-Thereafter, the client can be started up with the `c` flag, otherwise more chunk servers will be started.
-```console
-Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh c
-```
-
 #### Linux
 Execute the run script to start the controller and chunk servers and a single client.  
 ```console
 mars:fault-tolerant-file-system$ ./run.sh
 ```
+
+#### MacOS
+The application can be started in a development environment to run on a single machine. This is done by chaning the configuration `controller.host` to `localhost`, and then specifying the number of chunk servers within the `./osx.sh` script.
+
+Execute the script to start the controller.
+```console
+Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh
+```
+
+This will spawn two new terminals, one of which where the `osx.sh` script can be run again to spawn n number of tabs where each chunk server is instantiated.
+```console
+Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh
+```
+
+Thereafter, the client can be started up using the `c` flag from within the last open terminal.
+```console
+Jasons-MacBook-Pro:fault-tolerant-file-system stock$ ./osx.sh c
+```
+
+When developing locally, files are still stored in the `/tmp` directory, and are identified by their connection address ( host:port ) combination to provide an allusion of multiple systems.

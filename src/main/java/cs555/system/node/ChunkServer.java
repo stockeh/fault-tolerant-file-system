@@ -283,7 +283,7 @@ public class ChunkServer implements Node, Protocol {
               "Finished writing an updated version of " + fileStringInfo );
         } else
         {
-          LOG.error(
+          LOG.debug(
               "The chunk was not updated because the content is the same." );
         }
       } else

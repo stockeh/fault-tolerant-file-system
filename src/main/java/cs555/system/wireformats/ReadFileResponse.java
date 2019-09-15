@@ -71,9 +71,16 @@ public class ReadFileResponse implements Event {
       for ( int replication = 0; replication < numReplications; ++replication )
       {
         len = din.readInt();
-        byte[] replicationIdentifier = new byte[ len ];
-        din.readFully( replicationIdentifier );
-        chunks[ sequence ][ replication ] = new String( replicationIdentifier );
+        if ( len == 0 )
+        {
+          chunks[ sequence ][ replication ] = null;
+        } else
+        {
+          byte[] replicationIdentifier = new byte[ len ];
+          din.readFully( replicationIdentifier );
+          chunks[ sequence ][ replication ] =
+              new String( replicationIdentifier );
+        }
       }
     }
     inputStream.close();
@@ -137,7 +144,10 @@ public class ReadFileResponse implements Event {
     {
       for ( String replication : chunkReplication )
       {
-        if ( replication != null )
+        if ( replication == null )
+        {
+          dout.writeInt( 0 );
+        } else
         {
           bytes = replication.getBytes();
           dout.writeInt( bytes.length );

@@ -37,11 +37,11 @@ public class ControllerHeartbeatManager extends TimerTask {
 
   private final static Logger LOG = new Logger();
 
+  private final static int NUMBER_OF_TASK_LOOPS = 1;
+
   private ControllerMetadata metadata;
 
   private List<FailedConnection> failedConnections;
-
-  private final static int NUMBER_OF_TASK_LOOPS = 1;
 
   /**
    * Default constructor -
@@ -126,8 +126,6 @@ public class ControllerHeartbeatManager extends TimerTask {
         severInformation.getFilesOnServer();
     for ( Entry<String, List<SequenceReplicationPair>> file : files.entrySet() )
     {
-      // TODO: Send message to client to clear the given filename -
-      // file.getKey()
       FileInformation info = metadata.getFiles().get( file.getKey() );
       String[][] chunks = info.getChunks();
 

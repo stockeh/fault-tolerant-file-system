@@ -39,17 +39,6 @@ public class Client implements Node {
 
   public static Logger LOG = new Logger();
 
-  /**
-   * <k: filename, v: Thread()>
-   */
-  private Map<String, ClientReaderThread> readers;
-
-  private ClientSenderThread sender = null;
-
-  private TCPConnection controllerConnection;
-
-  private ClientMetadata metadata;
-
   private static final String EXIT = "exit";
 
   private static final String HELP = "help";
@@ -60,9 +49,17 @@ public class Client implements Node {
 
   private static final String READ = "read";
 
-  private String host;
+  private final Map<String, ClientReaderThread> readers;
 
-  private int port;
+  private ClientSenderThread sender;
+
+  private TCPConnection controllerConnection;
+
+  private final ClientMetadata metadata;
+
+  private final String host;
+
+  private final int port;
 
   /**
    * Default constructor - creates a new client tying the
@@ -75,6 +72,7 @@ public class Client implements Node {
   private Client(String host, int port) {
     this.readers = new HashMap<>();
     this.metadata = new ClientMetadata();
+    this.sender = null;
     this.host = host;
     this.port = port;
   }

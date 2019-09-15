@@ -1,8 +1,7 @@
 package cs555.system.exception;
 
 /**
- * Exception thrown when the client detects the a read failure from a
- * chunk server due to invalid content.
+ * Exception thrown when the client has issues writing a file to disk.
  * 
  * @author stock
  *

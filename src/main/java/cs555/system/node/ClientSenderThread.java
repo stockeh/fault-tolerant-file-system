@@ -17,6 +17,8 @@ import cs555.system.wireformats.WriteChunkRequest;
 import cs555.system.wireformats.WriteFileRequest;
 
 /**
+ * Thread that is created to get chunk data at every read request from
+ * the client.
  * 
  * @author stock
  *
@@ -25,17 +27,17 @@ public class ClientSenderThread implements Runnable {
 
   private static final Logger LOG = new Logger();
 
+  private final Object lock;
+
   private List<File> files;
 
-  private final Object lock = new Object();
-
-  private Client node;
+  private final Client node;
 
   private String[] routes;
 
-  private boolean ableToWrite = true;
+  private boolean ableToWrite;
 
-  private boolean running = false;
+  private boolean running;
 
   /**
    * Default constructor -
@@ -43,6 +45,9 @@ public class ClientSenderThread implements Runnable {
    * @param node
    */
   protected ClientSenderThread(Client node) {
+    this.lock = new Object();
+    this.ableToWrite = true;
+    this.running = false;
     this.node = node;
   }
 
@@ -196,7 +201,7 @@ public class ClientSenderThread implements Runnable {
       String[] initialConnection = routes[ 0 ].split( ":" );
 
       TCPConnection connection =
-          connections.cacheConnection( node, initialConnection, false);
+          connections.cacheConnection( node, initialConnection, false );
       // Pad elements b[k] through b[b.length-1] with zeros
       Arrays.fill( message, length, Constants.CHUNK_SIZE, ( byte ) 0 );
       byte[][] messageToSend = new byte[][] { message };
@@ -212,6 +217,4 @@ public class ClientSenderThread implements Runnable {
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
     }
   }
-
-
 }

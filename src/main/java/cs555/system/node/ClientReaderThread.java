@@ -31,15 +31,15 @@ public class ClientReaderThread implements Runnable {
 
   private static final Logger LOG = new Logger();
 
-  private final Object lock = new Object();
+  private final Object lock;
 
   private ReadChunkResponse readChunkResponse;
 
   private ReadFileResponse readFileResponse;
 
-  private ClientMetadata metadata;
+  private final ClientMetadata metadata;
 
-  private Client node;
+  private final Client node;
 
 
   /**
@@ -51,6 +51,7 @@ public class ClientReaderThread implements Runnable {
    */
   protected ClientReaderThread(Client node, ClientMetadata metadata,
       ReadFileResponse readFileResponse) {
+    this.lock = new Object();
     this.node = node;
     this.metadata = metadata;
     this.readFileResponse = readFileResponse;
@@ -115,8 +116,7 @@ public class ClientReaderThread implements Runnable {
       }
     } else
     {
-      LOG.error(
-          "Unable to read file due to missing / invalid chunks." );
+      LOG.error( "Unable to read file due to missing / invalid chunks." );
       metadata.removeReadableFile( readFileResponse.getFilename() );
     }
     LOG.info( "Finished reading file at "

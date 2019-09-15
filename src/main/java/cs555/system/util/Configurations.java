@@ -4,9 +4,7 @@ import java.util.Properties;
 
 /**
  * Singleton class to load properties file for configuration.
- * 
- * This class is referenced from the StackOverflow post "Constants and
- * properties in java".
+ *
  * 
  * @author stock
  *

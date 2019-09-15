@@ -5,6 +5,8 @@ import java.util.Arrays;
 import erasure.ReedSolomon;
 
 /**
+ * Helper class to transform a chunk to shards using erasure coding
+ * with Reed Solomon.
  * 
  * @author stock
  *

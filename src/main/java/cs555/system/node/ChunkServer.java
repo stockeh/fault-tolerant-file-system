@@ -28,8 +28,11 @@ import cs555.system.wireformats.RegisterResponse;
 import cs555.system.wireformats.WriteChunkRequest;
 
 /**
- * chunk servers initiate and accept both communications and messages
- * within the system.
+ * Chunk servers store files on their respective host locations.
+ * 
+ * The chucks are delivered from individual clients, and metadata
+ * information about these chunks are delivered to the controller
+ * regularly.
  *
  * @author stock
  *
@@ -242,10 +245,11 @@ public class ChunkServer implements Node, Protocol {
    */
   private void writeChunkHandler(Event event) {
     WriteChunkRequest request = ( WriteChunkRequest ) event;
-    String fileStringInfo = ( new StringBuilder() ).append( request.getFilename() )
-        .append( ", sequence: " ).append( request.getSequence() )
-        .append( ", replication: " ).append( request.getReplicationPosition() )
-        .append( " to disk. " ).toString();
+    String fileStringInfo = ( new StringBuilder() )
+        .append( request.getFilename() ).append( ", sequence: " )
+        .append( request.getSequence() ).append( ", replication: " )
+        .append( request.getReplicationPosition() ).append( " to disk. " )
+        .toString();
     try
     {
       int messageIndex =
@@ -276,7 +280,8 @@ public class ChunkServer implements Node, Protocol {
 
           Files.createDirectories( path.getParent() );
           Files.write( path, message );
-          LOG.info( "Finished writing an updated version of " + fileStringInfo );
+          LOG.info(
+              "Finished writing an updated version of " + fileStringInfo );
         } else
         {
           LOG.debug(

@@ -19,6 +19,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.transport.TCPServerThread;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.util.Properties;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.FailureChunkRead;
 import cs555.system.wireformats.Heartbeat;
@@ -44,7 +45,7 @@ import cs555.system.wireformats.WriteFileResponse;
  */
 public class Controller implements Node {
 
-  private static final Logger LOG = new Logger();
+  private static final Logger LOG = Logger.getInstance();
 
   private static final String LIST_CHUNK_NODES = "list";
 
@@ -95,7 +96,7 @@ public class Controller implements Node {
     LOG.info( "Controller node starting up at: " + new Date() );
 
     try ( ServerSocket serverSocket =
-        new ServerSocket( Integer.valueOf( Constants.CONTROLLER_PORT ) ) )
+        new ServerSocket( Integer.valueOf( Properties.CONTROLLER_PORT ) ) )
     {
       Controller controller =
           new Controller( InetAddress.getLocalHost().getHostName(),
@@ -104,7 +105,7 @@ public class Controller implements Node {
       ( new Thread( new TCPServerThread( controller, serverSocket ),
           "Server Thread" ) ).start();
 
-      if ( Constants.SYSTEM_DESIGN_SCHEMA
+      if ( Properties.SYSTEM_DESIGN_SCHEMA
           .equals( Constants.SYSTEM_TYPE_REPLICATION ) )
       {
         ControllerHeartbeatManager controllerHeartbeatManager =

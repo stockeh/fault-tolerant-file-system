@@ -1,8 +1,8 @@
 package cs555.system.util;
 
 /**
- * Class used to print <b>info</b> and <b>error</b> logs to the
- * console.
+ * Class used to print <tt>info</tt>, <tt>debug</tt> and
+ * <tt>error</tt> logs to the console.
  * 
  * Initialize a new Logger for a give class. Use as a private final
  * static object in the calling class.
@@ -12,15 +12,47 @@ package cs555.system.util;
  */
 public class Logger {
 
-  /**
-   * Configure the master output for info and error logs
-   */
-  private final boolean MASTER = true;
+  private final static Logger instance = new Logger();
+
+  private final boolean INFO;
+
+  private final boolean DEBUG;
 
   /**
-   * Configure DEBUG by setting to true, INFO otherwise
+   * Private constructor
+   * 
    */
-  private final boolean DEBUG = Constants.SYSTEM_DEBUG_MODE;
+  private Logger() {
+    if ( cs555.system.util.Properties.SYSTEM_LOG_LEVEL
+        .equalsIgnoreCase( "INFO" ) )
+    {
+      this.INFO = true;
+      this.DEBUG = false;
+    } else
+    {
+      this.INFO = true;
+      this.DEBUG = true;
+    }
+  }
+
+  /**
+   * Single instance ensures that singleton instances are created only
+   * when needed.
+   * 
+   * @return Returns the instance for the class
+   */
+  public static Logger getInstance() {
+    return instance;
+  }
+
+  /**
+   * Override the clone method to ensure the "unique instance"
+   * requirement of this class.
+   * 
+   */
+  public Object clone() throws CloneNotSupportedException {
+    throw new CloneNotSupportedException();
+  }
 
   /**
    * Retrieve the details for the log.
@@ -28,66 +60,54 @@ public class Logger {
    * @return Return a <code>String</code> of the caller class in the
    *         format: <code>caller(method:line)</code>.
    */
-  public String details() {
-    try
-    {
-      String line = Integer.toString(
-          Thread.currentThread().getStackTrace()[ 3 ].getLineNumber() );
+  private StringBuilder details() {
+    String line = Integer.toString(
+        Thread.currentThread().getStackTrace()[ 3 ].getLineNumber() );
 
-      String method =
-          Thread.currentThread().getStackTrace()[ 3 ].getMethodName();
+    String method = Thread.currentThread().getStackTrace()[ 3 ].getMethodName();
 
-      String caller =
-          Thread.currentThread().getStackTrace()[ 3 ].getClassName();
+    String caller = Thread.currentThread().getStackTrace()[ 3 ].getClassName();
 
-      return caller + "(" + method + ":" + line + ") ";
-
-    } catch ( ArrayIndexOutOfBoundsException e )
-    {
-      return "null ";
-    }
+    return ( new StringBuilder() ).append( caller ).append( "(" )
+        .append( method ).append( ":" ).append( line ).append( ") " );
   }
 
   /**
    * Display the message with details for the <b>'INFO'</b> type.
-   * Configured by the global {@link Logger#MASTER} and
-   * {@link Logger#LEVEL} variables.
+   * Configured by the global {@link Logger#INFO}.
    * 
    * @param message The message to display
    */
   public void info(String message) {
-    if ( MASTER )
+    if ( INFO )
     {
-      System.out.println( details() + "[INFO] - " + message );
+      System.out.println(
+          details().append( "[INFO] - " ).append( message ).toString() );
     }
   }
 
   /**
    * Display the message with details for the <b>'DEBUG'</b> type.
-   * Configured by the global {@link Logger#MASTER} and
-   * {@link Logger#LEVEL} variables.
+   * Configured by the global {@link Logger#DEBUG}.
    * 
    * @param message The message to display
    */
-  @SuppressWarnings( "unused" )
   public void debug(String message) {
-    if ( MASTER && DEBUG )
+    if ( DEBUG )
     {
-      System.out.println( details() + "[DEBUG] - " + message );
+      System.out.println(
+          details().append( "[DEBUG] - " ).append( message ).toString() );
     }
   }
 
   /**
    * Display the message with details for the <b>'ERROR'</b> type.
-   * Configured by the global {@link Logger::MASTER} variable.
    * 
    * @param message The message to display
    */
   public void error(String message) {
-    if ( MASTER )
-    {
-      System.out.println( details() + "[ERROR] - " + message );
-    }
+    System.out.println(
+        details().append( "[ERROR] - " ).append( message ).toString() );
   }
 
 }

@@ -20,7 +20,7 @@ import cs555.system.util.Logger;
  */
 public class TCPServerThread implements Runnable {
 
-  private final static Logger LOG = new Logger();
+  private final static Logger LOG = Logger.getInstance();
 
   private Node node;
 

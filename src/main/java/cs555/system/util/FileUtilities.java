@@ -19,7 +19,7 @@ import cs555.system.node.Node;
  */
 public class FileUtilities {
 
-  private static Logger LOG = new Logger();
+  private static Logger LOG = Logger.getInstance();
 
   private final static int NUMBER_OF_SLICES =
       ( int ) Constants.CHUNK_SIZE / Constants.REPLICATION_CHUNK_SLICE_SIZE;

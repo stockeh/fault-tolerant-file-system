@@ -21,7 +21,7 @@ import cs555.system.wireformats.EventFactory;
  */
 public class TCPReceiverThread implements Runnable {
 
-  private final static Logger LOG = new Logger();
+  private final static Logger LOG = Logger.getInstance();
 
   private Socket socket;
 

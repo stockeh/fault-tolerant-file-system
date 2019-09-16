@@ -14,6 +14,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.util.Properties;
 import cs555.system.util.ReedSolomonUtilities;
 import cs555.system.wireformats.ReadChunkRequest;
 import cs555.system.wireformats.ReadChunkResponse;
@@ -29,7 +30,7 @@ import erasure.ReedSolomon;
  */
 public class ClientReaderThread implements Runnable {
 
-  private static final Logger LOG = new Logger();
+  private static final Logger LOG = Logger.getInstance();
 
   private final Object lock;
 
@@ -142,7 +143,7 @@ public class ClientReaderThread implements Runnable {
     {
       try
       {
-        if ( Constants.SYSTEM_DESIGN_SCHEMA
+        if ( Properties.SYSTEM_DESIGN_SCHEMA
             .equals( Constants.SYSTEM_TYPE_ERASURE ) )
         {
           fileBytes[ sequence ] =

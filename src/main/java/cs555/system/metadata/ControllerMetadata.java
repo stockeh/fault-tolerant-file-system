@@ -14,6 +14,7 @@ import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.util.Properties;
 
 /**
  * Maintains information about the files and chunk servers connected
@@ -24,7 +25,7 @@ import cs555.system.util.Logger;
  */
 public class ControllerMetadata {
 
-  private static Logger LOG = new Logger();
+  private static Logger LOG = Logger.getInstance();
 
   /**
    * Comparator for how the servers should sorted when choosing places
@@ -305,7 +306,7 @@ public class ControllerMetadata {
 
     int numberOfReplications = Constants.NUMBER_OF_REPLICATIONS;
 
-    if ( Constants.SYSTEM_DESIGN_SCHEMA
+    if ( Properties.SYSTEM_DESIGN_SCHEMA
         .equals( Constants.SYSTEM_TYPE_ERASURE ) )
     {
       numberOfReplications = Constants.ERASURE_TOTAL_SHARDS;

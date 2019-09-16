@@ -35,7 +35,7 @@ import cs555.system.wireformats.RedirectChunkRequest;
  */
 public class ControllerHeartbeatManager extends TimerTask {
 
-  private final static Logger LOG = new Logger();
+  private final static Logger LOG = Logger.getInstance();
 
   private final static int NUMBER_OF_TASK_LOOPS = 1;
 

@@ -18,6 +18,7 @@ import cs555.system.util.Constants;
 import cs555.system.util.FileUtilities;
 import cs555.system.util.FileUtilities.ChunkIntegrityInformation;
 import cs555.system.util.Logger;
+import cs555.system.util.Properties;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.FailureChunkRead;
 import cs555.system.wireformats.Protocol;
@@ -39,7 +40,7 @@ import cs555.system.wireformats.WriteChunkRequest;
  */
 public class ChunkServer implements Node, Protocol {
 
-  private static final Logger LOG = new Logger();
+  private static final Logger LOG = Logger.getInstance();
 
   private static final String EXIT = "exit";
 
@@ -101,8 +102,8 @@ public class ChunkServer implements Node, Protocol {
           "Server Thread" ) ).start();
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Constants.SERVER_ID, Constants.CONTROLLER_HOST,
-          Integer.valueOf( Constants.CONTROLLER_PORT ) );
+          Constants.SERVER_ID, Properties.CONTROLLER_HOST,
+          Integer.valueOf( Properties.CONTROLLER_PORT ) );
 
       ServerHeartbeatManager serverHeartbeatManager =
           new ServerHeartbeatManager( node.controllerConnection,
@@ -252,9 +253,8 @@ public class ChunkServer implements Node, Protocol {
         .toString();
     try
     {
-      int messageIndex =
-          Constants.SYSTEM_DESIGN_SCHEMA.equals( Constants.SYSTEM_TYPE_ERASURE )
-              ? request.getReplicationPosition()
+      int messageIndex = Properties.SYSTEM_DESIGN_SCHEMA.equals(
+          Constants.SYSTEM_TYPE_ERASURE ) ? request.getReplicationPosition()
               : 0;
       byte[] message = request.getMessage( messageIndex );
       if ( message.length == Constants.CHUNK_SIZE )
@@ -358,7 +358,7 @@ public class ChunkServer implements Node, Protocol {
         FileUtilities.getPathLocation( this, filename, sequence ) );
 
     ReadChunkResponse response;
-    if ( Constants.SYSTEM_DESIGN_SCHEMA
+    if ( Properties.SYSTEM_DESIGN_SCHEMA
         .equals( Constants.SYSTEM_TYPE_ERASURE ) )
     {
       response = new ReadChunkResponse( filename, message, Constants.SUCCESS );

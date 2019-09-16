@@ -17,7 +17,7 @@ import cs555.system.util.Logger;
  */
 public class ServerHeartbeatManager extends TimerTask {
 
-  private final static Logger LOG = new Logger();
+  private final static Logger LOG = Logger.getInstance();
 
   private final TCPConnection controllerConnection;
 

@@ -19,6 +19,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.util.Properties;
 import cs555.system.wireformats.Event;
 import cs555.system.wireformats.ListFileRequest;
 import cs555.system.wireformats.ListFileResponse;
@@ -37,7 +38,7 @@ import cs555.system.wireformats.WriteFileResponse;
  */
 public class Client implements Node {
 
-  public static Logger LOG = new Logger();
+  public static Logger LOG = Logger.getInstance();
 
   private static final String EXIT = "exit";
 
@@ -108,7 +109,7 @@ public class Client implements Node {
    */
   public static void main(String[] args) {
     LOG.info( "Client node starting up at: " + new Date() );
-    LOG.info( "The System is using " + Constants.SYSTEM_DESIGN_SCHEMA
+    LOG.info( "The System is using " + Properties.SYSTEM_DESIGN_SCHEMA
         + " to achieve fault tolerance." );
     try ( ServerSocket serverSocket = new ServerSocket( 0 ) )
     {
@@ -116,8 +117,8 @@ public class Client implements Node {
           serverSocket.getLocalPort() );
 
       node.controllerConnection = ConnectionUtilities.registerNode( node,
-          Constants.CLIENT_ID, Constants.CONTROLLER_HOST,
-          Integer.valueOf( Constants.CONTROLLER_PORT ) );
+          Constants.CLIENT_ID, Properties.CONTROLLER_HOST,
+          Integer.valueOf( Properties.CONTROLLER_PORT ) );
 
       node.sender = new ClientSenderThread( node );
       node.interact();
@@ -249,7 +250,7 @@ public class Client implements Node {
   private void uploadFiles() throws IOException {
     List<File> files;
     try ( Stream<Path> paths =
-        Files.walk( Paths.get( Constants.CLIENT_OUTBOUND_DIRECTORY ) ) )
+        Files.walk( Paths.get( Properties.CLIENT_OUTBOUND_DIRECTORY ) ) )
     {
       files = paths.filter( Files::isRegularFile ).map( Path::toFile )
           .collect( Collectors.toList() );
@@ -257,7 +258,7 @@ public class Client implements Node {
     if ( files == null || files.isEmpty() )
     {
       LOG.info( "There are no files to upload in "
-          + Constants.CLIENT_OUTBOUND_DIRECTORY );
+          + Properties.CLIENT_OUTBOUND_DIRECTORY );
       return;
     }
     sender.setFiles( files );
@@ -392,7 +393,7 @@ public class Client implements Node {
   private void displayHelp() {
     System.out.println( "\n\t" + EXIT
         + "\t: disconnect from the controller and terminate.\n\n\t" + UPLOAD
-        + "\t: upload all files in " + Constants.CLIENT_OUTBOUND_DIRECTORY
+        + "\t: upload all files in " + Properties.CLIENT_OUTBOUND_DIRECTORY
         + "\n\n\t" + LIST
         + "\t: list readable files stored on the chunk servers." + "\n\n\t"
         + READ + " #\t: read a file identified by a number listed from the \'"

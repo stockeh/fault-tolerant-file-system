@@ -18,7 +18,7 @@ import cs555.system.wireformats.RegisterRequest;
  */
 public class ConnectionUtilities {
 
-  private static final Logger LOG = new Logger();
+  private static final Logger LOG = Logger.getInstance();
 
   private final Map<String, TCPConnection> temporaryConnections;
 

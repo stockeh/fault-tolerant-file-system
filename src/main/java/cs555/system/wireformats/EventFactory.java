@@ -13,7 +13,7 @@ import cs555.system.util.Logger;
  */
 public class EventFactory {
 
-  private static final Logger LOG = new Logger();
+  private static final Logger LOG = Logger.getInstance();
 
   private static final EventFactory instance = new EventFactory();
 

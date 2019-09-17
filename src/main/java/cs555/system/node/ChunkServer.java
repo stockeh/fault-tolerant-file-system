@@ -247,7 +247,7 @@ public class ChunkServer implements Node, Protocol {
    * 
    * @param event
    */
-  private synchronized void writeChunkHandler(Event event) {
+  private void writeChunkHandler(Event event) {
     WriteChunkRequest request = ( WriteChunkRequest ) event;
     String fileStringInfo = ( new StringBuilder() )
         .append( request.getFilename() ).append( ", sequence: " )

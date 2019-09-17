@@ -309,12 +309,14 @@ public class Controller implements Node {
   private void writeFileRequestHandler(Event event, TCPConnection connection) {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
-    boolean isOriginalFile = metadata.addFile( request.getFilename(),
-        request.getFilelength(), request.getNumberOfChunks(), request.getSequence() );
+    boolean isOriginalFile =
+        metadata.addFile( request.getFilename(), request.getFilelength(),
+            request.getNumberOfChunks(), request.getSequence() );
     String[] serversToConnect = metadata.getChunkServers( request.getFilename(),
         request.getSequence(), isOriginalFile );
     // All heartbeats been received for sequence 0.
-    WriteFileResponse response = new WriteFileResponse( serversToConnect );
+    WriteFileResponse response =
+        new WriteFileResponse( serversToConnect, request.getSequence() );
     try
     {
       connection.getTCPSender().sendData( response.getBytes() );

@@ -20,12 +20,21 @@ public class WriteFileResponse implements Event {
 
   private int type;
 
+  private int sequence;
+
   private String[] routes;
 
   private boolean ableToWrite;
 
-  public WriteFileResponse(String[] routes) {
+  /**
+   * Default constructor -
+   * 
+   * @param routes
+   * @param sequence
+   */
+  public WriteFileResponse(String[] routes, int sequence) {
     this.type = Protocol.WRITE_FILE_RESPONSE;
+    this.sequence = sequence;
     this.routes = routes;
     this.ableToWrite = routes == null ? false : true;
   }
@@ -44,6 +53,8 @@ public class WriteFileResponse implements Event {
         new DataInputStream( new BufferedInputStream( inputStream ) );
 
     this.type = din.readInt();
+
+    this.sequence = din.readInt();
 
     this.ableToWrite = din.readBoolean();
 
@@ -86,6 +97,14 @@ public class WriteFileResponse implements Event {
   }
 
   /**
+   * 
+   * @return the sequence associated with a file
+   */
+  public int getSequence() {
+    return sequence;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -96,6 +115,8 @@ public class WriteFileResponse implements Event {
         new DataOutputStream( new BufferedOutputStream( outputStream ) );
 
     dout.writeInt( type );
+
+    dout.writeInt( sequence );
 
     dout.writeBoolean( ableToWrite );
 

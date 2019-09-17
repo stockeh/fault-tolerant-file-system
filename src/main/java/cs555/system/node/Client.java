@@ -382,8 +382,7 @@ public class Client implements Node {
   private void senderHandler(Event event) {
     WriteFileResponse response = ( WriteFileResponse ) event;
     sender.setAbleToWrite( response.isAbleToWrite() );
-    sender.setRoutes( response.getRoutingPath() );
-    sender.unlock();
+    sender.setRoutes( response );
   }
 
   /**

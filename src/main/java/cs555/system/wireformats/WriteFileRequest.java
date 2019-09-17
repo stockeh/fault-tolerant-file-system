@@ -115,6 +115,15 @@ public class WriteFileRequest implements Event {
   }
 
   /**
+   * Set the sequence associated with a file
+   * 
+   * @param sequence2
+   */
+  public void setSequence(int sequence) {
+    this.sequence = sequence;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -150,5 +159,4 @@ public class WriteFileRequest implements Event {
         + ", number of chunks: " + numberOfChunks + ", file length: "
         + filelength;
   }
-
 }

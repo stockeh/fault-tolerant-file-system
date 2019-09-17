@@ -98,16 +98,18 @@ public class ControllerMetadata {
    * @param filename of the file to maintain
    * @param filelength
    * @param numberOfChunks that make up the file
+   * @param sequence
    * 
    * @return true if the file is original, false otherwise
    */
-  public boolean addFile(String filename, int filelength, int numberOfChunks) {
-    boolean isOriginalFile = !files.containsKey( filename );
-
-    if ( isOriginalFile )
+  public boolean addFile(String filename, int filelength, int numberOfChunks,
+      int sequence) {
+    FileInformation info = files.get( filename );
+    if ( info == null )
     {
       files.put( filename, new FileInformation( filelength, numberOfChunks ) );
-    } else
+      return true;
+    } else if ( info != null && sequence == 0 )
     {
       FileInformation oldFileInformation = files.remove( filename );
       String[][] oldChunkLocations = oldFileInformation.getChunks();
@@ -122,8 +124,9 @@ public class ControllerMetadata {
           newFileLocations[ i ][ j ] = oldChunkLocations[ i ][ j ];
         }
       }
+      info.setIsOriginalFile( false );
     }
-    return isOriginalFile;
+    return info.isOriginalFile();
   }
 
   /**
@@ -381,6 +384,8 @@ public class ControllerMetadata {
 
     private int filelenth;
 
+    private boolean isOriginalFile;
+
     /**
      * Default constructor -
      * 
@@ -391,6 +396,7 @@ public class ControllerMetadata {
       this.chunks =
           new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
       this.filelenth = filelength;
+      this.isOriginalFile = true;
     }
 
     /**
@@ -409,6 +415,15 @@ public class ControllerMetadata {
     public int getFilelength() {
       return filelenth;
     }
+
+    public boolean isOriginalFile() {
+      return isOriginalFile;
+    }
+
+    public void setIsOriginalFile(boolean isOriginalFile) {
+      this.isOriginalFile = isOriginalFile;
+    }
+
   }
 
   /**

@@ -310,7 +310,7 @@ public class Controller implements Node {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
     boolean isOriginalFile = metadata.addFile( request.getFilename(),
-        request.getFilelength(), request.getNumberOfChunks() );
+        request.getFilelength(), request.getNumberOfChunks(), request.getSequence() );
     String[] serversToConnect = metadata.getChunkServers( request.getFilename(),
         request.getSequence(), isOriginalFile );
     // All heartbeats been received for sequence 0.

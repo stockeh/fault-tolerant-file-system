@@ -127,17 +127,15 @@ public class ClientSenderThread implements Runnable {
       {
         LOG.error( "Unable to process the file " + file.getName() + ". "
             + e.getMessage() );
+        ableToWrite = true;
         --numberOfFiles;
       } catch ( InterruptedException e )
       {
         Thread.currentThread().interrupt();
       }
     }
-    if ( numberOfFiles > 0 )
-    {
-      LOG.info( "Finished uploading " + numberOfFiles + " file(s) at "
-          + sdf.format( System.currentTimeMillis() ) + "\n" );
-    }
+    LOG.info( "Finished uploading " + numberOfFiles + " file(s) at "
+        + sdf.format( System.currentTimeMillis() ) + "\n" );
     connections.closeCachedConnections();
     running = false;
   }
@@ -197,7 +195,7 @@ public class ClientSenderThread implements Runnable {
       if ( !ableToWrite )
       {
         throw new ClientWriteException( "The controller has not"
-            + " received file chunk locations for the original file." );
+            + " received file chunk locations for the original file yet." );
       }
       // Only send to the first connection, whom will forward the rest
       String[] initialConnection = routes[ 0 ].split( ":" );
@@ -214,9 +212,10 @@ public class ClientSenderThread implements Runnable {
       }
 
       WriteChunkRequest writeToChunkServer = new WriteChunkRequest( filename,
-          sequence++, messageToSend, lastModifiedDate, version, routes );
+          sequence, messageToSend, lastModifiedDate, version, routes );
 
       connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
+      ++sequence;
     }
   }
 }

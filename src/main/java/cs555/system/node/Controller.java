@@ -306,7 +306,7 @@ public class Controller implements Node {
    * @param event the object containing node details
    * @param connection the connection details, i.e., TCPSender
    */
-  private void writeFileRequestHandler(Event event, TCPConnection connection) {
+  private synchronized void writeFileRequestHandler(Event event, TCPConnection connection) {
     WriteFileRequest request = ( WriteFileRequest ) event;
 
     boolean isOriginalFile =

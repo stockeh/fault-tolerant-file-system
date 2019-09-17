@@ -22,8 +22,6 @@ public class ConnectionUtilities {
 
   private final Map<String, TCPConnection> temporaryConnections;
 
-  private final StringBuilder connectionStringBuilder;
-
   private boolean ableToClear;
 
   /**
@@ -32,16 +30,15 @@ public class ConnectionUtilities {
    */
   public ConnectionUtilities() {
     this.temporaryConnections = new HashMap<>();
-    this.connectionStringBuilder = new StringBuilder();
     this.ableToClear = false;
   }
 
   /**
-   * Allow the connections to be closed 
+   * Allow the connections to be closed
    * 
    * @param ableToClear
    */
-  public synchronized void setAbleToClear(boolean ableToClear) {
+  public void setAbleToClear(boolean ableToClear) {
     this.ableToClear = ableToClear;
   }
 
@@ -56,14 +53,13 @@ public class ConnectionUtilities {
    * @throws IOException
    * @throws NumberFormatException
    */
-  public synchronized TCPConnection cacheConnection(Node node,
+  public TCPConnection cacheConnection(Node node,
       String[] initialConnection, boolean startConnection)
       throws NumberFormatException, IOException {
     ableToClear = false;
     String connectionDetails =
-        connectionStringBuilder.append( initialConnection[ 0 ] ).append( ":" )
+        ( new StringBuilder() ).append( initialConnection[ 0 ] ).append( ":" )
             .append( initialConnection[ 1 ] ).toString();
-    connectionStringBuilder.setLength( 0 );
 
     TCPConnection connection;
     if ( temporaryConnections.containsKey( connectionDetails ) )
@@ -86,7 +82,7 @@ public class ConnectionUtilities {
    * Close and remove all temporary connections.
    * 
    */
-  public synchronized void closeCachedConnections() {
+  public void closeCachedConnections() {
     if ( ableToClear )
     {
       temporaryConnections.forEach( (k, v) ->

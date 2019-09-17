@@ -27,6 +27,14 @@ public class ProgressBar {
   }
 
   /**
+   * Reset output stream
+   */
+  public void reset() {
+    System.out.flush();
+    System.out.println();
+  }
+  
+  /**
    * Invoked when there is progress
    *
    * @param current representing work done so far
@@ -45,8 +53,7 @@ public class ProgressBar {
 
     if ( current == total )
     {
-      System.out.flush();
-      System.out.println();
+      reset();
     }
   }
 }

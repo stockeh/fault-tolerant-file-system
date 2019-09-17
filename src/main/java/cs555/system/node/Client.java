@@ -27,6 +27,7 @@ import cs555.system.wireformats.Protocol;
 import cs555.system.wireformats.ReadChunkResponse;
 import cs555.system.wireformats.ReadFileRequest;
 import cs555.system.wireformats.ReadFileResponse;
+import cs555.system.wireformats.RegisterResponse;
 import cs555.system.wireformats.WriteFileResponse;
 
 /**
@@ -291,6 +292,10 @@ public class Client implements Node {
     LOG.debug( event.toString() );
     switch ( event.getType() )
     {
+      case Protocol.REGISTER_RESPONSE :
+        System.out.println( ( ( RegisterResponse ) event ).toString() );
+        break;
+
       case Protocol.WRITE_FILE_RESPONSE :
         senderHandler( event );
         break;

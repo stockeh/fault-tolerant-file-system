@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import cs555.system.exception.ClientWriteException;
 import cs555.system.transport.TCPConnection;
@@ -106,7 +107,7 @@ public class ClientSenderThread implements Runnable {
    * 
    * @param ableToUpdate
    */
-  protected void setAbleToWrite(boolean ableToWrite) {
+  protected synchronized void setAbleToWrite(boolean ableToWrite) {
     this.ableToWrite = ableToWrite;
     if ( !this.ableToWrite )
     {
@@ -137,14 +138,22 @@ public class ClientSenderThread implements Runnable {
       try ( InputStream is = new FileInputStream( file ) )
       {
         processIndividualFile( file, is, connections );
-      } catch ( IOException | ClientWriteException e )
+      } catch ( IOException | ClientWriteException | NumberFormatException e )
       {
         LOG.error( "Unable to process the file " + file.getName() + ". "
             + e.getMessage() );
         ableToWrite = true;
         --numberOfFiles;
+        try
+        { // sleep to allow stale messages to be send before reading next file
+          TimeUnit.SECONDS.sleep( 1 );
+        } catch ( InterruptedException e0 )
+        {
+          LOG.error( e0.getMessage() );
+        }
       } catch ( InterruptedException e )
       {
+        LOG.error( e.getMessage() );
         Thread.currentThread().interrupt();
       }
     }
@@ -175,8 +184,8 @@ public class ClientSenderThread implements Runnable {
    * @throws InterruptedException
    */
   private void processIndividualFile(File file, InputStream is,
-      ConnectionUtilities connections)
-      throws IOException, InterruptedException, ClientWriteException {
+      ConnectionUtilities connections) throws IOException, InterruptedException,
+      ClientWriteException, NumberFormatException {
 
     SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
     LOG.debug( "The file: " + file.getAbsolutePath() + " was last modified at "
@@ -238,7 +247,6 @@ public class ClientSenderThread implements Runnable {
     {
       // Only send to the first connection, whom will forward the rest
       String[] initialConnection = routes[ sequence ][ 0 ].split( ":" );
-
       TCPConnection connection =
           connections.cacheConnection( node, initialConnection, false );
       // Pad elements b[k] through b[b.length-1] with zeros
@@ -252,8 +260,8 @@ public class ClientSenderThread implements Runnable {
       request.setMessage( messageToSend );
       request.setRoutes( routes[ sequence ] );
       request.setSequence( sequence );
-
       connection.getTCPSender().sendData( request.getBytes() );
+
       progress.update( sequence, numberOfChunks );
       ++sequence;
     }

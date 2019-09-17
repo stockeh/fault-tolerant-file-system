@@ -45,7 +45,7 @@ do
     eval $COMMAND &
 done
 
-sleep 1
+sleep 4
 
 # Launch Client
 

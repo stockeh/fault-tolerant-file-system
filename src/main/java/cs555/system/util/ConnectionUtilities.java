@@ -24,13 +24,25 @@ public class ConnectionUtilities {
 
   private final StringBuilder connectionStringBuilder;
 
-  /** 
+  private boolean ableToClear;
+
+  /**
    * Default constructor -
    * 
    */
   public ConnectionUtilities() {
     this.temporaryConnections = new HashMap<>();
     this.connectionStringBuilder = new StringBuilder();
+    this.ableToClear = false;
+  }
+
+  /**
+   * Allow the connections to be closed 
+   * 
+   * @param ableToClear
+   */
+  public synchronized void setAbleToClear(boolean ableToClear) {
+    this.ableToClear = ableToClear;
   }
 
   /**
@@ -44,8 +56,10 @@ public class ConnectionUtilities {
    * @throws IOException
    * @throws NumberFormatException
    */
-  public TCPConnection cacheConnection(Node node, String[] initialConnection,
-      boolean startConnection) throws NumberFormatException, IOException {
+  public synchronized TCPConnection cacheConnection(Node node,
+      String[] initialConnection, boolean startConnection)
+      throws NumberFormatException, IOException {
+    ableToClear = false;
     String connectionDetails =
         connectionStringBuilder.append( initialConnection[ 0 ] ).append( ":" )
             .append( initialConnection[ 1 ] ).toString();
@@ -72,18 +86,21 @@ public class ConnectionUtilities {
    * Close and remove all temporary connections.
    * 
    */
-  public void closeCachedConnections() {
-    temporaryConnections.forEach( (k, v) ->
+  public synchronized void closeCachedConnections() {
+    if ( ableToClear )
     {
-      try
+      temporaryConnections.forEach( (k, v) ->
       {
-        v.close();
-      } catch ( IOException | InterruptedException e )
-      {
-        LOG.error( "Unable to close the connection for " + k );
-      }
-    } );
-    temporaryConnections.clear();
+        try
+        {
+          v.close();
+        } catch ( IOException | InterruptedException e )
+        {
+          LOG.error( "Unable to close the connection for " + k );
+        }
+      } );
+      temporaryConnections.clear();
+    }
   }
 
   /**

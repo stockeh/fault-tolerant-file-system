@@ -59,6 +59,19 @@ public class ClientSenderThread implements Runnable {
   }
 
   /**
+   * Wake the sender thread upon receiving routing information for a
+   * given chunk.
+   * 
+   */
+  protected void unlock() {
+    totalReceived.set( 0 );
+    synchronized ( lock )
+    {
+      lock.notify();
+    }
+  }
+
+  /**
    * Check if the thread is in a running state.
    * 
    * @return true if running, false otherwise
@@ -85,11 +98,7 @@ public class ClientSenderThread implements Runnable {
     routes[ response.getSequence() ] = response.getRoutingPath();
     if ( totalReceived.incrementAndGet() == routes.length )
     {
-      totalReceived.set( 0 );
-      synchronized ( lock )
-      {
-        lock.notify();
-      }
+      unlock();
     }
   }
 
@@ -101,11 +110,7 @@ public class ClientSenderThread implements Runnable {
     this.ableToWrite = ableToWrite;
     if ( !this.ableToWrite )
     {
-      totalReceived.set( 0 );
-      synchronized ( lock )
-      {
-        lock.notify();
-      }
+      unlock();
     }
   }
 
@@ -145,6 +150,7 @@ public class ClientSenderThread implements Runnable {
     }
     LOG.info( "Finished uploading " + numberOfFiles + " file(s) at "
         + sdf.format( System.currentTimeMillis() ) + "\n" );
+    connections.setAbleToClear( true );
     connections.closeCachedConnections();
     running = false;
   }
@@ -172,14 +178,8 @@ public class ClientSenderThread implements Runnable {
       ConnectionUtilities connections)
       throws IOException, InterruptedException, ClientWriteException {
 
-    // Metadata with temporary version number ( the server will detect the
-    // difference and update if necessary )
-    final String filename = file.getAbsolutePath();
-    final long lastModifiedDate = file.lastModified();
-    final int version = 1;
-
     SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
-    LOG.debug( "The file: " + filename + " was last modified at "
+    LOG.debug( "The file: " + file.getAbsolutePath() + " was last modified at "
         + sdf.format( file.lastModified() ) );
 
     int filelength = ( int ) file.length();
@@ -206,11 +206,34 @@ public class ClientSenderThread implements Runnable {
       throw new ClientWriteException( "The controller has not"
           + " received file chunk locations for the original file yet." );
     }
-    int sequence = 0;
+    sendWriteChunkRequest( file, is, connections, numberOfChunks );
+  }
 
-    int length = 0;
+  /**
+   * Send the individual chunks to only the initial destination for each
+   * chunk / fragment.
+   * 
+   * The metadata is set with temporary version number ( the server will
+   * detect the difference and update if necessary )
+   * 
+   * @param file
+   * @param is
+   * @param connections
+   * @param numberOfChunks
+   * @throws NumberFormatException
+   * @throws IOException
+   */
+  private void sendWriteChunkRequest(File file, InputStream is,
+      ConnectionUtilities connections, int numberOfChunks)
+      throws NumberFormatException, IOException {
     byte[] message = new byte[ Constants.CHUNK_SIZE ];
+
     ProgressBar progress = new ProgressBar( file.getName() );
+
+    WriteChunkRequest request = new WriteChunkRequest( file.getAbsolutePath(),
+        0, null, file.lastModified(), 1, null );
+
+    int sequence = 0, length = 0;
     while ( ( length = is.read( message ) ) != -1 )
     {
       // Only send to the first connection, whom will forward the rest
@@ -226,13 +249,14 @@ public class ClientSenderThread implements Runnable {
       {
         messageToSend = ReedSolomonUtilities.encode( message );
       }
+      request.setMessage( messageToSend );
+      request.setRoutes( routes[ sequence ] );
+      request.setSequence( sequence );
 
-      WriteChunkRequest writeToChunkServer =
-          new WriteChunkRequest( filename, sequence, messageToSend,
-              lastModifiedDate, version, routes[ sequence ] );
-
-      connection.getTCPSender().sendData( writeToChunkServer.getBytes() );
-      progress.update( sequence++, numberOfChunks );
+      connection.getTCPSender().sendData( request.getBytes() );
+      progress.update( sequence, numberOfChunks );
+      ++sequence;
     }
   }
+
 }

@@ -85,9 +85,9 @@ public class ClientSenderThread implements Runnable {
     routes[ response.getSequence() ] = response.getRoutingPath();
     if ( totalReceived.incrementAndGet() == routes.length )
     {
+      totalReceived.set( 0 );
       synchronized ( lock )
       {
-        totalReceived.set( 0 );
         lock.notify();
       }
     }
@@ -101,6 +101,7 @@ public class ClientSenderThread implements Runnable {
     this.ableToWrite = ableToWrite;
     if ( !this.ableToWrite )
     {
+      totalReceived.set( 0 );
       synchronized ( lock )
       {
         lock.notify();

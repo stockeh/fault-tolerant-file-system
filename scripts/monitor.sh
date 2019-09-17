@@ -27,4 +27,4 @@ fi
 
 echo Monitoring the $INPUT with PID: $PID
 
-top -b -p ${PID} | grep --line-buffered ${PID} > $DIR/results/$HOSTNAME-$INPUT.txt
+top -b -d 0.01 -p ${PID} | grep --line-buffered ${PID} > $DIR/results/$HOSTNAME-$INPUT.txt

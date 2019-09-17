@@ -1,5 +1,6 @@
 package cs555.system.node;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -14,6 +15,7 @@ import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Constants;
 import cs555.system.util.Logger;
+import cs555.system.util.ProgressBar;
 import cs555.system.util.Properties;
 import cs555.system.util.ReedSolomonUtilities;
 import cs555.system.wireformats.ReadChunkRequest;
@@ -139,9 +141,13 @@ public class ClientReaderThread implements Runnable {
       ConnectionUtilities connections) {
     byte[][] fileBytes =
         new byte[ chunkServers.length ][ Constants.CHUNK_SIZE ];
+    String filename = readFileResponse.getFilename();
+    filename = filename.substring( filename.lastIndexOf( File.separator ) );
+    ProgressBar progress = new ProgressBar( filename );
     int replication = 0;
     for ( int sequence = 0; sequence < chunkServers.length; ++sequence )
     {
+      progress.update( sequence, chunkServers.length );
       try
       {
         if ( Properties.SYSTEM_DESIGN_SCHEMA
@@ -151,6 +157,7 @@ public class ClientReaderThread implements Runnable {
               decodeErasureCodes( chunkServers, sequence, connections );
           if ( fileBytes[ sequence ] == null )
           {
+            progress.reset();
             LOG.error(
                 "The chunk could not be reconstructed since there are not"
                     + " enough data shards." );
@@ -169,12 +176,13 @@ public class ClientReaderThread implements Runnable {
         }
       } catch ( IOException | InterruptedException | ClientReadException e )
       {
-        LOG.error( "Unable to retrieve message on chunk server \'"
+        LOG.debug( "Unable to retrieve message on chunk server \'"
             + chunkServers[ sequence ][ replication ]
             + "\' trying next replication if possible. " + e.getMessage() );
 
         if ( ++replication >= chunkServers[ 0 ].length )
         {
+          progress.reset();
           LOG.error(
               "File is not readable beacause a given chunk can not be returned"
                   + " by any servers." );

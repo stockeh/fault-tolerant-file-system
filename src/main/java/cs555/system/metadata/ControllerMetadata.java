@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import cs555.system.metadata.ServerMetadata.ChunkInformation;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.Constants;
@@ -279,7 +280,7 @@ public class ControllerMetadata {
    * 
    * @return a list of chunk servers for the client to send data too
    */
-  public String[] getChunkServers(String filename, int sequence,
+  public synchronized String[] getChunkServers(String filename, int sequence,
       boolean isOriginalFile) {
 
     FileInformation information = files.get( filename );
@@ -301,7 +302,10 @@ public class ControllerMetadata {
       }
     }
     List<ServerInformation> list = new ArrayList<>( connections.values() );
-
+    if ( list.size() == 0 )
+    {
+      return null;
+    }
     // see comparator for sort details
     Collections.sort( list, ControllerMetadata.COMPARATOR );
 
@@ -448,7 +452,7 @@ public class ControllerMetadata {
 
     private long freeDiskSpace;
 
-    private int numberOfChunks;
+    private AtomicInteger numberOfChunks;
 
     /**
      * Default constructor
@@ -462,7 +466,7 @@ public class ControllerMetadata {
       this.connectionDetails = connectionDetails;
       this.filesOnServer = new HashMap<>();
       this.freeDiskSpace = 0;
-      this.numberOfChunks = 0;
+      this.numberOfChunks = new AtomicInteger( 0 );
     }
 
     /**
@@ -499,7 +503,7 @@ public class ControllerMetadata {
      * @return the number of chunks written to a server
      */
     private long getNumberOfChunks() {
-      return numberOfChunks;
+      return numberOfChunks.get();
     }
 
     /**
@@ -523,7 +527,7 @@ public class ControllerMetadata {
      * @param numberOfChunks
      */
     public void setNumberOfChunks(int numberOfChunks) {
-      this.numberOfChunks = numberOfChunks;
+      this.numberOfChunks.set( numberOfChunks );
     }
 
     /**
@@ -540,7 +544,7 @@ public class ControllerMetadata {
      * 
      */
     public void incrementNumberOfChunks() {
-      ++numberOfChunks;
+      numberOfChunks.incrementAndGet();
     }
 
     /**

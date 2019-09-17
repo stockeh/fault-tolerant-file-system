@@ -103,7 +103,6 @@ public class ChunkServer implements Node, Protocol {
 
       ( new Thread( new TCPServerThread( node, serverSocket ),
           "Server Thread" ) ).start();
-
       node.controllerConnection = ConnectionUtilities.registerNode( node,
           Constants.SERVER_ID, Properties.CONTROLLER_HOST,
           Integer.valueOf( Properties.CONTROLLER_PORT ) );
@@ -248,7 +247,7 @@ public class ChunkServer implements Node, Protocol {
    * 
    * @param event
    */
-  private void writeChunkHandler(Event event) {
+  private synchronized void writeChunkHandler(Event event) {
     WriteChunkRequest request = ( WriteChunkRequest ) event;
     String fileStringInfo = ( new StringBuilder() )
         .append( request.getFilename() ).append( ", sequence: " )
@@ -276,7 +275,8 @@ public class ChunkServer implements Node, Protocol {
           .getChunkInformation( request.getFilename(), request.getSequence() );
       if ( info != null )
       {
-        if ( !FileUtilities.messageIntegrityMatchesDisk( path, message ) )
+        if ( !FileUtilities.messageIntegrityMatchesDisk( path, message )
+            && message.length > Constants.CHUNK_SIZE )
         {
           info.incrementVersion();
           info.setLastModifiedDate( lastModifiedDate );
@@ -315,7 +315,7 @@ public class ChunkServer implements Node, Protocol {
    * 
    * @param request to forward
    */
-  private void forwardIncomingChunk(WriteChunkRequest request) {
+  private synchronized void forwardIncomingChunk(WriteChunkRequest request) {
     request.incrementReplicationPosition();
     if ( request.getReplicationPosition() < request.getRoutingPath().length )
     {

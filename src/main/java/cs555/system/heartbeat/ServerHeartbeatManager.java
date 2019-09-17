@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.TimerTask;
 import cs555.system.metadata.ServerMetadata;
 import cs555.system.transport.TCPConnection;
+import cs555.system.util.ConnectionUtilities;
 import cs555.system.util.Logger;
 
 /**
@@ -21,6 +22,8 @@ public class ServerHeartbeatManager extends TimerTask {
 
   private final TCPConnection controllerConnection;
 
+  private final ConnectionUtilities cachedConnections;
+
   private final ServerMetadata metadata;
 
   private int counter;
@@ -29,11 +32,13 @@ public class ServerHeartbeatManager extends TimerTask {
    * Default constructor -
    * 
    * @param controllerConnection
+   * @param cachedConnections
    * @param metadata
    */
   public ServerHeartbeatManager(TCPConnection controllerConnection,
-      ServerMetadata metadata) {
+      ConnectionUtilities cachedConnections, ServerMetadata metadata) {
     this.controllerConnection = controllerConnection;
+    this.cachedConnections = cachedConnections;
     this.metadata = metadata;
     this.counter = 0;
   }
@@ -59,5 +64,6 @@ public class ServerHeartbeatManager extends TimerTask {
           "Unable to send heartbeat message to controller. " + e.getMessage() );
       e.printStackTrace();
     }
+    cachedConnections.closeCachedConnections();
   }
 }

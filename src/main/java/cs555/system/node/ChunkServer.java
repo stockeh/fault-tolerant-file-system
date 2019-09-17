@@ -48,6 +48,8 @@ public class ChunkServer implements Node, Protocol {
 
   private TCPConnection controllerConnection;
 
+  private final ConnectionUtilities cachedConnections;
+
   private final ServerMetadata metadata;
 
   private String host;
@@ -64,6 +66,7 @@ public class ChunkServer implements Node, Protocol {
    */
   private ChunkServer(String host, int port) {
     this.metadata = new ServerMetadata( host + ":" + Integer.toString( port ) );
+    this.cachedConnections = new ConnectionUtilities();
     this.host = host;
     this.port = port;
   }
@@ -107,7 +110,7 @@ public class ChunkServer implements Node, Protocol {
 
       ServerHeartbeatManager serverHeartbeatManager =
           new ServerHeartbeatManager( node.controllerConnection,
-              node.metadata );
+              node.cachedConnections, node.metadata );
       Timer timer = new Timer();
       final int interval = 30 * 1000; // 30 seconds in milliseconds
       timer.schedule( serverHeartbeatManager, 1000, interval );
@@ -205,8 +208,9 @@ public class ChunkServer implements Node, Protocol {
       {
         String[] destination =
             redirectRequest.getDestinationDetails().split( ":" );
-        TCPConnection connection = ConnectionUtilities.establishConnection(
-            this, destination[ 0 ], Integer.parseInt( destination[ 1 ] ) );
+
+        TCPConnection connection =
+            cachedConnections.cacheConnection( this, destination, false );
 
         ChunkInformation info =
             metadata.getChunkInformation( filename, sequence );
@@ -219,8 +223,8 @@ public class ChunkServer implements Node, Protocol {
             .setReplicationPosition( redirectRequest.getReplicationPosition() );
 
         connection.getTCPSender().sendData( writeRequest.getBytes() );
-        connection.close();
-      } catch ( NumberFormatException | IOException | InterruptedException e )
+        cachedConnections.setAbleToClear( true );
+      } catch ( NumberFormatException | IOException e )
       {
         LOG.error( "Unable to forward the request for " + filename + ", "
             + e.getMessage() );
@@ -320,13 +324,13 @@ public class ChunkServer implements Node, Protocol {
         String[] nextChunkServer =
             request.getRoutingPath()[ request.getReplicationPosition() ]
                 .split( ":" );
+
         TCPConnection connection =
-            ConnectionUtilities.establishConnection( this, nextChunkServer[ 0 ],
-                Integer.parseInt( nextChunkServer[ 1 ] ) );
+            cachedConnections.cacheConnection( this, nextChunkServer, false );
 
         connection.getTCPSender().sendData( request.getBytes() );
-        connection.close();
-      } catch ( NumberFormatException | IOException | InterruptedException e )
+        cachedConnections.setAbleToClear( true );
+      } catch ( NumberFormatException | IOException e )
       {
         LOG.error( "Unable to forward the request for " + request.getFilename()
             + ", " + e.getMessage() );

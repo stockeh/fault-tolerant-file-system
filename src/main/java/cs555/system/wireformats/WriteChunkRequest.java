@@ -146,7 +146,7 @@ public class WriteChunkRequest implements Event {
   public byte[] getMessage(int index) {
     return message[ index ];
   }
-  
+
   /**
    * 
    * @return the time in milliseconds the <b>file</b> was last modified
@@ -189,8 +189,29 @@ public class WriteChunkRequest implements Event {
     this.message = message;
   }
 
+  /**
+   * Update the routing information
+   * 
+   * @param routes
+   */
+  public void setRoutes(String[] routes) {
+    this.routes = routes;
+  }
+
+  /**
+   * 
+   * @param replicationPosition
+   */
   public void setReplicationPosition(int replicationPosition) {
     this.replicationPosition = replicationPosition;
+  }
+
+  /**
+   * 
+   * @param sequence
+   */
+  public void setSequence(int sequence) {
+    this.sequence = sequence;
   }
 
   /**
@@ -257,5 +278,4 @@ public class WriteChunkRequest implements Event {
         + ", routes: " + Arrays.toString( routes ) + ", msg len: "
         + message.length + ", last modified: " + lastModifiedDate;
   }
-
 }

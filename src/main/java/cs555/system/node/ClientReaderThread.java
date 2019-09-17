@@ -122,6 +122,7 @@ public class ClientReaderThread implements Runnable {
     }
     LOG.info( "Finished reading file at "
         + sdf.format( System.currentTimeMillis() ) + "\n" );
+    connections.setAbleToClear( true );
     connections.closeCachedConnections();
   }
 

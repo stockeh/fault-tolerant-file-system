@@ -13,3 +13,6 @@ build
 .settings/
 *.class
 /bin/
+
+# Ingore Jupyter Notebook
+.ipynb_checkpoints

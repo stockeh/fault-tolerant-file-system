@@ -36,7 +36,7 @@ In this scheme of erasure coding, individual chunks are broken it into **k** *pr
 
 To better understand the use case for the two fault tolerance schemas, a notebook was written to contrast the storage efficiency, CPU and memory utilization percentage of an experiment for both designs.  
 
-For more details, refer to the [ [pdf](https://github.com/stockeh/fault-tolerant-file-system/blob/master/notebooks/Fault%20Tolerance%20Metric%20Analysis.ipynb) | [notebook](https://github.com/stockeh/fault-tolerant-file-system/blob/master/notebooks/Fault%20Tolerance%20Metric%20Analysis.pdf) ].
+For more details, refer to the [ [pdf](https://github.com/stockeh/fault-tolerant-file-system/blob/master/notebooks/Fault%20Tolerance%20Metric%20Analysis.pdf) | [notebook](https://github.com/stockeh/fault-tolerant-file-system/blob/master/notebooks/Fault%20Tolerance%20Metric%20Analysis.ipynb) ].
 
 ## System Invocation
 

@@ -77,6 +77,14 @@ public class ServerMetadata {
   public void incrementNumberOfChunks() {
     numberOfChunks.incrementAndGet();
   }
+  
+  /**
+   * Decrement the <b>number of chunks</b> for a given chunk server.
+   * 
+   */
+  public void decrementNumberOfChunks() {
+    numberOfChunks.getAndDecrement();
+  }
 
   /**
    * Update metadata associated with a file <b>only</b> when an
@@ -175,6 +183,7 @@ public class ServerMetadata {
     {
       return false;
     }
+    decrementNumberOfChunks();
     return info.removeIf(o -> o.getSequence() == sequence);
   }
 

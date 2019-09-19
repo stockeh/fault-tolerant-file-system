@@ -100,17 +100,19 @@ public class ControllerMetadata {
    * @param filelength
    * @param numberOfChunks that make up the file
    * @param sequence
-   * 
-   * @return true if the file is original, false otherwise
    */
-  public boolean addFile(String filename, int filelength, int numberOfChunks,
+  public void addFile(String filename, int filelength, int numberOfChunks,
       int sequence) {
     FileInformation info = files.get( filename );
     if ( info == null )
     {
       files.put( filename, new FileInformation( filelength, numberOfChunks ) );
-      return true;
-    } else if ( info != null && sequence == 0 )
+      return;
+    } else if ( info.isOriginalFile() && sequence == 0 )
+    {
+      info.setIsOriginalFile( false );
+    }
+    if ( !info.isOriginalFile() && filelength > info.getFilelength() )
     {
       FileInformation oldFileInformation = files.remove( filename );
       String[][] oldChunkLocations = oldFileInformation.getChunks();
@@ -125,9 +127,7 @@ public class ControllerMetadata {
           newFileLocations[ i ][ j ] = oldChunkLocations[ i ][ j ];
         }
       }
-      info.setIsOriginalFile( false );
     }
-    return info.isOriginalFile();
   }
 
   /**
@@ -274,31 +274,30 @@ public class ControllerMetadata {
    * @param filename is the name of the file that will be added to the
    *        server information for each chunk.
    * @param sequence
-   * @param isOriginalFile computes the list of new chunk servers to
-   *        write too, otherwise will retrieve the existing server
-   *        locations
-   * 
    * @return a list of chunk servers for the client to send data too
    */
-  public synchronized String[] getChunkServers(String filename, int sequence,
-      boolean isOriginalFile) {
+  public synchronized String[] getChunkServers(String filename, int sequence) {
 
-    FileInformation information = files.get( filename );
-    if ( information != null )
+    FileInformation info = files.get( filename );
+    if ( info != null )
     {
-      String[] chunkLocations = information.getChunks()[ sequence ];
+      String[] chunkLocations = info.getChunks()[ sequence ];
 
-      boolean nonNullLocation =
-          Arrays.stream( chunkLocations ).allMatch( Objects::nonNull );
-
-      if ( !isOriginalFile && nonNullLocation )
+      if ( !info.isOriginalFile() )
       {
-        LOG.debug( "Forwarding existing chunk information." );
-        return chunkLocations;
-      } else if ( !isOriginalFile && sequence == 0 )
-      { // the case where the file is not original, but the chunk locations
-        // have null entries since no heartbeats were received yet.
-        return null;
+        boolean allLocationsNonNull =
+            Arrays.stream( chunkLocations ).allMatch( Objects::nonNull );
+
+        if ( allLocationsNonNull )
+        {
+          LOG.debug( "Forwarding existing chunk information." );
+          return chunkLocations;
+        } else if ( sequence == 0 )
+        {
+          // the case where the file is not original, but the chunk locations
+          // have null entries since no heartbeats were received yet.
+          return null;
+        }
       }
     }
     List<ServerInformation> list = new ArrayList<>( connections.values() );

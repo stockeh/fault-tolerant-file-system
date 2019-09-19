@@ -8,7 +8,6 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import cs555.system.exception.ClientWriteException;
 import cs555.system.transport.TCPConnection;
 import cs555.system.util.ConnectionUtilities;
@@ -28,34 +27,25 @@ import cs555.system.wireformats.WriteFileResponse;
  * @author stock
  *
  */
-public class ClientSenderThread implements Runnable {
+public class ClientSender {
 
   private static final Logger LOG = Logger.getInstance();
 
   private final Object lock;
 
-  private List<File> files;
-
   private final Client node;
 
   private String[][] routes;
 
-  private AtomicInteger totalReceived;
-
   private boolean ableToWrite;
-
-  private boolean running;
 
   /**
    * Default constructor -
    * 
    * @param node
    */
-  protected ClientSenderThread(Client node) {
+  protected ClientSender(Client node) {
     this.lock = new Object();
-    this.totalReceived = new AtomicInteger( 0 );
-    this.ableToWrite = true;
-    this.running = false;
     this.node = node;
   }
 
@@ -65,29 +55,10 @@ public class ClientSenderThread implements Runnable {
    * 
    */
   protected void unlock() {
-    totalReceived.set( 0 );
     synchronized ( lock )
     {
       lock.notify();
     }
-  }
-
-  /**
-   * Check if the thread is in a running state.
-   * 
-   * @return true if running, false otherwise
-   */
-  protected boolean isRunning() {
-    return this.running;
-  }
-
-  /**
-   * Set the files to process from the outbound directory.
-   * 
-   * @param files
-   */
-  protected void setFiles(List<File> files) {
-    this.files = files;
   }
 
   /**
@@ -97,10 +68,7 @@ public class ClientSenderThread implements Runnable {
    */
   protected void setRoutes(WriteFileResponse response) {
     routes[ response.getSequence() ] = response.getRoutingPath();
-    if ( totalReceived.incrementAndGet() == routes.length )
-    {
-      unlock();
-    }
+    unlock();
   }
 
   /**
@@ -114,7 +82,7 @@ public class ClientSenderThread implements Runnable {
       unlock();
     }
   }
-
+  
   /**
    * Iterate through the files and send them to the chunk servers a
    * chunk at a time. A request to the controller will provide details
@@ -122,17 +90,13 @@ public class ClientSenderThread implements Runnable {
    * 
    * @param files to send to the controller
    */
-  @Override
-  public void run() {
-    running = true;
-
+  public void send(List<File> files) {
     SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
-
     int numberOfFiles = files.size();
     LOG.info( "Started uploading " + numberOfFiles + " file(s) at "
         + sdf.format( System.currentTimeMillis() ) );
     ConnectionUtilities connections = new ConnectionUtilities();
-
+    
     for ( File file : files )
     {
       try ( InputStream is = new FileInputStream( file ) )
@@ -161,7 +125,6 @@ public class ClientSenderThread implements Runnable {
         + sdf.format( System.currentTimeMillis() ) + "\n" );
     connections.setAbleToClear( true );
     connections.closeCachedConnections();
-    running = false;
   }
 
   /**
@@ -194,57 +157,36 @@ public class ClientSenderThread implements Runnable {
     int filelength = ( int ) file.length();
     int numberOfChunks =
         ( int ) Math.ceil( ( double ) filelength / Constants.CHUNK_SIZE );
-
+    
+    ableToWrite = true;
     routes = new String[ numberOfChunks ][];
 
-    WriteFileRequest request = new WriteFileRequest( file.getAbsolutePath(), 0,
-        filelength, numberOfChunks );
-    for ( int sequence = 0; sequence < numberOfChunks; ++sequence )
-    {
-      request.setSequence( sequence );
-      this.node.getControllerConnection().getTCPSender()
-          .sendData( request.getBytes() );
-    }
-    // wait for response from controller containing routing information.
-    synchronized ( lock )
-    {
-      lock.wait();
-    }
-    if ( !ableToWrite )
-    {
-      throw new ClientWriteException( "The controller has not"
-          + " received file chunk locations for the original file yet." );
-    }
-    sendWriteChunkRequest( file, is, connections, numberOfChunks );
-  }
-
-  /**
-   * Send the individual chunks to only the initial destination for each
-   * chunk / fragment.
-   * 
-   * The metadata is set with temporary version number ( the server will
-   * detect the difference and update if necessary )
-   * 
-   * @param file
-   * @param is
-   * @param connections
-   * @param numberOfChunks
-   * @throws NumberFormatException
-   * @throws IOException
-   */
-  private void sendWriteChunkRequest(File file, InputStream is,
-      ConnectionUtilities connections, int numberOfChunks)
-      throws NumberFormatException, IOException {
     byte[] message = new byte[ Constants.CHUNK_SIZE ];
 
     ProgressBar progress = new ProgressBar( file.getName() );
 
-    WriteChunkRequest request = new WriteChunkRequest( file.getAbsolutePath(),
-        0, null, file.lastModified(), 1, null );
+    WriteFileRequest writeFileRequest = new WriteFileRequest(
+        file.getAbsolutePath(), 0, filelength, numberOfChunks );
+    WriteChunkRequest writeChunkRequest = new WriteChunkRequest(
+        file.getAbsolutePath(), 0, null, file.lastModified(), 1, null );
 
     int sequence = 0, length = 0;
     while ( ( length = is.read( message ) ) != -1 )
     {
+      writeFileRequest.setSequence( sequence );
+      this.node.getControllerConnection().getTCPSender()
+          .sendData( writeFileRequest.getBytes() );
+      // wait for response from controller containing routing information.
+      synchronized ( lock )
+      {
+        lock.wait();
+      }
+      if ( !ableToWrite )
+      {
+        throw new ClientWriteException( "The controller has not"
+            + " received file chunk locations for the original file yet." );
+      }
+
       // Only send to the first connection, whom will forward the rest
       String[] initialConnection = routes[ sequence ][ 0 ].split( ":" );
       TCPConnection connection =
@@ -257,14 +199,13 @@ public class ClientSenderThread implements Runnable {
       {
         messageToSend = ReedSolomonUtilities.encode( message );
       }
-      request.setMessage( messageToSend );
-      request.setRoutes( routes[ sequence ] );
-      request.setSequence( sequence );
-      connection.getTCPSender().sendData( request.getBytes() );
+      writeChunkRequest.setMessage( messageToSend );
+      writeChunkRequest.setRoutes( routes[ sequence ] );
+      writeChunkRequest.setSequence( sequence );
+      connection.getTCPSender().sendData( writeChunkRequest.getBytes() );
 
       progress.update( sequence, numberOfChunks );
       ++sequence;
     }
   }
-
 }

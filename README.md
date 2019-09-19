@@ -2,7 +2,7 @@
 
 **A Distributed, Replicated, and Fault Tolerant File System: Contrasting Replication and Erasure Coding**
 
-This project introduces a distributed, failure-resilient file system. The fault tolerance for files is achieved using two techniques: replication and erasure coding.
+This project introduces a distributed, failure-resilient file system. The fault tolerance for files is achieved using two techniques: replication and erasure coding. In addition, the trade-off space involving these techniques are contrasted.
 
 There are three fundimental components within this application, including:
 * *Chunk server* responsible for managing file chunks and fragments. There will be one instance of the chunk server running on each machine.
@@ -10,6 +10,8 @@ There are three fundimental components within this application, including:
 * *Client* which is responsible for storing, retrieving, and updating files in the system. The client is responsible for splitting a file into chunks and assembling the file back using chunks during retrieval.
 
 ![](media/architectural-design.png)
+
+## Overview
 
 ### Replications
 Every file that will be stored in this file system will be split into 64KB chunks with a replication factor of three. These chunks need to be distributed on a set of available chunk servers. Each 64KB chunk keeps track of its own integrity, by maintaining checksums for 8KB slices of the chunk. The message digest algorithm to be used for computing this checksum is SHA-1. Individual chunks are stored as regular files on under `/tmp` on the host file system under.  
@@ -29,6 +31,14 @@ The controller will send regular health checks to each of the chunk servers to d
 The storage requirements in a replication-based setting increase proportional to the number of replicas. Erasure coding offers an alternative to achieve the same degree of redundancy without the corresponding increase in storage costs.  
 
 In this scheme of erasure coding, individual chunks are broken it into **k** *primary shards*, erasure coded and expanded into **n** *parity shards* using Reed-Solomon algorithm. Thereafter, the fragments are stored across the available chunk servers. Note that **n** must be greater than **k**; furthermore, **m=n-k** is the *degree of redundancy* since any of the **k** fragments can be used to reconstitute the chunk. For the purposes of this assignment, we will work with **k=6** and **m=3**.  
+
+### Evaluation
+
+To better understand the use case for the two fault tolerance schemas, a notebook was written to contrast the storage efficiency, CPU and memory utilization percentage of an experiment for both designs.  
+
+For more details, refer to the [ [pdf](https://github.com/stockeh/fault-tolerant-file-system/blob/master/media/Fault%20Tolerance%20Metric%20Analysis.pdf) | [notebook](https://github.com/stockeh/fault-tolerant-file-system/blob/master/media/Fault%20Tolerance%20Metric%20Analysis.ipynb) ].
+
+## System Invocation
 
 ### Configuration
 The `conf/` directory holds the application properties and machine lists for starting up all of the chunk servers. These properties include:

@@ -101,14 +101,14 @@ public class ControllerMetadata {
    * @param numberOfChunks that make up the file
    * @param sequence
    */
-  public void addFile(String filename, int filelength, int numberOfChunks,
+  public synchronized void addFile(String filename, int filelength, int numberOfChunks,
       int sequence) {
     FileInformation info = files.get( filename );
     if ( info == null )
     {
-      files.put( filename, new FileInformation( filelength, numberOfChunks ) );
+      files.put( filename, new FileInformation( filelength, numberOfChunks, true ) );
       return;
-    } else if ( info.isOriginalFile() && sequence == 0 )
+    } else if ( info != null && info.isOriginalFile() && sequence == 0 )
     {
       info.setIsOriginalFile( false );
     }
@@ -117,7 +117,7 @@ public class ControllerMetadata {
       FileInformation oldFileInformation = files.remove( filename );
       String[][] oldChunkLocations = oldFileInformation.getChunks();
 
-      files.put( filename, new FileInformation( filelength, numberOfChunks ) );
+      files.put( filename, new FileInformation( filelength, numberOfChunks, false ) );
       String[][] newFileLocations = files.get( filename ).getChunks();
 
       for ( int i = 0; i < oldChunkLocations.length; i++ )
@@ -394,12 +394,13 @@ public class ControllerMetadata {
      * 
      * @param filelength
      * @param numberOfChunks
+     * @param isOriginalFile 
      */
-    private FileInformation(int filelength, int numberOfChunks) {
+    private FileInformation(int filelength, int numberOfChunks, boolean isOriginalFile) {
       this.chunks =
           new String[ numberOfChunks ][ Constants.NUMBER_OF_REPLICATIONS ];
       this.filelenth = filelength;
-      this.isOriginalFile = true;
+      this.isOriginalFile = isOriginalFile;
     }
 
     /**

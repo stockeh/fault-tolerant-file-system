@@ -91,7 +91,6 @@ public class ClientReaderThread implements Runnable {
     SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
     LOG.info(
         "Started reading file at " + sdf.format( System.currentTimeMillis() ) );
-    LOG.info( "Reading..." );
     String[][] chunkServers = readFileResponse.getChunks();
     ConnectionUtilities connections = new ConnectionUtilities();
 

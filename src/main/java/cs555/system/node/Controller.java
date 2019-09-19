@@ -306,15 +306,13 @@ public class Controller implements Node {
    * @param event the object containing node details
    * @param connection the connection details, i.e., TCPSender
    */
-  private synchronized void writeFileRequestHandler(Event event, TCPConnection connection) {
+  private synchronized void writeFileRequestHandler(Event event,
+      TCPConnection connection) {
     WriteFileRequest request = ( WriteFileRequest ) event;
-
-    boolean isOriginalFile =
-        metadata.addFile( request.getFilename(), request.getFilelength(),
-            request.getNumberOfChunks(), request.getSequence() );
+    metadata.addFile( request.getFilename(), request.getFilelength(),
+        request.getNumberOfChunks(), request.getSequence() );
     String[] serversToConnect = metadata.getChunkServers( request.getFilename(),
-        request.getSequence(), isOriginalFile );
-    // All heartbeats been received for sequence 0.
+        request.getSequence() );
     WriteFileResponse response =
         new WriteFileResponse( serversToConnect, request.getSequence() );
     try

@@ -53,7 +53,7 @@ public class Client implements Node {
 
   private final Map<String, ClientReaderThread> readers;
 
-  private ClientSenderThread sender;
+  private ClientSender sender;
 
   private TCPConnection controllerConnection;
 
@@ -74,7 +74,6 @@ public class Client implements Node {
   private Client(String host, int port) {
     this.readers = new HashMap<>();
     this.metadata = new ClientMetadata();
-    this.sender = null;
     this.host = host;
     this.port = port;
   }
@@ -120,8 +119,8 @@ public class Client implements Node {
       node.controllerConnection = ConnectionUtilities.registerNode( node,
           Constants.CLIENT_ID, Properties.CONTROLLER_HOST,
           Integer.valueOf( Properties.CONTROLLER_PORT ) );
-
-      node.sender = new ClientSenderThread( node );
+      node.sender = new ClientSender( node );
+      
       node.interact();
     } catch ( IOException e )
     {
@@ -149,14 +148,7 @@ public class Client implements Node {
         case UPLOAD :
           try
           {
-            if ( sender == null || !sender.isRunning() )
-            {
-              uploadFiles();
-            } else
-            {
-              LOG.info(
-                  "Files are currently being uploaded. Await completion before restarting." );
-            }
+            uploadFiles();
           } catch ( IOException e )
           {
             LOG.error(
@@ -164,7 +156,6 @@ public class Client implements Node {
                     + e.getMessage() );
             ConnectionUtilities.unregisterNode( this, Constants.CLIENT_ID,
                 controllerConnection );
-            running = false;
           }
           break;
 
@@ -260,10 +251,10 @@ public class Client implements Node {
     {
       LOG.info( "There are no files to upload in "
           + Properties.CLIENT_OUTBOUND_DIRECTORY );
-      return;
+    } else
+    {
+      sender.send( files );
     }
-    sender.setFiles( files );
-    ( new Thread( sender, "Client Sender" ) ).start();
   }
 
   /**

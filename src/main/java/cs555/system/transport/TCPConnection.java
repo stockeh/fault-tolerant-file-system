@@ -2,7 +2,6 @@ package cs555.system.transport;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.concurrent.TimeUnit;
 import cs555.system.node.Node;
 
 /**
@@ -22,7 +21,8 @@ public class TCPConnection {
 
   /**
    * Default constructor - create a new TCPConnection given a Node,
-   * i.e., chunk server or controller, and the socket for the connection.
+   * i.e., chunk server or controller, and the socket for the
+   * connection.
    * 
    * @param node
    * @param socket
@@ -63,14 +63,12 @@ public class TCPConnection {
   }
 
   /**
-   * Close the socket sender and receiver. Use a one second wait to
-   * ensure all remaining messages are sent.
+   * Close the socket sender and receiver.
    * 
    * @throws IOException
    * @throws InterruptedException
    */
-  public void close() throws IOException, InterruptedException {
-    TimeUnit.SECONDS.sleep( 1 );
+  public void close() throws IOException {
     this.socket.close();
     this.sender.dout.close();
     this.receiver.din.close();

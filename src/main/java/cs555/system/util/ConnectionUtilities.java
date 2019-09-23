@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import cs555.system.node.Node;
 import cs555.system.transport.TCPConnection;
 import cs555.system.wireformats.Protocol;
@@ -53,49 +54,66 @@ public class ConnectionUtilities {
    * @throws IOException
    * @throws NumberFormatException
    */
-  public TCPConnection cacheConnection(Node node,
-      String[] initialConnection, boolean startConnection)
-      throws NumberFormatException, IOException {
+  public TCPConnection cacheConnection(Node node, String[] initialConnection,
+      boolean startConnection) throws NumberFormatException, IOException {
     ableToClear = false;
     String connectionDetails =
         ( new StringBuilder() ).append( initialConnection[ 0 ] ).append( ":" )
             .append( initialConnection[ 1 ] ).toString();
 
     TCPConnection connection;
-    if ( temporaryConnections.containsKey( connectionDetails ) )
+    synchronized ( temporaryConnections )
     {
-      connection = temporaryConnections.get( connectionDetails );
-    } else
-    {
-      connection = ConnectionUtilities.establishConnection( node,
-          initialConnection[ 0 ], Integer.parseInt( initialConnection[ 1 ] ) );
-      temporaryConnections.put( connectionDetails, connection );
-      if ( startConnection )
+      if ( temporaryConnections.containsKey( connectionDetails ) )
       {
-        connection.start();
+        connection = temporaryConnections.get( connectionDetails );
+      } else
+      {
+        connection = ConnectionUtilities.establishConnection( node,
+            initialConnection[ 0 ],
+            Integer.parseInt( initialConnection[ 1 ] ) );
+        temporaryConnections.put( connectionDetails, connection );
+        if ( startConnection )
+        {
+          connection.start();
+        }
       }
     }
     return connection;
   }
 
   /**
-   * Close and remove all temporary connections.
+   * Close and remove all temporary connections. Sleep 1 second to make
+   * sure all messages have been delivered.
    * 
    */
   public void closeCachedConnections() {
     if ( ableToClear )
     {
-      temporaryConnections.forEach( (k, v) ->
+      synchronized ( temporaryConnections )
       {
         try
         {
-          v.close();
-        } catch ( IOException | InterruptedException e )
+          TimeUnit.SECONDS.sleep( 1 );
+        } catch ( InterruptedException e1 )
         {
-          LOG.error( "Unable to close the connection for " + k );
+          LOG.error(
+              "Unable to sleep before closing connections " + e1.getMessage() );
+          e1.printStackTrace();
         }
-      } );
-      temporaryConnections.clear();
+        temporaryConnections.forEach( (k, v) ->
+        {
+          try
+          {
+            v.close();
+          } catch ( IOException e )
+          {
+            LOG.error( "Unable to close the connection for " + k + ", "
+                + e.getMessage() );
+          }
+        } );
+        temporaryConnections.clear();
+      }
     }
   }
 
@@ -168,7 +186,7 @@ public class ConnectionUtilities {
       controllerConnection.getTCPSender()
           .sendData( registerRequest.getBytes() );
       controllerConnection.close();
-    } catch ( IOException | InterruptedException e )
+    } catch ( IOException e )
     {
       LOG.error( e.getMessage() );
       e.printStackTrace();

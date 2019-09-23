@@ -194,7 +194,7 @@ public class ChunkServer implements Node, Protocol {
    * 
    * @param event
    */
-  private void redirectChunkHandler(Event event) {
+  private synchronized void redirectChunkHandler(Event event) {
     RedirectChunkRequest redirectRequest = ( RedirectChunkRequest ) event;
     String filename = redirectRequest.getFilename();
     int sequence = redirectRequest.getSequence();

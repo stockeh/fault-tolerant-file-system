@@ -39,7 +39,7 @@ public class ClientSender {
   private String[][] routes;
 
   private boolean ableToWrite;
-
+  
   private AtomicInteger totalReceived;
 
   /**
@@ -59,7 +59,6 @@ public class ClientSender {
    * 
    */
   protected void unlock() {
-    totalReceived.set( 0 );
     synchronized ( lock )
     {
       lock.notify();
@@ -73,7 +72,7 @@ public class ClientSender {
    */
   protected void setRoutes(WriteFileResponse response) {
     routes[ response.getSequence() ] = response.getRoutingPath();
-    if ( totalReceived.incrementAndGet() == routes.length )
+    if ( ableToWrite && totalReceived.incrementAndGet() == routes.length )
     {
       unlock();
     }
@@ -84,7 +83,10 @@ public class ClientSender {
    * @param ableToUpdate
    */
   protected synchronized void setAbleToWrite(boolean ableToWrite) {
-    this.ableToWrite = ableToWrite;
+    if ( this.ableToWrite )
+    {
+      this.ableToWrite = ableToWrite;
+    }
     if ( !this.ableToWrite )
     {
       unlock();
@@ -107,6 +109,8 @@ public class ClientSender {
 
     for ( File file : files )
     {
+      ableToWrite = true;
+      totalReceived.set( 0 );
       try ( InputStream is = new FileInputStream( file ) )
       {
         processIndividualFile( file, is, connections );
@@ -114,8 +118,6 @@ public class ClientSender {
       {
         LOG.error( "Unable to process the file " + file.getName() + ". "
             + e.getMessage() );
-        ableToWrite = true;
-        --numberOfFiles;
         try
         { // sleep to allow stale messages to be send before reading next file
           TimeUnit.SECONDS.sleep( 1 );
@@ -123,6 +125,7 @@ public class ClientSender {
         {
           LOG.error( e0.getMessage() );
         }
+        --numberOfFiles;
       } catch ( InterruptedException e )
       {
         LOG.error( e.getMessage() );
@@ -166,7 +169,6 @@ public class ClientSender {
     int numberOfChunks =
         ( int ) Math.ceil( ( double ) filelength / Constants.CHUNK_SIZE );
 
-    ableToWrite = true;
     routes = new String[ numberOfChunks ][];
 
     WriteFileRequest request = new WriteFileRequest( file.getAbsolutePath(), 0,
@@ -189,7 +191,7 @@ public class ClientSender {
     }
     sendWriteChunkRequest( file, is, connections, numberOfChunks );
   }
-  
+
   /**
    * Send the individual chunks to only the initial destination for each
    * chunk / fragment.
@@ -237,5 +239,6 @@ public class ClientSender {
       progress.update( sequence, numberOfChunks );
       ++sequence;
     }
-  }  
+  }
+
 }

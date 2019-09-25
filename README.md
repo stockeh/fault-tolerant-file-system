@@ -2,7 +2,7 @@
 
 **A Distributed, Replicated, and Fault Tolerant File System: Contrasting Replication and Erasure Coding**
 
-This project introduces a distributed, failure-resilient file system. The fault tolerance for files is achieved using two techniques: replication and erasure coding. In addition, the trade-off space involving these techniques are contrasted.
+This project introduces a distributed, failure-resilient file system where fault tolerance for files is achieved using two techniques: replication and erasure coding. These techniques and their trade-off space is contrasted to understand their individual use case.
 
 There are three fundimental components within this application, including:
 * *Chunk server* responsible for managing file chunks and fragments. There will be one instance of the chunk server running on each machine.
